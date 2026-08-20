@@ -1,0 +1,446 @@
+// SlabMaster Multi-Tenant Relational Schema (MySQL / SQLite / PostgreSQL compliant)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// 1. SUBSCRIBER TENANTS (SaaS Customer Organizations with Base64 Logo Storage)
+model SubscriberTenant {
+  id              String         @id @default(uuid()) @map("tenant_id")
+  companyName     String         @map("company_name")
+  tenantDomain    String         @unique @map("tenant_domain")
+  logoData        String?        @db.LongText @map("logo_data") // Base64 image data
+  authProvider    AuthProvider   @default(EMAIL_PASSWORD) @map("auth_provider")
+  entraTenantId   String?        @map("entra_tenant_id")
+  entraClientId   String?        @map("entra_client_id")
+  isActive        Boolean        @default(true) @map("is_active")
+  createdAt       DateTime       @default(now()) @map("created_at")
+
+  regions         Region[]
+  accounts        Account[]
+  communities     Community[]
+  lots            Lot[]
+  jobs            Job[]
+  activities      JobActivity[]
+  users           User[]
+  builderForms    BuilderFormTemplate[]
+  holidays        CompanyHoliday[]
+  changeLogs      ChangeLog[]
+  files           JobFile[]
+  issues          JobIssue[]
+
+  @@map("subscriber_tenants")
+}
+
+enum AuthProvider {
+  EMAIL_PASSWORD
+  ENTRA_ID
+  HYBRID
+}
+
+// 2. REGIONS (Geographic operations per subscriber)
+model Region {
+  id              String           @id @default(uuid()) @map("region_id")
+  tenantId        String           @map("tenant_id")
+  regionName      String           @map("region_name")
+  regionCode      String           @map("region_code")
+  timeZone        String           @default("America/Phoenix") @map("time_zone")
+  isDefault       Boolean          @default(false) @map("is_default")
+  isShutdown      Boolean          @default(false) @map("is_shutdown")
+  status          RegionStatus     @default(ACTIVE) @map("status")
+  createdAt       DateTime         @default(now()) @map("created_at")
+
+  tenant          SubscriberTenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  communities     Community[]
+  lots            Lot[]
+  jobs            Job[]
+  userRegions     UserRegion[]
+  assignees       Assignee[]
+
+  @@map("regions")
+}
+
+enum RegionStatus {
+  ACTIVE
+  SHUTDOWN
+}
+
+// 3. BUILDER ACCOUNTS (Customer Builders under Subscriber)
+model Account {
+  id              String           @id @default(uuid()) @map("account_id")
+  tenantId        String           @map("tenant_id")
+  externalId      String?          @map("external_id")
+  accountName     String           @map("account_name")
+  accountCode     String?          @map("account_code")
+  billingAddress1 String?          @map("billing_address_1")
+  billingCity     String?          @map("billing_city")
+  billingState    String?          @map("billing_state")
+  billingZip      String?          @map("billing_zip")
+  createdAt       DateTime         @default(now()) @map("created_at")
+
+  tenant          SubscriberTenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  communities     Community[]
+  lots            Lot[]
+  jobs            Job[]
+  contacts        Contact[]
+  builderForms    BuilderFormTemplate[]
+
+  @@index([tenantId, externalId])
+  @@map("accounts")
+}
+
+// 4. COMMUNITIES (Subdivisions / Development Sites)
+model Community {
+  id                  String           @id @default(uuid()) @map("community_id")
+  tenantId            String           @map("tenant_id")
+  accountId           String           @map("account_id")
+  regionId            String           @map("region_id")
+  externalId          String?          @map("external_id")
+  communityName       String           @map("community_name")
+  siteAddress1        String?          @map("site_address_1")
+  siteCity            String?          @map("site_city")
+  siteState           String?          @map("site_state")
+  siteZip             String?          @map("site_zip")
+  superintendentName  String?          @map("superintendent_name")
+  superintendentPhone String?          @map("superintendent_phone")
+  superintendentEmail String?          @map("superintendent_email")
+  createdAt           DateTime         @default(now()) @map("created_at")
+
+  tenant              SubscriberTenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  account             Account          @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  region              Region           @relation(fields: [regionId], references: [id])
+  lots                Lot[]
+  jobs                Job[]
+  contacts            Contact[]
+
+  @@index([tenantId, externalId])
+  @@map("communities")
+}
+
+// 5. LOTS (Physical Real Estate Lots / Units inside a Community)
+model Lot {
+  id              String           @id @default(uuid()) @map("lot_id")
+  tenantId        String           @map("tenant_id")
+  communityId     String           @map("community_id")
+  accountId       String           @map("account_id")
+  regionId        String           @map("region_id")
+  externalId      String?          @map("external_id")
+  lotNumber       String           @map("lot_number")
+  streetAddress   String?          @map("street_address")
+  elevationPlan   String?          @map("elevation_plan")
+  createdAt       DateTime         @default(now()) @map("created_at")
+
+  tenant          SubscriberTenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  community       Community        @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  account         Account          @relation(fields: [accountId], references: [id])
+  region          Region           @relation(fields: [regionId], references: [id])
+  jobs            Job[]
+
+  @@index([tenantId, externalId])
+  @@map("lots")
+}
+
+// 6. JOBS (Work Orders / Orders linked to a Lot; 1 Lot -> Many Jobs)
+model Job {
+  id                Int              @id @default(autoincrement()) @map("job_id")
+  jobUuid           String           @unique @default(uuid()) @map("job_uuid")
+  tenantId          String           @map("tenant_id")
+  regionId          String           @map("region_id")
+  accountId         String           @map("account_id")
+  communityId       String           @map("community_id")
+  lotId             String           @map("lot_id")
+  externalId        String?          @map("external_id")
+  jobName           String           @map("job_name")
+  jobCategory       JobCategory      @default(INITIAL_INSTALL) @map("job_category")
+  processType       ProcessType      @default(Lead) @map("process_type")
+  status            JobStatus        @default(Active) @map("status")
+  salespersonUserId String?          @map("salesperson_user_id")
+  salespersonName   String?          @map("salesperson_name")
+  projectNumber     String?          @map("project_number")
+  salesOrderNumber  String?          @map("sales_order_number")
+  builderPhase      String?          @map("builder_phase")
+  planNumber        String?          @map("plan_number")
+  fieldSuper        String?          @map("field_super")
+  fieldManager      String?          @map("field_manager")
+  accountExecutive  String?          @map("account_executive")
+  accountManager    String?          @map("account_manager")
+  designer          String?          @map("designer")
+  jobNotes          String?          @map("job_notes")
+  targetInstallDate DateTime?        @map("target_install_date")
+  createdAt         DateTime         @default(now()) @map("created_at")
+  closedAt          DateTime?        @map("closed_at")
+
+  tenant            SubscriberTenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  region            Region           @relation(fields: [regionId], references: [id])
+  account           Account          @relation(fields: [accountId], references: [id])
+  community         Community        @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  lot               Lot              @relation(fields: [lotId], references: [id], onDelete: Cascade)
+  activities        JobActivity[]
+  files             JobFile[]
+  issues            JobIssue[]
+
+  @@index([tenantId, externalId])
+  @@map("jobs")
+}
+
+enum JobCategory {
+  INITIAL_INSTALL
+  ADD_ON
+  REWORK_WARRANTY
+  CUSTOMER_SERVICE
+}
+
+enum ProcessType {
+  Job
+  Lead
+}
+
+enum JobStatus {
+  Draft
+  Active
+  OnHold
+  Complete
+  Cancelled
+}
+
+// 7. ASSIGNEES (Physical Crews / Trucks / Saw lines)
+model Assignee {
+  id              String        @id @default(uuid()) @map("assignee_id")
+  regionId        String        @map("region_id")
+  name            String        @map("name")
+  colorHex        String        @default("#2A7BE4") @map("color_hex")
+  displayOrder    Int           @default(0) @map("display_order")
+  isActive        Boolean       @default(true) @map("is_active")
+
+  region          Region        @relation(fields: [regionId], references: [id], onDelete: Cascade)
+  activities      JobActivity[]
+  defaultTypes    ActivityType[]
+
+  @@map("assignees")
+}
+
+// 8. ACTIVITY TYPES & DEPENDENCIES
+model ActivityType {
+  id                String                 @id @default(uuid()) @map("activity_type_id")
+  name              String                 @map("name")
+  phase             String                 @default("STONE") @map("phase")
+  processType       ProcessType            @default(Job) @map("process_type")
+  colorHex          String                 @default("#4CAF50") @map("color_hex")
+  defaultStatus     ActivityStatus         @default(Tentative) @map("default_status")
+  defaultDuration   Int                    @default(120) @map("default_duration")
+  defaultAssigneeId String?                @map("default_assignee_id")
+  sequenceOrder     Int                    @default(0) @map("sequence_order")
+
+  defaultAssignee   Assignee?              @relation(fields: [defaultAssigneeId], references: [id])
+  activities        JobActivity[]
+  targetDeps        ActivityDependency[]   @relation("TargetActivity")
+  sourceDeps        ActivityDependency[]   @relation("SourceActivity")
+
+  @@map("activity_types")
+}
+
+model ActivityDependency {
+  id               String       @id @default(uuid()) @map("dependency_id")
+  targetActivityId String       @map("target_activity_id")
+  sourceActivityId String       @map("source_activity_id")
+  offsetDirection  OffsetDir    @default(After) @map("offset_direction")
+  offsetWorkdays   Int          @default(1) @map("offset_workdays")
+  applyReverse     Boolean      @default(false) @map("apply_reverse")
+
+  targetActivity   ActivityType @relation("TargetActivity", fields: [targetActivityId], references: [id])
+  sourceActivity   ActivityType @relation("SourceActivity", fields: [sourceActivityId], references: [id])
+
+  @@map("activity_dependencies")
+}
+
+enum OffsetDir {
+  Before
+  After
+}
+
+// 9. JOB ACTIVITIES (Instance tasks scheduled per Job with Phase & Sched Time)
+model JobActivity {
+  id             String         @id @default(uuid()) @map("job_activity_id")
+  tenantId       String         @map("tenant_id")
+  jobId          Int            @map("job_id")
+  activityTypeId String         @map("activity_type_id")
+  assigneeId     String?        @map("assignee_id")
+  externalId     String?        @map("external_id")
+  phase          String         @default("STONE") @map("phase")
+  status         ActivityStatus @default(Tentative) @map("status")
+  startDate      DateTime?      @map("start_date")
+  startTime      String?        @map("start_time")
+  durationMins   Int            @default(120) @map("duration_mins")
+  completedAt    DateTime?      @map("completed_at")
+  notes          String?        @map("notes")
+
+  tenant         SubscriberTenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  job            Job              @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  activityType   ActivityType     @relation(fields: [activityTypeId], references: [id])
+  assignee       Assignee?        @relation(fields: [assigneeId], references: [id])
+
+  @@index([tenantId, externalId])
+  @@map("job_activities")
+}
+
+enum ActivityStatus {
+  Tentative
+  Confirmed
+  AutoSchedule
+  Complete
+  Cancelled
+}
+
+// 10. COMPANY HOLIDAYS (Non-working calendar days for auto-scheduling)
+model CompanyHoliday {
+  id          String           @id @default(uuid()) @map("holiday_id")
+  tenantId    String           @map("tenant_id")
+  holidayName String           @map("holiday_name")
+  holidayDate DateTime         @map("holiday_date")
+  isRecurring Boolean          @default(true) @map("is_recurring")
+
+  tenant      SubscriberTenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@map("company_holidays")
+}
+
+// 11. CHANGE LOG / AUDIT TRAIL
+model ChangeLog {
+  id            String           @id @default(uuid()) @map("log_id")
+  tenantId      String           @map("tenant_id")
+  entityType    String           @map("entity_type")
+  entityId      String           @map("entity_id")
+  jobName       String?          @map("job_name")
+  accountName   String?          @map("account_name")
+  changedByName String           @default("Admin") @map("changed_by_name")
+  changeSummary String           @map("change_summary")
+  fieldName     String           @map("field_name")
+  oldValue      String?          @map("old_value")
+  newValue      String?          @map("new_value")
+  createdAt     DateTime         @default(now()) @map("created_at")
+
+  tenant        SubscriberTenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, entityType, entityId])
+  @@map("change_logs")
+}
+
+// 12. JOB FILES & ATTACHMENTS (Azure Blob Storage integration)
+model JobFile {
+  id          String           @id @default(uuid()) @map("file_id")
+  tenantId    String           @map("tenant_id")
+  jobId       Int              @map("job_id")
+  fileName    String           @map("file_name")
+  fileUrl     String           @map("file_url")
+  fileSize    Int              @default(0) @map("file_size")
+  fileType    String           @default("PDF") @map("file_type") // e.g. "PDF", "DXF", "IMAGE"
+  uploadedAt  DateTime         @default(now()) @map("uploaded_at")
+
+  tenant      SubscriberTenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  job         Job              @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@map("job_files")
+}
+
+// 13. JOB ISSUES / TICKETS
+model JobIssue {
+  id          String           @id @default(uuid()) @map("issue_id")
+  tenantId    String           @map("tenant_id")
+  jobId       Int              @map("job_id")
+  category    String           @map("category") // e.g. "Chip Repair", "Seam Adjustment"
+  description String           @map("description")
+  status      String           @default("Open") @map("status")
+  loggedAt    DateTime         @default(now()) @map("logged_at")
+  resolvedAt  DateTime?        @map("resolved_at")
+
+  tenant      SubscriberTenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  job         Job              @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@map("job_issues")
+}
+
+// 14. USERS & RBAC
+model User {
+  id               String         @id @default(uuid()) @map("user_id")
+  tenantId         String         @map("tenant_id")
+  email            String         @unique @map("email")
+  firstName        String         @map("first_name")
+  lastName         String?        @map("last_name")
+  isExternal       Boolean        @default(false) @map("is_external")
+  role             UserRole       @map("role")
+  entraOid         String?        @map("entra_oid")
+  passwordHash     String?        @map("password_hash")
+  invitedByUserId  String?        @map("invited_by_user_id")
+  inviteToken      String?        @map("invite_token")
+  inviteAcceptedAt DateTime?      @map("invite_accepted_at")
+  isActive         Boolean        @default(true) @map("is_active")
+  createdAt        DateTime       @default(now()) @map("created_at")
+
+  tenant           SubscriberTenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  invitedBy        User?            @relation("UserInvites", fields: [invitedByUserId], references: [id])
+  invitedUsers     User[]           @relation("UserInvites")
+  userRegions      UserRegion[]
+
+  @@map("users")
+}
+
+enum UserRole {
+  SYSTEM_ADMIN
+  SUBSCRIBER_ADMIN
+  INTERNAL_OFFICE_USER
+  INTERNAL_ESTIMATOR
+  EXTERNAL_CREW_ADMIN
+  EXTERNAL_FIELD_INSTALLER
+  EXTERNAL_SUBCONTRACTOR
+}
+
+model UserRegion {
+  userId   String @map("user_id")
+  regionId String @map("region_id")
+
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  region   Region @relation(fields: [regionId], references: [id], onDelete: Cascade)
+
+  @@id([userId, regionId])
+  @@map("user_regions")
+}
+
+// 15. BUILDER CUSTOM FORM TEMPLATES
+model BuilderFormTemplate {
+  id                     String           @id @default(uuid()) @map("template_id")
+  tenantId               String           @map("tenant_id")
+  accountId              String?          @map("account_id")
+  formName               String           @map("form_name")
+  formSchema             String           @map("form_schema")
+  isRequiredForCompletion Boolean         @default(false) @map("is_required_for_completion")
+  createdAt              DateTime         @default(now()) @map("created_at")
+
+  tenant                 SubscriberTenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  account                Account?         @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@map("builder_form_templates")
+}
+
+// 16. CONTACTS
+model Contact {
+  id           String    @id @default(uuid()) @map("contact_id")
+  accountId    String    @map("account_id")
+  communityId  String?   @map("community_id")
+  firstName    String    @map("first_name")
+  lastName     String?   @map("last_name")
+  title        String?   @map("title")
+  phonePrimary String?   @map("phone_primary")
+  phoneMobile  String?   @map("phone_mobile")
+  email        String?   @map("email")
+  isPrimary    Boolean   @default(false) @map("is_primary")
+
+  account      Account   @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  community    Community? @relation(fields: [communityId], references: [id], onDelete: SetNull)
+
+  @@map("contacts")
+}
