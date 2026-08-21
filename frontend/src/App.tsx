@@ -977,7 +977,7 @@ export default function App() {
   const [inviteSentSuccess, setInviteSentSuccess] = useState(false);
 
   // 14-Day Calendar Control State
-  const [centerDate, setCenterDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [centerDate, setCenterDate] = useState<string>('2026-07-20');
   const [calAccountFilter, setCalAccountFilter] = useState('All');
   const [calCommunityFilter, setCalCommunityFilter] = useState('All');
 
