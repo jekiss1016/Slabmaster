@@ -274,7 +274,7 @@ export default function App() {
   const [activeModal, setActiveModal] = useState<'none' | 'views' | 'customize' | 'save_view' | 'create'>('none');
   const [activeView, setActiveView] = useState('Standard View');
   const [accountView, setAccountView] = useState('All Active Accounts');
-  const [filters, setFilters] = useState<string[]>(['Job Status Is Active', 'Unscheduled']);
+  const [filters, setFilters] = useState<string[]>(['Job Status Is Active']);
   
   // Custom View Projections (Columns Visibility)
   const [visibleColumns, setVisibleColumns] = useState({
@@ -298,6 +298,19 @@ export default function App() {
   const [selectedJob, setSelectedJob] = useState<JobRow | null>(null);
   const [jobDetailOriginNav, setJobDetailOriginNav] = useState<'jobs' | 'calendar' | 'accounts' | 'community_detail'>('jobs');
   const [phaseFilter, setPhaseFilter] = useState<'ALL' | 'STONE' | 'CABINETRY'>('ALL');
+
+  // Job Info Editing Modal State
+  const [isEditingJobInfo, setIsEditingJobInfo] = useState(false);
+  const [editJobName, setEditJobName] = useState('');
+  const [editTargetInstallDate, setEditTargetInstallDate] = useState('');
+  const [editFieldSuper, setEditFieldSuper] = useState('');
+  const [editDesigner, setEditDesigner] = useState('');
+  const [editProjectNumber, setEditProjectNumber] = useState('');
+  const [editSalesOrderNumber, setEditSalesOrderNumber] = useState('');
+  const [editBuilderPhase, setEditBuilderPhase] = useState('');
+  const [editJobNotes, setEditJobNotes] = useState('');
+  const [editStreetAddress, setEditStreetAddress] = useState('');
+  const [editCityStateZip, setEditCityStateZip] = useState('');
 
   // Form Accordions State
   const [openForms, setOpenForms] = useState({
@@ -1438,6 +1451,57 @@ export default function App() {
     };
     setChangeLogs([newLog, ...changeLogs]);
     setEditingDateJob(null);
+  };
+
+  const handleOpenEditJobInfo = (job: JobRow) => {
+    setEditJobName(job.jobName);
+    setEditTargetInstallDate(job.targetInstallDate || '');
+    setEditFieldSuper(job.fieldSuper || '');
+    setEditDesigner(job.designer || '');
+    setEditProjectNumber(job.projectNumber || '');
+    setEditSalesOrderNumber(job.salesOrderNumber || '');
+    setEditBuilderPhase(job.builderPhase || '');
+    setEditJobNotes(job.jobNotes || '');
+    setEditStreetAddress(job.streetAddress || '');
+    setEditCityStateZip(job.cityStateZip || '');
+    setIsEditingJobInfo(true);
+  };
+
+  const handleSaveJobInfo = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedJob) return;
+
+    const updatedJob: JobRow = {
+      ...selectedJob,
+      jobName: editJobName,
+      targetInstallDate: editTargetInstallDate,
+      fieldSuper: editFieldSuper,
+      designer: editDesigner,
+      projectNumber: editProjectNumber,
+      salesOrderNumber: editSalesOrderNumber,
+      builderPhase: editBuilderPhase,
+      jobNotes: editJobNotes,
+      streetAddress: editStreetAddress,
+      cityStateZip: editCityStateZip,
+    };
+
+    setSelectedJob(updatedJob);
+    setJobsData(jobsData.map(j => j.id === updatedJob.id ? updatedJob : j));
+
+    const newLog: ChangeLogEntry = {
+      id: String(Date.now()),
+      timestamp: new Date().toLocaleString(),
+      changedBy: `${activeUserRole === 'SUBSCRIBER_ADMIN' ? 'Admin' : 'Scheduler'} (${activeUserRole})`,
+      summary: `Job Details & Metadata Updated for ${updatedJob.jobName}`,
+      diffs: [
+        { field: 'Job Name', from: selectedJob.jobName, to: editJobName },
+        { field: 'Target Install Date', from: selectedJob.targetInstallDate || 'None', to: editTargetInstallDate || 'None' },
+        { field: 'Field Superintendent', from: selectedJob.fieldSuper || 'None', to: editFieldSuper || 'None' },
+        { field: 'Street Address', from: selectedJob.streetAddress, to: editStreetAddress },
+      ]
+    };
+    setChangeLogs([newLog, ...changeLogs]);
+    setIsEditingJobInfo(false);
   };
 
   // Activity Completion & Form Validation Guardrail
@@ -2966,8 +3030,13 @@ export default function App() {
                     <div className="flex items-center justify-between border-b pb-2">
                       <h3 className="font-bold text-sm text-slate-800 dark:text-slate-200">Job Info</h3>
                       {activeUserRole !== 'EXTERNAL_FIELD_INSTALLER' && activeUserRole !== 'EXTERNAL_SUBCONTRACTOR' && (
-                        <button className="text-slate-400 hover:text-blue-600 cursor-pointer">
-                          <Edit3 className="w-4 h-4" />
+                        <button
+                          onClick={() => handleOpenEditJobInfo(selectedJob)}
+                          className="p-1 rounded hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-400 hover:text-blue-600 cursor-pointer flex items-center space-x-1"
+                          title="Edit Job Information"
+                        >
+                          <Edit3 className="w-4 h-4 text-blue-600" />
+                          <span className="text-[11px] font-semibold text-blue-600 dark:text-blue-400">Edit Info</span>
                         </button>
                       )}
                     </div>
@@ -3000,7 +3069,14 @@ export default function App() {
                           <MapPin className="w-4 h-4 text-rose-600" />
                           <span>Job Site Address</span>
                         </div>
-                        <button className="text-slate-400 hover:text-blue-600"><MapIcon className="w-4 h-4" /></button>
+                        <button
+                          onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${selectedJob.streetAddress}, ${selectedJob.cityStateZip}`)}`, '_blank')}
+                          className="p-1 rounded hover:bg-slate-200 dark:hover:bg-slate-800 text-blue-600 hover:text-blue-700 cursor-pointer flex items-center space-x-1"
+                          title="Open in Google Maps"
+                        >
+                          <MapIcon className="w-4 h-4" />
+                          <span className="text-[11px] font-semibold">View Map</span>
+                        </button>
                       </div>
                       <div className="font-bold text-slate-800 dark:text-slate-200">{selectedJob.streetAddress}</div>
                       <div className="text-slate-500">{selectedJob.cityStateZip}</div>
@@ -5267,6 +5343,146 @@ export default function App() {
                 </button>
                 <button type="submit" className="bg-blue-600 text-white font-bold px-4 py-1.5 rounded cursor-pointer">
                   Save Dates & Log Audit
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 3B. JOB INFO & METADATA EDITOR MODAL */}
+      {isEditingJobInfo && selectedJob && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 z-50 overflow-y-auto">
+          <div className={`max-w-2xl w-full p-6 rounded-xl border shadow-2xl ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-300'}`}>
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
+              <h3 className="font-bold text-base flex items-center space-x-2 text-blue-600 dark:text-blue-400">
+                <Edit3 className="w-5 h-5" />
+                <span>Edit Job Details & Information</span>
+              </h3>
+              <button onClick={() => setIsEditingJobInfo(false)} className="text-slate-400 hover:text-slate-600 cursor-pointer">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveJobInfo} className="mt-4 space-y-4 text-xs">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Job Name *</label>
+                  <input
+                    type="text"
+                    required
+                    value={editJobName}
+                    onChange={(e) => setEditJobName(e.target.value)}
+                    className="w-full p-2 border rounded font-bold text-slate-900 dark:bg-slate-950 dark:text-slate-100"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Target Install Date</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. 8/28/2026"
+                    value={editTargetInstallDate}
+                    onChange={(e) => setEditTargetInstallDate(e.target.value)}
+                    className="w-full p-2 border rounded font-semibold text-slate-900 dark:bg-slate-950 dark:text-slate-100"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Field Superintendent</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Mark Stevens"
+                    value={editFieldSuper}
+                    onChange={(e) => setEditFieldSuper(e.target.value)}
+                    className="w-full p-2 border rounded text-slate-900 dark:bg-slate-950 dark:text-slate-100"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Designer</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Elena Rostova"
+                    value={editDesigner}
+                    onChange={(e) => setEditDesigner(e.target.value)}
+                    className="w-full p-2 border rounded text-slate-900 dark:bg-slate-950 dark:text-slate-100"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Project Number</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. 0001017193"
+                    value={editProjectNumber}
+                    onChange={(e) => setEditProjectNumber(e.target.value)}
+                    className="w-full p-2 border rounded text-slate-900 dark:bg-slate-950 dark:text-slate-100 font-mono"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Sales Order Number</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. SO-99201"
+                    value={editSalesOrderNumber}
+                    onChange={(e) => setEditSalesOrderNumber(e.target.value)}
+                    className="w-full p-2 border rounded text-slate-900 dark:bg-slate-950 dark:text-slate-100 font-mono"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Builder Phase</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. PHASE ONE"
+                    value={editBuilderPhase}
+                    onChange={(e) => setEditBuilderPhase(e.target.value)}
+                    className="w-full p-2 border rounded text-slate-900 dark:bg-slate-950 dark:text-slate-100"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Physical Street Address</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. 3839 BUTTE TRAIL"
+                    value={editStreetAddress}
+                    onChange={(e) => setEditStreetAddress(e.target.value)}
+                    className="w-full p-2 border rounded text-slate-900 dark:bg-slate-950 dark:text-slate-100"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">City, State, Zip</label>
+                <input
+                  type="text"
+                  placeholder="e.g. LAKEWOOD RANCH, FL 34211"
+                  value={editCityStateZip}
+                  onChange={(e) => setEditCityStateZip(e.target.value)}
+                  className="w-full p-2 border rounded text-slate-900 dark:bg-slate-950 dark:text-slate-100"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Job Notes & Special Instructions</label>
+                <textarea
+                  rows={3}
+                  placeholder="Enter lot specific fabrication or installation notes..."
+                  value={editJobNotes}
+                  onChange={(e) => setEditJobNotes(e.target.value)}
+                  className="w-full p-2.5 border rounded text-slate-900 dark:bg-slate-950 dark:text-slate-100"
+                />
+              </div>
+
+              <div className="pt-3 border-t flex justify-end space-x-2">
+                <button type="button" onClick={() => setIsEditingJobInfo(false)} className="px-4 py-2 border rounded cursor-pointer font-bold hover:bg-slate-100 dark:hover:bg-slate-800">
+                  Cancel
+                </button>
+                <button type="submit" className="bg-blue-600 hover:bg-blue-500 text-white font-bold px-5 py-2 rounded cursor-pointer shadow-sm">
+                  Save Job Information
                 </button>
               </div>
             </form>
