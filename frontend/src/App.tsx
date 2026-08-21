@@ -281,6 +281,7 @@ export default function App() {
     jobName: true,
     account: true,
     community: true,
+    jobAddress: false, // Optional column, hidden by default
     templateDate: true,
     fabDate: true,
     installDate: true,
@@ -654,6 +655,13 @@ export default function App() {
     }
   ]);
 
+  // Helper to generate dynamic dates relative to today
+  const getRelDateStr = (offsetDays: number) => {
+    const d = new Date();
+    d.setDate(d.getDate() + offsetDays);
+    return `${d.getMonth() + 1}/${d.getDate()}/${d.getFullYear()}`;
+  };
+
   // Master Jobs Data
   const [jobsData, setJobsData] = useState<JobRow[]>([
     {
@@ -680,20 +688,20 @@ export default function App() {
       accountManager: 'UNASSIGNED - AM - WEST',
       designer: 'Elena Rostova',
       jobNotes: 'Special sink cutout required. Custom edge profile.',
-      templateDate: { date: '7/18/2026', status: 'tent' },
-      fabDate: { date: '7/20/2026', status: 'auto' },
-      installDate: { date: '7/22/2026', status: 'calc' },
+      templateDate: { date: getRelDateStr(-2), status: 'conf' },
+      fabDate: { date: getRelDateStr(0), status: 'auto' },
+      installDate: { date: getRelDateStr(3), status: 'calc' },
       salesperson: 'jason mayes',
       externalId: 'ERP-JOB-1078',
       status: 'Active',
       isArchived: false,
       assignedCrew: 'Install Truck 1',
       materialOrdered: true,
-      materialETA: '7/15/2026',
+      materialETA: getRelDateStr(-5),
       materialReceived: true,
-      materialReceivedOn: '7/16/2026',
+      materialReceivedOn: getRelDateStr(-4),
       sinksOrdered: true,
-      sinksETA: '7/17/2026',
+      sinksETA: getRelDateStr(-3),
       sinksReceived: false,
       sinksReceivedOn: '',
       purchasingNotes: 'Calacatta Gold 3cm slabs in bay 4',
@@ -703,16 +711,16 @@ export default function App() {
         { id: 'f2', name: 'Slab_Seam_Layout.dxf', size: '4.8 MB', type: 'DXF', uploadedAt: '6/16/2026' },
       ],
       activities: [
-        { id: 'a1', activityName: 'Stone CAD', phase: 'STONE', status: 'Auto-Schedule', startDate: '7/16/2026', schedTime: '3:30pm', duration: '60m', assignedTo: 'CAD Team A' },
-        { id: 'a2', activityName: 'Stone Saw', phase: 'STONE', status: 'Auto-Schedule', startDate: '7/17/2026', schedTime: '3:30pm', duration: '120m', assignedTo: 'Bridge Saw 1' },
-        { id: 'a3', activityName: 'Stone CNC', phase: 'STONE', status: 'Auto-Schedule', startDate: '7/17/2026', schedTime: '3:30pm', duration: '90m', assignedTo: 'CNC Router 2' },
-        { id: 'a4', activityName: 'Stone Fabrication', phase: 'STONE', status: 'Auto-Schedule', startDate: '7/20/2026', schedTime: '3:30pm', duration: '180m', assignedTo: 'Hand Polish Crew' },
-        { id: 'a5', activityName: 'Stone Install', phase: 'STONE', status: 'CALCULATED', startDate: '7/22/2026', schedTime: '8:00am', duration: '240m', assignedTo: 'Install Truck 1' },
-        { id: 'a6', activityName: '100% Job Complete', phase: 'STONE', status: 'Auto-Schedule', startDate: '7/24/2026', schedTime: '8:00am', duration: '30m', assignedTo: 'QA Super' },
-        { id: 'a7', activityName: 'Admin Start', phase: 'STONE', status: 'Auto-Schedule', startDate: '7/15/2026', schedTime: '9:00am', duration: '15m', assignedTo: 'Office' },
-        { id: 'a8', activityName: 'STONE PROGRAM - SAW', phase: 'STONE', status: 'Auto-Schedule', startDate: '7/16/2026', schedTime: '1:00pm', duration: '45m', assignedTo: 'Programmer' },
-        { id: 'a9', activityName: 'STONE PROGRAM - CNC', phase: 'STONE', status: 'Auto-Schedule', startDate: '7/16/2026', schedTime: '2:00pm', duration: '45m', assignedTo: 'Programmer' },
-        { id: 'a10', activityName: 'PRODUCTION RELEASE', phase: 'STONE', status: 'Auto-Schedule', startDate: '7/16/2026', schedTime: '4:00pm', duration: '15m', assignedTo: 'Plant Mgr' },
+        { id: 'a1', activityName: 'Stone CAD', phase: 'STONE', status: 'Auto-Schedule', startDate: getRelDateStr(-4), schedTime: '3:30pm', duration: '60m', assignedTo: 'CAD Team A' },
+        { id: 'a2', activityName: 'Stone Saw', phase: 'STONE', status: 'Auto-Schedule', startDate: getRelDateStr(-3), schedTime: '3:30pm', duration: '120m', assignedTo: 'Bridge Saw 1' },
+        { id: 'a3', activityName: 'Stone CNC', phase: 'STONE', status: 'Auto-Schedule', startDate: getRelDateStr(-3), schedTime: '3:30pm', duration: '90m', assignedTo: 'CNC Router 2' },
+        { id: 'a4', activityName: 'Stone Fabrication', phase: 'STONE', status: 'Auto-Schedule', startDate: getRelDateStr(0), schedTime: '3:30pm', duration: '180m', assignedTo: 'Hand Polish Crew' },
+        { id: 'a5', activityName: 'Stone Install', phase: 'STONE', status: 'CALCULATED', startDate: getRelDateStr(3), schedTime: '8:00am', duration: '240m', assignedTo: 'Install Truck 1' },
+        { id: 'a6', activityName: '100% Job Complete', phase: 'STONE', status: 'Auto-Schedule', startDate: getRelDateStr(4), schedTime: '8:00am', duration: '30m', assignedTo: 'QA Super' },
+        { id: 'a7', activityName: 'Admin Start', phase: 'STONE', status: 'Auto-Schedule', startDate: getRelDateStr(-5), schedTime: '9:00am', duration: '15m', assignedTo: 'Office' },
+        { id: 'a8', activityName: 'STONE PROGRAM - SAW', phase: 'STONE', status: 'Auto-Schedule', startDate: getRelDateStr(-4), schedTime: '1:00pm', duration: '45m', assignedTo: 'Programmer' },
+        { id: 'a9', activityName: 'STONE PROGRAM - CNC', phase: 'STONE', status: 'Auto-Schedule', startDate: getRelDateStr(-4), schedTime: '2:00pm', duration: '45m', assignedTo: 'Programmer' },
+        { id: 'a10', activityName: 'PRODUCTION RELEASE', phase: 'STONE', status: 'Auto-Schedule', startDate: getRelDateStr(-4), schedTime: '4:00pm', duration: '15m', assignedTo: 'Plant Mgr' },
       ]
     },
     {
@@ -729,9 +737,9 @@ export default function App() {
       streetAddress: '3839 BUTTE TRAIL',
       cityStateZip: 'LAKEWOOD RANCH, FL 34211',
       elevationPlan: 'Plan B - Craftsman',
-      templateDate: { date: '7/18/2026', status: 'tent' },
-      fabDate: { date: '7/20/2026', status: 'auto' },
-      installDate: { date: '7/22/2026', status: 'calc' },
+      templateDate: { date: getRelDateStr(-1), status: 'conf' },
+      fabDate: { date: getRelDateStr(1), status: 'auto' },
+      installDate: { date: getRelDateStr(4), status: 'calc' },
       salesperson: 'jason mayes',
       jobIssues: 'Chip Repair Required',
       externalId: 'ERP-JOB-1079',
@@ -739,9 +747,9 @@ export default function App() {
       isArchived: false,
       assignedCrew: 'Service Crew A',
       materialOrdered: true,
-      materialETA: '7/18/2026',
+      materialETA: getRelDateStr(-1),
       materialReceived: true,
-      materialReceivedOn: '7/18/2026',
+      materialReceivedOn: getRelDateStr(-1),
       sinksOrdered: false,
       sinksETA: '',
       sinksReceived: false,
@@ -750,8 +758,8 @@ export default function App() {
       installerNotesText: 'Service technician dispatched for cosmetic chip filling.',
       files: [],
       activities: [
-        { id: 'b1', activityName: 'Stone Inspection', phase: 'STONE', status: 'Confirmed', startDate: '7/18/2026', schedTime: '9:00am', duration: '60m', assignedTo: 'Service Crew A' },
-        { id: 'b2', activityName: 'Field Chip Polish & Seal', phase: 'STONE', status: 'Confirmed', startDate: '7/22/2026', schedTime: '10:00am', duration: '120m', assignedTo: 'Service Crew A' },
+        { id: 'b1', activityName: 'Stone Inspection', phase: 'STONE', status: 'Confirmed', startDate: getRelDateStr(-1), schedTime: '9:00am', duration: '60m', assignedTo: 'Service Crew A' },
+        { id: 'b2', activityName: 'Field Chip Polish & Seal', phase: 'STONE', status: 'Confirmed', startDate: getRelDateStr(4), schedTime: '10:00am', duration: '120m', assignedTo: 'Service Crew A' },
       ]
     },
     {
@@ -769,8 +777,8 @@ export default function App() {
       cityStateZip: 'ORLANDO, FL 32801',
       elevationPlan: 'Plan A - Modern',
       templateDate: { date: 'No Date', status: 'none' },
-      fabDate: { date: '9/15/2026', status: 'auto' },
-      installDate: { date: '9/17/2026', status: 'calc' },
+      fabDate: { date: getRelDateStr(5), status: 'auto' },
+      installDate: { date: getRelDateStr(8), status: 'calc' },
       salesperson: 'jason mayes',
       externalId: 'ERP-JOB-0017',
       status: 'Active',
@@ -788,9 +796,9 @@ export default function App() {
       installerNotesText: '',
       files: [],
       activities: [
-        { id: 'c1', activityName: 'Field Templating', phase: 'STONE', status: 'Tentative', startDate: '9/10/2026', schedTime: '9:00am', duration: '120m', assignedTo: 'Template Crew' },
-        { id: 'c2', activityName: 'Stone Fabrication', phase: 'STONE', status: 'Auto-Schedule', startDate: '9/15/2026', schedTime: '1:00pm', duration: '180m', assignedTo: 'CNC Router 1' },
-        { id: 'c3', activityName: 'Stone Install', phase: 'STONE', status: 'CALCULATED', startDate: '9/17/2026', schedTime: '8:00am', duration: '240m', assignedTo: 'Install Truck 2' },
+        { id: 'c1', activityName: 'Field Templating', phase: 'STONE', status: 'Tentative', startDate: getRelDateStr(3), schedTime: '9:00am', duration: '120m', assignedTo: 'Template Crew' },
+        { id: 'c2', activityName: 'Stone Fabrication', phase: 'STONE', status: 'Auto-Schedule', startDate: getRelDateStr(5), schedTime: '1:00pm', duration: '180m', assignedTo: 'CNC Router 1' },
+        { id: 'c3', activityName: 'Stone Install', phase: 'STONE', status: 'CALCULATED', startDate: getRelDateStr(8), schedTime: '8:00am', duration: '240m', assignedTo: 'Install Truck 2' },
       ]
     },
     {
@@ -807,9 +815,9 @@ export default function App() {
       streetAddress: '55 Palmetto Way',
       cityStateZip: 'TAMPA, FL 33602',
       elevationPlan: 'Plan C - Tuscan',
-      templateDate: { date: '10/9/2026', status: 'auto' },
-      fabDate: { date: '10/11/2026', status: 'auto' },
-      installDate: { date: '10/13/2026', status: 'conf' },
+      templateDate: { date: getRelDateStr(2), status: 'auto' },
+      fabDate: { date: getRelDateStr(4), status: 'auto' },
+      installDate: { date: getRelDateStr(6), status: 'conf' },
       salesperson: 'jason mayes',
       externalId: 'ERP-JOB-0014',
       status: 'Active',
@@ -977,7 +985,7 @@ export default function App() {
   const [inviteSentSuccess, setInviteSentSuccess] = useState(false);
 
   // 14-Day Calendar Control State
-  const [centerDate, setCenterDate] = useState<string>('2026-07-20');
+  const [centerDate, setCenterDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [calAccountFilter, setCalAccountFilter] = useState('All');
   const [calCommunityFilter, setCalCommunityFilter] = useState('All');
 
@@ -1139,11 +1147,14 @@ export default function App() {
 
   const filteredAccounts = accountsData.filter((acc) => {
     if (searchQuery.trim() !== '') {
-      const q = searchQuery.toLowerCase();
+      const q = searchQuery.toLowerCase().trim();
       const match =
         acc.name.toLowerCase().includes(q) ||
         acc.code.toLowerCase().includes(q) ||
         acc.primaryContact.toLowerCase().includes(q) ||
+        acc.billingAddress.toLowerCase().includes(q) ||
+        acc.phone.toLowerCase().includes(q) ||
+        acc.email.toLowerCase().includes(q) ||
         (acc.externalId && acc.externalId.toLowerCase().includes(q));
       if (!match) return false;
     }
@@ -1154,12 +1165,28 @@ export default function App() {
 
   const filteredJobs = jobsData.filter((job) => {
     if (searchQuery.trim() !== '') {
-      const q = searchQuery.toLowerCase();
+      const q = searchQuery.toLowerCase().trim();
       const match =
         job.jobName.toLowerCase().includes(q) ||
         job.accountName.toLowerCase().includes(q) ||
         job.communityName.toLowerCase().includes(q) ||
-        job.salesperson.toLowerCase().includes(q) ||
+        job.lotNumber.toLowerCase().includes(q) ||
+        (job.streetAddress && job.streetAddress.toLowerCase().includes(q)) ||
+        (job.cityStateZip && job.cityStateZip.toLowerCase().includes(q)) ||
+        (job.elevationPlan && job.elevationPlan.toLowerCase().includes(q)) ||
+        (job.salesperson && job.salesperson.toLowerCase().includes(q)) ||
+        (job.assignedCrew && job.assignedCrew.toLowerCase().includes(q)) ||
+        (job.fieldSuper && job.fieldSuper.toLowerCase().includes(q)) ||
+        (job.fieldManager && job.fieldManager.toLowerCase().includes(q)) ||
+        (job.salesOrderNumber && job.salesOrderNumber.toLowerCase().includes(q)) ||
+        (job.projectNumber && job.projectNumber.toLowerCase().includes(q)) ||
+        (job.jobCategory && job.jobCategory.toLowerCase().includes(q)) ||
+        (job.status && job.status.toLowerCase().includes(q)) ||
+        (job.jobIssues && job.jobIssues.toLowerCase().includes(q)) ||
+        (job.jobNotes && job.jobNotes.toLowerCase().includes(q)) ||
+        (job.templateDate?.date && job.templateDate.date.toLowerCase().includes(q)) ||
+        (job.fabDate?.date && job.fabDate.date.toLowerCase().includes(q)) ||
+        (job.installDate?.date && job.installDate.date.toLowerCase().includes(q)) ||
         (job.externalId && job.externalId.toLowerCase().includes(q));
       if (!match) return false;
     }
@@ -2110,7 +2137,7 @@ export default function App() {
           </div>
 
           {/* Global Search Bar */}
-          <div className="flex items-center space-x-1 bg-white rounded-md p-1 border border-slate-200 shadow-sm text-slate-900">
+          <div className="flex items-center space-x-1 bg-white rounded-md p-1 border border-slate-200 shadow-sm text-slate-900 mx-4 shrink-0">
             <select
               value={searchCategory}
               onChange={(e) => setSearchCategory(e.target.value)}
@@ -2121,21 +2148,21 @@ export default function App() {
               <option value="Jobs" className="text-slate-900 bg-white">Jobs</option>
               <option value="Lots" className="text-slate-900 bg-white">Lots</option>
             </select>
-            <div className="h-6 w-[2px] bg-black mx-1"></div>
+            <div className="h-6 w-[2px] bg-slate-300 mx-1"></div>
             <input
               type="text"
-              placeholder="Search..."
+              placeholder="Search all columns..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="bg-white text-xs px-2.5 py-1 focus:outline-none placeholder-slate-400 text-slate-900 w-40 md:w-56"
+              className="bg-white text-xs px-2.5 py-1 focus:outline-none placeholder-slate-400 text-slate-900 w-44 md:w-60"
             />
-            <button className="p-1.5 hover:bg-slate-100 text-slate-600 hover:text-slate-900 rounded transition-all">
+            <button className="p-1.5 hover:bg-slate-100 text-slate-600 hover:text-slate-900 rounded transition-all cursor-pointer">
               <Search className="w-3.5 h-3.5" />
             </button>
           </div>
 
           {/* Top Action Buttons (Conditioned strictly to relevant pages!) */}
-          <div className="flex items-center space-x-4 md:space-x-6 text-xs font-medium">
+          <div className="flex items-center space-x-4 md:space-x-6 text-xs font-medium pl-4 border-l border-white/20">
             
             {/* View Controls: Visible on Accounts and Jobs grid pages */}
             {(activeNav === 'accounts' || activeNav === 'jobs') && (
@@ -2739,6 +2766,7 @@ export default function App() {
                         {visibleColumns.jobName && <th className="p-3 font-bold border-r border-white/20">Job Name / Lot</th>}
                         {visibleColumns.account && <th className="p-3 font-bold border-r border-white/20">Account (Builder)</th>}
                         {visibleColumns.community && <th className="p-3 font-bold border-r border-white/20">Community</th>}
+                        {visibleColumns.jobAddress && <th className="p-3 font-bold border-r border-white/20">Job Address</th>}
                         {visibleColumns.templateDate && <th className="p-3 font-bold border-r border-white/20 text-center">Stone Template - Date ✏️</th>}
                         {visibleColumns.fabDate && <th className="p-3 font-bold border-r border-white/20 text-center">Stone Fabrication - Date ✏️</th>}
                         {visibleColumns.installDate && <th className="p-3 font-bold border-r border-white/20 text-center">Stone Install - Date ✏️</th>}
@@ -2778,6 +2806,13 @@ export default function App() {
                           {visibleColumns.community && (
                             <td className="p-3 text-slate-700 dark:text-slate-300 font-medium">
                               {row.communityName} ({row.lotNumber})
+                            </td>
+                          )}
+
+                          {visibleColumns.jobAddress && (
+                            <td className="p-3 text-slate-700 dark:text-slate-300 font-medium">
+                              <div className="font-semibold">{row.streetAddress}</div>
+                              <div className="text-[10px] text-slate-400 font-normal">{row.cityStateZip}</div>
                             </td>
                           )}
 
