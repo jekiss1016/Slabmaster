@@ -1113,6 +1113,27 @@ export default function App() {
     return globalLeadTimes;
   };
 
+  // Global Milestone Terminology & Custom Names State
+  interface GlobalMilestoneNames {
+    templateName: string;
+    cadName: string;
+    cutName: string;
+    fabName: string;
+    installName: string;
+    signoffName: string;
+  }
+
+  const defaultGlobalMilestoneNames: GlobalMilestoneNames = {
+    templateName: 'Stone Template',
+    cadName: 'Shop CAD / Programming',
+    cutName: 'Bridge Saw & CNC Cutting',
+    fabName: 'Stone Fabrication',
+    installName: 'Stone Install',
+    signoffName: '100% Quality Sign-Off',
+  };
+
+  const [globalMilestoneNames, setGlobalMilestoneNames] = useState<GlobalMilestoneNames>(defaultGlobalMilestoneNames);
+
   const isDark = theme === 'dark';
 
   // Navigation handlers
@@ -2883,9 +2904,9 @@ export default function App() {
                         {visibleColumns.account && <th className="p-3 font-bold border-r border-white/20">Account (Builder)</th>}
                         {visibleColumns.community && <th className="p-3 font-bold border-r border-white/20">Community</th>}
                         {visibleColumns.jobAddress && <th className="p-3 font-bold border-r border-white/20">Job Address</th>}
-                        {visibleColumns.templateDate && <th className="p-3 font-bold border-r border-white/20 text-center">Stone Template - Date ✏️</th>}
-                        {visibleColumns.fabDate && <th className="p-3 font-bold border-r border-white/20 text-center">Stone Fabrication - Date ✏️</th>}
-                        {visibleColumns.installDate && <th className="p-3 font-bold border-r border-white/20 text-center">Stone Install - Date ✏️</th>}
+                        {visibleColumns.templateDate && <th className="p-3 font-bold border-r border-white/20 text-center">{globalMilestoneNames.templateName} - Date ✏️</th>}
+                        {visibleColumns.fabDate && <th className="p-3 font-bold border-r border-white/20 text-center">{globalMilestoneNames.fabName} - Date ✏️</th>}
+                        {visibleColumns.installDate && <th className="p-3 font-bold border-r border-white/20 text-center">{globalMilestoneNames.installName} - Date ✏️</th>}
                         {visibleColumns.salesperson && <th className="p-3 font-bold border-r border-white/20">Salesperson</th>}
                         {visibleColumns.issues && <th className="p-3 font-bold">Category / Issues</th>}
                       </tr>
@@ -4775,10 +4796,107 @@ export default function App() {
 
                         return (
                           <form onSubmit={handleSaveForm} className="space-y-6">
+                            {/* SECTION 1: GLOBAL MILESTONE TERMINOLOGY */}
+                            <div className="p-5 rounded-xl border space-y-4 shadow-sm bg-white dark:bg-slate-900">
+                              <div className="flex items-center justify-between border-b pb-2">
+                                <div>
+                                  <h4 className="font-bold text-sm text-slate-800 dark:text-slate-200 flex items-center space-x-2">
+                                    <Tag className="w-4 h-4 text-blue-600" />
+                                    <span>1. Global Milestone Names & Custom Terminology</span>
+                                  </h4>
+                                  <p className="text-[11px] text-slate-500 mt-0.5">
+                                    Customize standard milestone names globally across table columns, calendar badges, date editors, and production queues.
+                                  </p>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => setGlobalMilestoneNames(defaultGlobalMilestoneNames)}
+                                  className="text-[10px] text-blue-600 hover:underline font-bold cursor-pointer"
+                                >
+                                  ↺ Reset Milestone Names to Default
+                                </button>
+                              </div>
+
+                              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                <div className="space-y-1">
+                                  <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300">
+                                    Milestone 1 (Template / Measure) Name
+                                  </label>
+                                  <input
+                                    type="text"
+                                    value={globalMilestoneNames.templateName}
+                                    onChange={(e) => setGlobalMilestoneNames({ ...globalMilestoneNames, templateName: e.target.value })}
+                                    className="w-full p-2 border rounded font-bold text-blue-700 dark:text-blue-300 dark:bg-slate-950 dark:border-slate-800"
+                                  />
+                                </div>
+
+                                <div className="space-y-1">
+                                  <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300">
+                                    Milestone 2 (CAD / Drafting) Name
+                                  </label>
+                                  <input
+                                    type="text"
+                                    value={globalMilestoneNames.cadName}
+                                    onChange={(e) => setGlobalMilestoneNames({ ...globalMilestoneNames, cadName: e.target.value })}
+                                    className="w-full p-2 border rounded font-bold text-purple-700 dark:text-purple-300 dark:bg-slate-950 dark:border-slate-800"
+                                  />
+                                </div>
+
+                                <div className="space-y-1">
+                                  <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300">
+                                    Milestone 3 (Cutting / CNC) Name
+                                  </label>
+                                  <input
+                                    type="text"
+                                    value={globalMilestoneNames.cutName}
+                                    onChange={(e) => setGlobalMilestoneNames({ ...globalMilestoneNames, cutName: e.target.value })}
+                                    className="w-full p-2 border rounded font-bold text-indigo-700 dark:text-indigo-300 dark:bg-slate-950 dark:border-slate-800"
+                                  />
+                                </div>
+
+                                <div className="space-y-1">
+                                  <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300">
+                                    Milestone 4 (Shop Fabrication / Polish) Name
+                                  </label>
+                                  <input
+                                    type="text"
+                                    value={globalMilestoneNames.fabName}
+                                    onChange={(e) => setGlobalMilestoneNames({ ...globalMilestoneNames, fabName: e.target.value })}
+                                    className="w-full p-2 border rounded font-bold text-emerald-700 dark:text-emerald-300 dark:bg-slate-950 dark:border-slate-800"
+                                  />
+                                </div>
+
+                                <div className="space-y-1">
+                                  <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300">
+                                    Milestone 5 (Field Installation) Name
+                                  </label>
+                                  <input
+                                    type="text"
+                                    value={globalMilestoneNames.installName}
+                                    onChange={(e) => setGlobalMilestoneNames({ ...globalMilestoneNames, installName: e.target.value })}
+                                    className="w-full p-2 border rounded font-bold text-emerald-700 dark:text-emerald-300 dark:bg-slate-950 dark:border-slate-800"
+                                  />
+                                </div>
+
+                                <div className="space-y-1">
+                                  <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300">
+                                    Milestone 6 (Sign-off / QA) Name
+                                  </label>
+                                  <input
+                                    type="text"
+                                    value={globalMilestoneNames.signoffName}
+                                    onChange={(e) => setGlobalMilestoneNames({ ...globalMilestoneNames, signoffName: e.target.value })}
+                                    className="w-full p-2 border rounded font-bold text-amber-700 dark:text-amber-300 dark:bg-slate-950 dark:border-slate-800"
+                                  />
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* SECTION 2: MILESTONE DURATION OFFSETS */}
                             <div className="p-5 rounded-xl border space-y-4 shadow-sm bg-white dark:bg-slate-900">
                               <div className="flex items-center justify-between border-b pb-2">
                                 <h4 className="font-bold text-sm text-slate-800 dark:text-slate-200 flex items-center space-x-2">
-                                  <span>1. Milestone Duration & Date Offsets (Working Days)</span>
+                                  <span>2. Milestone Duration & Date Offsets (Working Days)</span>
                                 </h4>
                                 <span className="text-xs font-bold px-2.5 py-1 rounded bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300">
                                   Standard Total Lead Time: ~{totalDays} Working Days
@@ -4788,7 +4906,7 @@ export default function App() {
                               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                 <div className="p-3 border rounded-lg bg-slate-50 dark:bg-slate-950 space-y-1">
                                   <label className="block font-bold text-slate-700 dark:text-slate-300">
-                                    Laser Template ➔ CAD / Programming
+                                    {globalMilestoneNames.templateName} ➔ {globalMilestoneNames.cadName}
                                   </label>
                                   <div className="flex items-center space-x-2">
                                     <input
@@ -4806,7 +4924,7 @@ export default function App() {
 
                                 <div className="p-3 border rounded-lg bg-slate-50 dark:bg-slate-950 space-y-1">
                                   <label className="block font-bold text-slate-700 dark:text-slate-300">
-                                    CAD / Programming ➔ Saw & CNC Cutting
+                                    {globalMilestoneNames.cadName} ➔ {globalMilestoneNames.cutName}
                                   </label>
                                   <div className="flex items-center space-x-2">
                                     <input
@@ -4824,7 +4942,7 @@ export default function App() {
 
                                 <div className="p-3 border rounded-lg bg-slate-50 dark:bg-slate-950 space-y-1">
                                   <label className="block font-bold text-slate-700 dark:text-slate-300">
-                                    Saw/CNC Cut ➔ Shop Hand Polish & Fab
+                                    {globalMilestoneNames.cutName} ➔ {globalMilestoneNames.fabName}
                                   </label>
                                   <div className="flex items-center space-x-2">
                                     <input
@@ -4842,7 +4960,7 @@ export default function App() {
 
                                 <div className="p-3 border rounded-lg bg-slate-50 dark:bg-slate-950 space-y-1">
                                   <label className="block font-bold text-slate-700 dark:text-slate-300">
-                                    Shop Fabrication ➔ Field Installation
+                                    {globalMilestoneNames.fabName} ➔ {globalMilestoneNames.installName}
                                   </label>
                                   <div className="flex items-center space-x-2">
                                     <input
@@ -4860,7 +4978,7 @@ export default function App() {
 
                                 <div className="p-3 border rounded-lg bg-slate-50 dark:bg-slate-950 space-y-1">
                                   <label className="block font-bold text-slate-700 dark:text-slate-300">
-                                    Field Installation ➔ 100% Quality Sign-Off
+                                    {globalMilestoneNames.installName} ➔ {globalMilestoneNames.signoffName}
                                   </label>
                                   <div className="flex items-center space-x-2">
                                     <input
@@ -4899,32 +5017,32 @@ export default function App() {
                             {/* Sequence Flow Timeline */}
                             <div className="p-5 rounded-xl border bg-slate-50 dark:bg-slate-950 space-y-3">
                               <h4 className="font-bold text-sm text-slate-800 dark:text-slate-200">
-                                2. Visual Production Pipeline Flow
+                                3. Visual Production Pipeline Flow
                               </h4>
                               <div className="grid grid-cols-2 md:grid-cols-5 gap-3 text-center">
                                 <div className="p-3 bg-white dark:bg-slate-900 rounded-lg border shadow-xs">
                                   <span className="text-[10px] font-bold text-slate-400 uppercase block">Step 1</span>
-                                  <strong className="text-blue-600 dark:text-blue-400 text-xs block mt-1">Laser Template</strong>
+                                  <strong className="text-blue-600 dark:text-blue-400 text-xs block mt-1">{globalMilestoneNames.templateName}</strong>
                                   <span className="text-[10px] text-slate-500">Day 0 (Start)</span>
                                 </div>
                                 <div className="p-3 bg-white dark:bg-slate-900 rounded-lg border shadow-xs">
                                   <span className="text-[10px] font-bold text-slate-400 uppercase block">Step 2</span>
-                                  <strong className="text-purple-600 dark:text-purple-400 text-xs block mt-1">CAD & Saw/CNC</strong>
+                                  <strong className="text-purple-600 dark:text-purple-400 text-xs block mt-1">{globalMilestoneNames.cadName} & {globalMilestoneNames.cutName}</strong>
                                   <span className="text-[10px] text-slate-500">+{currentSettings.templateToCadDays + currentSettings.cadToCutDays}d</span>
                                 </div>
                                 <div className="p-3 bg-white dark:bg-slate-900 rounded-lg border shadow-xs">
                                   <span className="text-[10px] font-bold text-slate-400 uppercase block">Step 3</span>
-                                  <strong className="text-indigo-600 dark:text-indigo-400 text-xs block mt-1">Hand Polish & Fab</strong>
+                                  <strong className="text-indigo-600 dark:text-indigo-400 text-xs block mt-1">{globalMilestoneNames.fabName}</strong>
                                   <span className="text-[10px] text-slate-500">+{currentSettings.cutToFabDays}d</span>
                                 </div>
                                 <div className="p-3 bg-white dark:bg-slate-900 rounded-lg border shadow-xs">
                                   <span className="text-[10px] font-bold text-slate-400 uppercase block">Step 4</span>
-                                  <strong className="text-emerald-600 dark:text-emerald-400 text-xs block mt-1">Field Install</strong>
+                                  <strong className="text-emerald-600 dark:text-emerald-400 text-xs block mt-1">{globalMilestoneNames.installName}</strong>
                                   <span className="text-[10px] text-slate-500">+{currentSettings.fabToInstallDays}d</span>
                                 </div>
                                 <div className="p-3 bg-white dark:bg-slate-900 rounded-lg border shadow-xs">
                                   <span className="text-[10px] font-bold text-slate-400 uppercase block">Step 5</span>
-                                  <strong className="text-amber-600 dark:text-amber-400 text-xs block mt-1">Sign-Off</strong>
+                                  <strong className="text-amber-600 dark:text-amber-400 text-xs block mt-1">{globalMilestoneNames.signoffName}</strong>
                                   <span className="text-[10px] text-slate-500">+{currentSettings.installToSignoffDays}d</span>
                                 </div>
                               </div>
@@ -5667,7 +5785,7 @@ export default function App() {
               {/* Template Date */}
               <div className="space-y-2 p-3 border rounded-lg bg-slate-50 dark:bg-slate-950">
                 <div className="flex items-center justify-between">
-                  <label className="font-bold text-slate-800 dark:text-slate-200">Stone Template Date</label>
+                  <label className="font-bold text-slate-800 dark:text-slate-200">{globalMilestoneNames.templateName} Date</label>
                   <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase ${
                     editTemplateStatus === 'conf' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' :
                     editTemplateStatus === 'auto' ? 'bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300' :
@@ -5708,7 +5826,7 @@ export default function App() {
               {/* Fabrication Date */}
               <div className="space-y-2 p-3 border rounded-lg bg-slate-50 dark:bg-slate-950">
                 <div className="flex items-center justify-between">
-                  <label className="font-bold text-slate-800 dark:text-slate-200">Stone Fabrication Date</label>
+                  <label className="font-bold text-slate-800 dark:text-slate-200">{globalMilestoneNames.fabName} Date</label>
                   <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase ${
                     editFabStatus === 'conf' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' :
                     editFabStatus === 'auto' ? 'bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300' :
@@ -5749,7 +5867,7 @@ export default function App() {
               {/* Install Date */}
               <div className="space-y-2 p-3 border rounded-lg bg-slate-50 dark:bg-slate-950">
                 <div className="flex items-center justify-between">
-                  <label className="font-bold text-slate-800 dark:text-slate-200">Stone Install Date</label>
+                  <label className="font-bold text-slate-800 dark:text-slate-200">{globalMilestoneNames.installName} Date</label>
                   <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase ${
                     editInstallStatus === 'conf' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' :
                     editInstallStatus === 'auto' ? 'bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300' :
