@@ -441,7 +441,7 @@ export default function App() {
   });
 
   // Master Settings Hub State
-  const [settingsCategory, setSettingsCategory] = useState<'billing' | 'calendar' | 'job' | 'shop' | 'system' | 'users' | 'branding' | 'regions'>('regions');
+  const [settingsCategory, setSettingsCategory] = useState<'billing' | 'calendar' | 'job' | 'shop' | 'system' | 'users' | 'branding' | 'regions' | 'leadtimes'>('regions');
   const [usersSubSection, setUsersSubSection] = useState<'External Roles' | 'External Users' | 'Roles' | 'Users'>('External Users');
   const [systemSubSection, setSystemSubSection] = useState<'Login Locations' | 'Page Styles' | 'Security' | 'Settings'>('Security');
   const [shopSubSection, setShopSubSection] = useState<'Settings' | 'Users' | 'Views'>('Settings');
@@ -1065,6 +1065,54 @@ export default function App() {
   const [newHolidayRecurring, setNewHolidayRecurring] = useState(true);
   const [holidayAddedSuccess, setHolidayAddedSuccess] = useState(false);
 
+  // Auto-Scheduling & Lead Time Configuration State
+  interface LeadTimeSettings {
+    templateToCadDays: number;
+    cadToCutDays: number;
+    cutToFabDays: number;
+    fabToInstallDays: number;
+    installToSignoffDays: number;
+    targetDeadlineBufferDays: number;
+    allowWeekendOverflow: boolean;
+    autoCascadeDependencies: boolean;
+    isOverridden?: boolean;
+  }
+
+  const defaultGlobalLeadTimes: LeadTimeSettings = {
+    templateToCadDays: 1,
+    cadToCutDays: 1,
+    cutToFabDays: 2,
+    fabToInstallDays: 2,
+    installToSignoffDays: 1,
+    targetDeadlineBufferDays: 1,
+    allowWeekendOverflow: false,
+    autoCascadeDependencies: true,
+  };
+
+  const [globalLeadTimes, setGlobalLeadTimes] = useState<LeadTimeSettings>(defaultGlobalLeadTimes);
+  const [locationLeadTimeOverrides, setLocationLeadTimeOverrides] = useState<Record<string, LeadTimeSettings>>({
+    'Location 3 (Denver Hub)': {
+      templateToCadDays: 1,
+      cadToCutDays: 2,
+      cutToFabDays: 3,
+      fabToInstallDays: 3,
+      installToSignoffDays: 1,
+      targetDeadlineBufferDays: 2,
+      allowWeekendOverflow: false,
+      autoCascadeDependencies: true,
+      isOverridden: true,
+    }
+  });
+  const [selectedLeadTimeScope, setSelectedLeadTimeScope] = useState<string>('GLOBAL');
+  const [leadTimesSavedSuccess, setLeadTimesSavedSuccess] = useState(false);
+
+  const getEffectiveLeadTimes = (regionName?: string): LeadTimeSettings => {
+    if (regionName && locationLeadTimeOverrides[regionName]?.isOverridden) {
+      return locationLeadTimeOverrides[regionName];
+    }
+    return globalLeadTimes;
+  };
+
   const isDark = theme === 'dark';
 
   // Navigation handlers
@@ -1286,35 +1334,39 @@ export default function App() {
 
   const calculateShiftPreview = (job: JobRow, triggerPhase: 'template' | 'fab' | 'install', newDateStr: string) => {
     const affected: Array<{ phase: string; activityName: string; currentDate: string; proposedDate: string; workdayOffset: number }> = [];
+    const leadTimes = getEffectiveLeadTimes(job.regionName || selectedRegion);
 
     let proposedFabDate = job.fabDate.date;
     let proposedInstallDate = job.installDate.date;
 
+    const templateToFabOffset = leadTimes.templateToCadDays + leadTimes.cadToCutDays + leadTimes.cutToFabDays;
+    const fabToInstallOffset = leadTimes.fabToInstallDays;
+
     if (triggerPhase === 'template') {
-      proposedFabDate = calculateNextWorkingDate(newDateStr, 2, job.regionName);
-      proposedInstallDate = calculateNextWorkingDate(proposedFabDate, 2, job.regionName);
+      proposedFabDate = calculateNextWorkingDate(newDateStr, templateToFabOffset, job.regionName);
+      proposedInstallDate = calculateNextWorkingDate(proposedFabDate, fabToInstallOffset, job.regionName);
       affected.push({
         phase: 'STONE FABRICATION',
-        activityName: 'Stone Fabrication (Saw, CNC, Polish)',
+        activityName: `Stone Fabrication (${templateToFabOffset}d Lead Time)`,
         currentDate: job.fabDate.date,
         proposedDate: proposedFabDate,
-        workdayOffset: 2,
+        workdayOffset: templateToFabOffset,
       });
       affected.push({
         phase: 'STONE INSTALLATION',
-        activityName: 'Stone Final Installation',
+        activityName: `Stone Final Installation (+${fabToInstallOffset}d Lead Time)`,
         currentDate: job.installDate.date,
         proposedDate: proposedInstallDate,
-        workdayOffset: 4,
+        workdayOffset: templateToFabOffset + fabToInstallOffset,
       });
     } else if (triggerPhase === 'fab') {
-      proposedInstallDate = calculateNextWorkingDate(newDateStr, 2, job.regionName);
+      proposedInstallDate = calculateNextWorkingDate(newDateStr, fabToInstallOffset, job.regionName);
       affected.push({
         phase: 'STONE INSTALLATION',
-        activityName: 'Stone Final Installation',
+        activityName: `Stone Final Installation (+${fabToInstallOffset}d Lead Time)`,
         currentDate: job.installDate.date,
         proposedDate: proposedInstallDate,
-        workdayOffset: 2,
+        workdayOffset: fabToInstallOffset,
       });
     }
 
@@ -1418,15 +1470,15 @@ export default function App() {
           ...j,
           templateDate: {
             date: editTemplateDate || 'No Date',
-            status: editTemplateStatus === 'auto' ? 'conf' : editTemplateStatus,
+            status: editTemplateDate ? editTemplateStatus : 'none',
           },
           fabDate: {
             date: editFabDate || 'No Date',
-            status: editFabStatus === 'auto' ? 'conf' : editFabStatus,
+            status: editFabDate ? editFabStatus : 'none',
           },
           installDate: {
             date: editInstallDate || 'No Date',
-            status: editInstallStatus === 'auto' ? 'conf' : editInstallStatus,
+            status: editInstallDate ? editInstallStatus : 'none',
           },
         };
       }
@@ -4149,6 +4201,7 @@ export default function App() {
                   <div className="px-3 py-2 font-black text-[11px] uppercase tracking-wider text-slate-400">Settings Modules</div>
                   {[
                     { id: 'regions', label: 'Regions & Locations', icon: MapPin, desc: 'Operating facilities, default location & shutdown status' },
+                    { id: 'leadtimes', label: 'Auto-Schedule & Lead Times', icon: Sliders, desc: 'Global & location lead times, dependency offsets & calculations' },
                     { id: 'job', label: 'Job Settings', icon: Briefcase, desc: 'Activity types, sequence dependencies & forms' },
                     { id: 'calendar', label: 'Calendar & Holidays', icon: CalendarIcon, desc: 'Working days, non-working holidays & map' },
                     { id: 'shop', label: 'Shop Floor Machines', icon: Wrench, desc: 'Bridge saws, CNC routers & line buffers' },
@@ -4585,6 +4638,353 @@ export default function App() {
                           </div>
                         </div>
                       )}
+                    </div>
+                  )}
+
+                  {/* MODULE: AUTO-SCHEDULE & LEAD TIMES CONFIGURATION */}
+                  {settingsCategory === 'leadtimes' && (
+                    <div className="space-y-6 text-xs">
+                      <div className="border-b pb-4 flex items-center justify-between">
+                        <div>
+                          <h3 className="text-lg font-black text-blue-600 dark:text-blue-400 flex items-center space-x-2">
+                            <Sliders className="w-5 h-5" />
+                            <span>Auto-Schedule, Lead Times & Calculated Milestones</span>
+                          </h3>
+                          <p className="text-slate-500 mt-1">
+                            Configure standard manufacturing lead time offsets and cascading dependency rules. Global baseline defaults apply automatically to all operating facilities unless a specific location override is defined.
+                          </p>
+                        </div>
+                      </div>
+
+                      {leadTimesSavedSuccess && (
+                        <div className="p-4 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-lg text-xs flex items-center space-x-2 font-semibold">
+                          <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+                          <span>Lead time settings and milestone dependency offsets updated and saved successfully!</span>
+                        </div>
+                      )}
+
+                      {/* Scope Selector Card */}
+                      <div className="p-5 rounded-xl border bg-slate-50 dark:bg-slate-950 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                        <div className="space-y-1">
+                          <label className="block text-slate-400 font-bold uppercase tracking-wider text-[10px]">
+                            Configuration Scope (Global Default vs Location Override)
+                          </label>
+                          <div className="flex items-center space-x-3">
+                            <select
+                              value={selectedLeadTimeScope}
+                              onChange={(e) => setSelectedLeadTimeScope(e.target.value)}
+                              className="p-2.5 border rounded-lg font-bold text-sm bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-sm cursor-pointer min-w-[260px]"
+                            >
+                              <option value="GLOBAL">🌐 Global Baseline (All Operating Facilities)</option>
+                              {regionsList.map((reg) => (
+                                <option key={reg.id} value={reg.name}>
+                                  📍 {reg.name} ({reg.code})
+                                </option>
+                              ))}
+                            </select>
+
+                            {selectedLeadTimeScope === 'GLOBAL' ? (
+                              <span className="px-3 py-1.5 rounded-full bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300 font-bold text-[11px] border border-blue-300">
+                                🌐 Master Baseline Defaults
+                              </span>
+                            ) : locationLeadTimeOverrides[selectedLeadTimeScope]?.isOverridden ? (
+                              <span className="px-3 py-1.5 rounded-full bg-purple-100 dark:bg-purple-950 text-purple-800 dark:text-purple-300 font-bold text-[11px] border border-purple-300">
+                                ⚡ Custom Location Override Active
+                              </span>
+                            ) : (
+                              <span className="px-3 py-1.5 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-[11px]">
+                                🔗 Inheriting Global Defaults
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {selectedLeadTimeScope !== 'GLOBAL' && (
+                          <div className="flex items-center space-x-2">
+                            {locationLeadTimeOverrides[selectedLeadTimeScope]?.isOverridden ? (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const updated = { ...locationLeadTimeOverrides };
+                                  delete updated[selectedLeadTimeScope];
+                                  setLocationLeadTimeOverrides(updated);
+                                }}
+                                className="px-3 py-2 rounded-lg border border-rose-300 text-rose-600 hover:bg-rose-50 text-xs font-bold cursor-pointer transition-all"
+                              >
+                                ↺ Reset to Inherit Global Defaults
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setLocationLeadTimeOverrides({
+                                    ...locationLeadTimeOverrides,
+                                    [selectedLeadTimeScope]: { ...globalLeadTimes, isOverridden: true },
+                                  });
+                                }}
+                                className="px-3 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-500 text-xs font-bold cursor-pointer transition-all shadow-sm"
+                              >
+                                + Create Custom Override for {selectedLeadTimeScope}
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Lead Times & Offsets Configuration Form */}
+                      {(() => {
+                        const currentSettings = selectedLeadTimeScope === 'GLOBAL'
+                          ? globalLeadTimes
+                          : (locationLeadTimeOverrides[selectedLeadTimeScope] || globalLeadTimes);
+
+                        const updateCurrentSettings = (key: keyof LeadTimeSettings, val: any) => {
+                          if (selectedLeadTimeScope === 'GLOBAL') {
+                            setGlobalLeadTimes({ ...globalLeadTimes, [key]: val });
+                          } else {
+                            setLocationLeadTimeOverrides({
+                              ...locationLeadTimeOverrides,
+                              [selectedLeadTimeScope]: {
+                                ...(locationLeadTimeOverrides[selectedLeadTimeScope] || globalLeadTimes),
+                                isOverridden: true,
+                                [key]: val,
+                              },
+                            });
+                          }
+                        };
+
+                        const handleSaveForm = (e: React.FormEvent) => {
+                          e.preventDefault();
+                          const newLog: ChangeLogEntry = {
+                            id: String(Date.now()),
+                            timestamp: new Date().toLocaleString(),
+                            changedBy: `${activeUserRole === 'SUBSCRIBER_ADMIN' ? 'Admin' : 'Scheduler'} (${activeUserRole})`,
+                            summary: `Auto-Schedule Lead Times Updated for [${selectedLeadTimeScope === 'GLOBAL' ? 'Global Baseline' : selectedLeadTimeScope}]`,
+                            diffs: [
+                              { field: 'Template ➔ CAD (Days)', from: '-', to: String(currentSettings.templateToCadDays) },
+                              { field: 'CAD ➔ Saw/CNC (Days)', from: '-', to: String(currentSettings.cadToCutDays) },
+                              { field: 'Saw/CNC ➔ Fabrication (Days)', from: '-', to: String(currentSettings.cutToFabDays) },
+                              { field: 'Fabrication ➔ Install (Days)', from: '-', to: String(currentSettings.fabToInstallDays) },
+                            ]
+                          };
+                          setChangeLogs([newLog, ...changeLogs]);
+                          setLeadTimesSavedSuccess(true);
+                          setTimeout(() => setLeadTimesSavedSuccess(false), 3000);
+                        };
+
+                        const totalDays = currentSettings.templateToCadDays + currentSettings.cadToCutDays + currentSettings.cutToFabDays + currentSettings.fabToInstallDays;
+
+                        return (
+                          <form onSubmit={handleSaveForm} className="space-y-6">
+                            <div className="p-5 rounded-xl border space-y-4 shadow-sm bg-white dark:bg-slate-900">
+                              <div className="flex items-center justify-between border-b pb-2">
+                                <h4 className="font-bold text-sm text-slate-800 dark:text-slate-200 flex items-center space-x-2">
+                                  <span>1. Milestone Duration & Date Offsets (Working Days)</span>
+                                </h4>
+                                <span className="text-xs font-bold px-2.5 py-1 rounded bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300">
+                                  Standard Total Lead Time: ~{totalDays} Working Days
+                                </span>
+                              </div>
+
+                              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                <div className="p-3 border rounded-lg bg-slate-50 dark:bg-slate-950 space-y-1">
+                                  <label className="block font-bold text-slate-700 dark:text-slate-300">
+                                    Laser Template ➔ CAD / Programming
+                                  </label>
+                                  <div className="flex items-center space-x-2">
+                                    <input
+                                      type="number"
+                                      min="0"
+                                      max="30"
+                                      value={currentSettings.templateToCadDays}
+                                      onChange={(e) => updateCurrentSettings('templateToCadDays', parseInt(e.target.value) || 0)}
+                                      className="w-20 p-2 border rounded font-black text-center text-slate-900 dark:bg-slate-900 dark:text-slate-100"
+                                    />
+                                    <span className="text-slate-500 font-medium">working day(s)</span>
+                                  </div>
+                                  <span className="text-[10px] text-slate-400 block">CAD drawings prepared after template upload.</span>
+                                </div>
+
+                                <div className="p-3 border rounded-lg bg-slate-50 dark:bg-slate-950 space-y-1">
+                                  <label className="block font-bold text-slate-700 dark:text-slate-300">
+                                    CAD / Programming ➔ Saw & CNC Cutting
+                                  </label>
+                                  <div className="flex items-center space-x-2">
+                                    <input
+                                      type="number"
+                                      min="0"
+                                      max="30"
+                                      value={currentSettings.cadToCutDays}
+                                      onChange={(e) => updateCurrentSettings('cadToCutDays', parseInt(e.target.value) || 0)}
+                                      className="w-20 p-2 border rounded font-black text-center text-slate-900 dark:bg-slate-900 dark:text-slate-100"
+                                    />
+                                    <span className="text-slate-500 font-medium">working day(s)</span>
+                                  </div>
+                                  <span className="text-[10px] text-slate-400 block">Machine queue release buffer.</span>
+                                </div>
+
+                                <div className="p-3 border rounded-lg bg-slate-50 dark:bg-slate-950 space-y-1">
+                                  <label className="block font-bold text-slate-700 dark:text-slate-300">
+                                    Saw/CNC Cut ➔ Shop Hand Polish & Fab
+                                  </label>
+                                  <div className="flex items-center space-x-2">
+                                    <input
+                                      type="number"
+                                      min="0"
+                                      max="30"
+                                      value={currentSettings.cutToFabDays}
+                                      onChange={(e) => updateCurrentSettings('cutToFabDays', parseInt(e.target.value) || 0)}
+                                      className="w-20 p-2 border rounded font-black text-center text-slate-900 dark:bg-slate-900 dark:text-slate-100"
+                                    />
+                                    <span className="text-slate-500 font-medium">working day(s)</span>
+                                  </div>
+                                  <span className="text-[10px] text-slate-400 block">Edge profiling, sink cutouts & miter seams.</span>
+                                </div>
+
+                                <div className="p-3 border rounded-lg bg-slate-50 dark:bg-slate-950 space-y-1">
+                                  <label className="block font-bold text-slate-700 dark:text-slate-300">
+                                    Shop Fabrication ➔ Field Installation
+                                  </label>
+                                  <div className="flex items-center space-x-2">
+                                    <input
+                                      type="number"
+                                      min="0"
+                                      max="30"
+                                      value={currentSettings.fabToInstallDays}
+                                      onChange={(e) => updateCurrentSettings('fabToInstallDays', parseInt(e.target.value) || 0)}
+                                      className="w-20 p-2 border rounded font-black text-center text-slate-900 dark:bg-slate-900 dark:text-slate-100"
+                                    />
+                                    <span className="text-slate-500 font-medium">working day(s)</span>
+                                  </div>
+                                  <span className="text-[10px] text-slate-400 block">Staging, A-frame truck loading & transit.</span>
+                                </div>
+
+                                <div className="p-3 border rounded-lg bg-slate-50 dark:bg-slate-950 space-y-1">
+                                  <label className="block font-bold text-slate-700 dark:text-slate-300">
+                                    Field Installation ➔ 100% Quality Sign-Off
+                                  </label>
+                                  <div className="flex items-center space-x-2">
+                                    <input
+                                      type="number"
+                                      min="0"
+                                      max="30"
+                                      value={currentSettings.installToSignoffDays}
+                                      onChange={(e) => updateCurrentSettings('installToSignoffDays', parseInt(e.target.value) || 0)}
+                                      className="w-20 p-2 border rounded font-black text-center text-slate-900 dark:bg-slate-900 dark:text-slate-100"
+                                    />
+                                    <span className="text-slate-500 font-medium">working day(s)</span>
+                                  </div>
+                                  <span className="text-[10px] text-slate-400 block">Site inspection & customer form sign-off.</span>
+                                </div>
+
+                                <div className="p-3 border rounded-lg bg-slate-50 dark:bg-slate-950 space-y-1">
+                                  <label className="block font-bold text-slate-700 dark:text-slate-300">
+                                    Target Deadline Safety Buffer
+                                  </label>
+                                  <div className="flex items-center space-x-2">
+                                    <input
+                                      type="number"
+                                      min="0"
+                                      max="30"
+                                      value={currentSettings.targetDeadlineBufferDays}
+                                      onChange={(e) => updateCurrentSettings('targetDeadlineBufferDays', parseInt(e.target.value) || 0)}
+                                      className="w-20 p-2 border rounded font-black text-center text-slate-900 dark:bg-slate-900 dark:text-slate-100"
+                                    />
+                                    <span className="text-slate-500 font-medium">working day(s)</span>
+                                  </div>
+                                  <span className="text-[10px] text-slate-400 block">Buffer before late deadline alert triggers.</span>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Sequence Flow Timeline */}
+                            <div className="p-5 rounded-xl border bg-slate-50 dark:bg-slate-950 space-y-3">
+                              <h4 className="font-bold text-sm text-slate-800 dark:text-slate-200">
+                                2. Visual Production Pipeline Flow
+                              </h4>
+                              <div className="grid grid-cols-2 md:grid-cols-5 gap-3 text-center">
+                                <div className="p-3 bg-white dark:bg-slate-900 rounded-lg border shadow-xs">
+                                  <span className="text-[10px] font-bold text-slate-400 uppercase block">Step 1</span>
+                                  <strong className="text-blue-600 dark:text-blue-400 text-xs block mt-1">Laser Template</strong>
+                                  <span className="text-[10px] text-slate-500">Day 0 (Start)</span>
+                                </div>
+                                <div className="p-3 bg-white dark:bg-slate-900 rounded-lg border shadow-xs">
+                                  <span className="text-[10px] font-bold text-slate-400 uppercase block">Step 2</span>
+                                  <strong className="text-purple-600 dark:text-purple-400 text-xs block mt-1">CAD & Saw/CNC</strong>
+                                  <span className="text-[10px] text-slate-500">+{currentSettings.templateToCadDays + currentSettings.cadToCutDays}d</span>
+                                </div>
+                                <div className="p-3 bg-white dark:bg-slate-900 rounded-lg border shadow-xs">
+                                  <span className="text-[10px] font-bold text-slate-400 uppercase block">Step 3</span>
+                                  <strong className="text-indigo-600 dark:text-indigo-400 text-xs block mt-1">Hand Polish & Fab</strong>
+                                  <span className="text-[10px] text-slate-500">+{currentSettings.cutToFabDays}d</span>
+                                </div>
+                                <div className="p-3 bg-white dark:bg-slate-900 rounded-lg border shadow-xs">
+                                  <span className="text-[10px] font-bold text-slate-400 uppercase block">Step 4</span>
+                                  <strong className="text-emerald-600 dark:text-emerald-400 text-xs block mt-1">Field Install</strong>
+                                  <span className="text-[10px] text-slate-500">+{currentSettings.fabToInstallDays}d</span>
+                                </div>
+                                <div className="p-3 bg-white dark:bg-slate-900 rounded-lg border shadow-xs">
+                                  <span className="text-[10px] font-bold text-slate-400 uppercase block">Step 5</span>
+                                  <strong className="text-amber-600 dark:text-amber-400 text-xs block mt-1">Sign-Off</strong>
+                                  <span className="text-[10px] text-slate-500">+{currentSettings.installToSignoffDays}d</span>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Calculated Logic Rules */}
+                            <div className="p-5 rounded-xl border bg-white dark:bg-slate-900 space-y-4">
+                              <h4 className="font-bold text-sm text-slate-800 dark:text-slate-200 border-b pb-2">
+                                3. Calculated Logic & Auto-Cascading Rules
+                              </h4>
+
+                              <div className="space-y-3">
+                                <label className="flex items-start space-x-3 cursor-pointer">
+                                  <input
+                                    type="checkbox"
+                                    checked={currentSettings.autoCascadeDependencies}
+                                    onChange={(e) => updateCurrentSettings('autoCascadeDependencies', e.target.checked)}
+                                    className="mt-0.5 rounded text-blue-600 cursor-pointer"
+                                  />
+                                  <div>
+                                    <strong className="text-slate-800 dark:text-slate-200 block">
+                                      Enable Auto-Cascade Downstream Dependencies
+                                    </strong>
+                                    <span className="text-slate-500 text-[11px]">
+                                      When enabled, shifting a Laser Template or Fabrication milestone date automatically calculates downstream shifts and prompts dispatch with the Dependency Shift Plan modal.
+                                    </span>
+                                  </div>
+                                </label>
+
+                                <label className="flex items-start space-x-3 cursor-pointer">
+                                  <input
+                                    type="checkbox"
+                                    checked={currentSettings.allowWeekendOverflow}
+                                    onChange={(e) => updateCurrentSettings('allowWeekendOverflow', e.target.checked)}
+                                    className="mt-0.5 rounded text-blue-600 cursor-pointer"
+                                  />
+                                  <div>
+                                    <strong className="text-slate-800 dark:text-slate-200 block">
+                                      Allow Weekend / Non-Working Day Overflow in Calculations
+                                    </strong>
+                                    <span className="text-slate-500 text-[11px]">
+                                      When disabled (recommended), calculations strictly skip non-working Saturdays, Sundays, and regional holidays.
+                                    </span>
+                                  </div>
+                                </label>
+                              </div>
+                            </div>
+
+                            <div className="flex justify-end pt-2">
+                              <button
+                                type="submit"
+                                className="bg-blue-600 hover:bg-blue-500 text-white font-bold px-6 py-2.5 rounded-lg text-xs flex items-center space-x-2 shadow-md cursor-pointer"
+                              >
+                                <Save className="w-4 h-4" />
+                                <span>Save Lead Time Settings ({selectedLeadTimeScope === 'GLOBAL' ? 'Global Baseline' : selectedLeadTimeScope})</span>
+                              </button>
+                            </div>
+                          </form>
+                        );
+                      })()}
                     </div>
                   )}
 
@@ -5264,15 +5664,26 @@ export default function App() {
             <form onSubmit={handleSaveDates} className="mt-4 space-y-4 text-xs">
               <div className="text-slate-500 font-semibold">{editingDateJob.jobName}</div>
 
-              <div className="space-y-1 p-3 border rounded bg-slate-50 dark:bg-slate-950">
-                <label className="block font-bold">Stone Template Date</label>
+              {/* Template Date */}
+              <div className="space-y-2 p-3 border rounded-lg bg-slate-50 dark:bg-slate-950">
+                <div className="flex items-center justify-between">
+                  <label className="font-bold text-slate-800 dark:text-slate-200">Stone Template Date</label>
+                  <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase ${
+                    editTemplateStatus === 'conf' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' :
+                    editTemplateStatus === 'auto' ? 'bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300' :
+                    editTemplateStatus === 'calc' ? 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300' :
+                    'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
+                  }`}>
+                    Status: {editTemplateStatus}
+                  </span>
+                </div>
                 <div className="flex space-x-2">
                   <input
                     type="text"
                     placeholder="e.g. 7/20/2026 or No Date"
                     value={editTemplateDate}
                     onChange={(e) => setEditTemplateDate(e.target.value)}
-                    className="w-full p-2 border rounded text-slate-900 dark:bg-slate-900 dark:text-slate-100"
+                    className="w-full p-2 border rounded font-semibold text-slate-900 dark:bg-slate-900 dark:text-slate-100"
                   />
                   <select
                     value={editTemplateStatus}
@@ -5285,17 +5696,35 @@ export default function App() {
                     <option value="tent">Tentative (tent)</option>
                   </select>
                 </div>
+                <div className="flex items-center space-x-1.5 pt-1">
+                  <span className="text-[10px] text-slate-400 font-semibold">Quick Set Status:</span>
+                  <button type="button" onClick={() => setEditTemplateStatus('conf')} className={`px-2 py-0.5 rounded text-[10px] font-bold border cursor-pointer ${editTemplateStatus === 'conf' ? 'bg-emerald-600 text-white' : 'bg-white dark:bg-slate-900 text-emerald-600 border-emerald-300'}`}>✔ Confirmed</button>
+                  <button type="button" onClick={() => setEditTemplateStatus('auto')} className={`px-2 py-0.5 rounded text-[10px] font-bold border cursor-pointer ${editTemplateStatus === 'auto' ? 'bg-purple-600 text-white' : 'bg-white dark:bg-slate-900 text-purple-600 border-purple-300'}`}>⚡ Auto</button>
+                  <button type="button" onClick={() => setEditTemplateStatus('calc')} className={`px-2 py-0.5 rounded text-[10px] font-bold border cursor-pointer ${editTemplateStatus === 'calc' ? 'bg-blue-600 text-white' : 'bg-white dark:bg-slate-900 text-blue-600 border-blue-300'}`}>📐 Calc</button>
+                  <button type="button" onClick={() => setEditTemplateStatus('tent')} className={`px-2 py-0.5 rounded text-[10px] font-bold border cursor-pointer ${editTemplateStatus === 'tent' ? 'bg-amber-600 text-white' : 'bg-white dark:bg-slate-900 text-amber-600 border-amber-300'}`}>⏳ Tentative</button>
+                </div>
               </div>
 
-              <div className="space-y-1 p-3 border rounded bg-slate-50 dark:bg-slate-950">
-                <label className="block font-bold">Stone Fabrication Date</label>
+              {/* Fabrication Date */}
+              <div className="space-y-2 p-3 border rounded-lg bg-slate-50 dark:bg-slate-950">
+                <div className="flex items-center justify-between">
+                  <label className="font-bold text-slate-800 dark:text-slate-200">Stone Fabrication Date</label>
+                  <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase ${
+                    editFabStatus === 'conf' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' :
+                    editFabStatus === 'auto' ? 'bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300' :
+                    editFabStatus === 'calc' ? 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300' :
+                    'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
+                  }`}>
+                    Status: {editFabStatus}
+                  </span>
+                </div>
                 <div className="flex space-x-2">
                   <input
                     type="text"
                     placeholder="e.g. 7/22/2026 or No Date"
                     value={editFabDate}
                     onChange={(e) => setEditFabDate(e.target.value)}
-                    className="w-full p-2 border rounded text-slate-900 dark:bg-slate-900 dark:text-slate-100"
+                    className="w-full p-2 border rounded font-semibold text-slate-900 dark:bg-slate-900 dark:text-slate-100"
                   />
                   <select
                     value={editFabStatus}
@@ -5308,22 +5737,40 @@ export default function App() {
                     <option value="tent">Tentative (tent)</option>
                   </select>
                 </div>
+                <div className="flex items-center space-x-1.5 pt-1">
+                  <span className="text-[10px] text-slate-400 font-semibold">Quick Set Status:</span>
+                  <button type="button" onClick={() => setEditFabStatus('conf')} className={`px-2 py-0.5 rounded text-[10px] font-bold border cursor-pointer ${editFabStatus === 'conf' ? 'bg-emerald-600 text-white' : 'bg-white dark:bg-slate-900 text-emerald-600 border-emerald-300'}`}>✔ Confirmed</button>
+                  <button type="button" onClick={() => setEditFabStatus('auto')} className={`px-2 py-0.5 rounded text-[10px] font-bold border cursor-pointer ${editFabStatus === 'auto' ? 'bg-purple-600 text-white' : 'bg-white dark:bg-slate-900 text-purple-600 border-purple-300'}`}>⚡ Auto</button>
+                  <button type="button" onClick={() => setEditFabStatus('calc')} className={`px-2 py-0.5 rounded text-[10px] font-bold border cursor-pointer ${editFabStatus === 'calc' ? 'bg-blue-600 text-white' : 'bg-white dark:bg-slate-900 text-blue-600 border-blue-300'}`}>📐 Calc</button>
+                  <button type="button" onClick={() => setEditFabStatus('tent')} className={`px-2 py-0.5 rounded text-[10px] font-bold border cursor-pointer ${editFabStatus === 'tent' ? 'bg-amber-600 text-white' : 'bg-white dark:bg-slate-900 text-amber-600 border-amber-300'}`}>⏳ Tentative</button>
+                </div>
               </div>
 
-              <div className="space-y-1 p-3 border rounded bg-slate-50 dark:bg-slate-950">
-                <label className="block font-bold">Stone Install Date</label>
+              {/* Install Date */}
+              <div className="space-y-2 p-3 border rounded-lg bg-slate-50 dark:bg-slate-950">
+                <div className="flex items-center justify-between">
+                  <label className="font-bold text-slate-800 dark:text-slate-200">Stone Install Date</label>
+                  <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase ${
+                    editInstallStatus === 'conf' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' :
+                    editInstallStatus === 'auto' ? 'bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300' :
+                    editInstallStatus === 'calc' ? 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300' :
+                    'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
+                  }`}>
+                    Status: {editInstallStatus}
+                  </span>
+                </div>
                 <div className="flex space-x-2">
                   <input
                     type="text"
                     placeholder="e.g. 7/24/2026 or No Date"
                     value={editInstallDate}
                     onChange={(e) => setEditInstallDate(e.target.value)}
-                    className="w-full p-2 border rounded text-slate-900 dark:bg-slate-950 dark:text-slate-100"
+                    className="w-full p-2 border rounded font-semibold text-slate-900 dark:bg-slate-900 dark:text-slate-100"
                   />
                   <select
                     value={editInstallStatus}
                     onChange={(e) => setEditInstallStatus(e.target.value as any)}
-                    className="p-2 border rounded font-bold text-slate-900 dark:bg-slate-950 dark:text-slate-100"
+                    className="p-2 border rounded font-bold text-slate-900 dark:bg-slate-900 dark:text-slate-100"
                   >
                     <option value="conf">Confirmed (conf)</option>
                     <option value="auto">Auto-Schedule (auto)</option>
@@ -5331,17 +5778,24 @@ export default function App() {
                     <option value="tent">Tentative (tent)</option>
                   </select>
                 </div>
+                <div className="flex items-center space-x-1.5 pt-1">
+                  <span className="text-[10px] text-slate-400 font-semibold">Quick Set Status:</span>
+                  <button type="button" onClick={() => setEditInstallStatus('conf')} className={`px-2 py-0.5 rounded text-[10px] font-bold border cursor-pointer ${editInstallStatus === 'conf' ? 'bg-emerald-600 text-white' : 'bg-white dark:bg-slate-900 text-emerald-600 border-emerald-300'}`}>✔ Confirmed</button>
+                  <button type="button" onClick={() => setEditInstallStatus('auto')} className={`px-2 py-0.5 rounded text-[10px] font-bold border cursor-pointer ${editInstallStatus === 'auto' ? 'bg-purple-600 text-white' : 'bg-white dark:bg-slate-900 text-purple-600 border-purple-300'}`}>⚡ Auto</button>
+                  <button type="button" onClick={() => setEditInstallStatus('calc')} className={`px-2 py-0.5 rounded text-[10px] font-bold border cursor-pointer ${editInstallStatus === 'calc' ? 'bg-blue-600 text-white' : 'bg-white dark:bg-slate-900 text-blue-600 border-blue-300'}`}>📐 Calc</button>
+                  <button type="button" onClick={() => setEditInstallStatus('tent')} className={`px-2 py-0.5 rounded text-[10px] font-bold border cursor-pointer ${editInstallStatus === 'tent' ? 'bg-amber-600 text-white' : 'bg-white dark:bg-slate-900 text-amber-600 border-amber-300'}`}>⏳ Tentative</button>
+                </div>
               </div>
 
-              <div className="text-[11px] text-amber-600 font-medium">
-                Note: Manually editing an auto-scheduled date automatically sets its status to 'Confirmed (conf)' and records a Change Log audit entry.
+              <div className="text-[11px] text-slate-500 dark:text-slate-400 font-medium bg-blue-50 dark:bg-blue-950/40 p-2.5 rounded border border-blue-200 dark:border-blue-800">
+                💡 <strong>Milestone Status Control:</strong> Editing dates retains your chosen status. Click <strong>✔ Confirmed</strong> only when you want to lock the date down.
               </div>
 
               <div className="pt-2 flex justify-end space-x-2">
-                <button type="button" onClick={() => setEditingDateJob(null)} className="px-3 py-1.5 border rounded cursor-pointer">
+                <button type="button" onClick={() => setEditingDateJob(null)} className="px-3 py-1.5 border rounded cursor-pointer font-bold">
                   Cancel
                 </button>
-                <button type="submit" className="bg-blue-600 text-white font-bold px-4 py-1.5 rounded cursor-pointer">
+                <button type="submit" className="bg-blue-600 hover:bg-blue-500 text-white font-bold px-4 py-1.5 rounded cursor-pointer shadow-sm">
                   Save Dates & Log Audit
                 </button>
               </div>
