@@ -295,6 +295,7 @@ export default function App() {
   const [selectedAccount, setSelectedAccount] = useState<AccountRow | null>(null);
   const [selectedCommunity, setSelectedCommunity] = useState<CommunityRow | null>(null);
   const [selectedJob, setSelectedJob] = useState<JobRow | null>(null);
+  const [jobDetailOriginNav, setJobDetailOriginNav] = useState<'jobs' | 'calendar' | 'accounts' | 'community_detail'>('jobs');
   const [phaseFilter, setPhaseFilter] = useState<'ALL' | 'STONE' | 'CABINETRY'>('ALL');
 
   // Form Accordions State
@@ -1056,8 +1057,9 @@ export default function App() {
     setActiveNav('community_detail');
   };
 
-  const openJobDetailScreen = (job: JobRow) => {
+  const openJobDetailScreen = (job: JobRow, origin: 'jobs' | 'calendar' | 'accounts' | 'community_detail' = 'jobs') => {
     setSelectedJob(job);
+    setJobDetailOriginNav(origin);
     setActiveNav('job_detail');
   };
 
@@ -1798,6 +1800,96 @@ export default function App() {
   const calendar14Days = get14DayRange(centerDate);
   const week1Days = calendar14Days.slice(0, 7);
   const week2Days = calendar14Days.slice(7, 15);
+
+  const isDateMatch = (targetDateString?: string, calDay?: { dateStr: string; formatted: string }): boolean => {
+    if (!targetDateString || !calDay || targetDateString === 'No Date') return false;
+    const cleanTarget = targetDateString.trim();
+    if (cleanTarget === calDay.formatted || cleanTarget === calDay.dateStr) return true;
+
+    const parts = cleanTarget.split('/');
+    if (parts.length >= 2) {
+      const month = parseInt(parts[0], 10);
+      const day = parseInt(parts[1], 10);
+      const calParts = calDay.formatted.split('/');
+      if (calParts.length === 2) {
+        const calMonth = parseInt(calParts[0], 10);
+        const calDayNum = parseInt(calParts[1], 10);
+        if (month === calMonth && day === calDayNum) return true;
+      }
+    }
+
+    const parsed = new Date(cleanTarget);
+    if (!isNaN(parsed.getTime())) {
+      const targetFormatted = `${parsed.getMonth() + 1}/${parsed.getDate()}`;
+      const targetISO = parsed.toISOString().split('T')[0];
+      return targetFormatted === calDay.formatted || targetISO === calDay.dateStr;
+    }
+    return false;
+  };
+
+  const getCalendarMilestonesForDay = (calDay: { dateStr: string; formatted: string }) => {
+    const results: Array<{
+      key: string;
+      job: JobRow;
+      phase: 'template' | 'fab' | 'install';
+      phaseLabel: string;
+      crew: string;
+      badgeClass: string;
+      cardClass: string;
+    }> = [];
+
+    const filtered = jobsData.filter(j => {
+      if (calAccountFilter !== 'All' && j.accountName !== calAccountFilter) return false;
+      if (calCommunityFilter !== 'All' && j.communityName !== calCommunityFilter) return false;
+      return true;
+    });
+
+    filtered.forEach(j => {
+      // 1. Laser Template Milestone
+      if (isDateMatch(j.templateDate?.date, calDay)) {
+        results.push({
+          key: `${j.id}_template_${calDay.dateStr}`,
+          job: j,
+          phase: 'template',
+          phaseLabel: 'Template',
+          crew: 'Laser Templater 1',
+          badgeClass: 'bg-blue-600 text-white',
+          cardClass: 'bg-blue-50/90 hover:bg-blue-100/90 text-blue-900 border-blue-300 dark:bg-blue-950/80 dark:text-blue-200 dark:border-blue-800'
+        });
+      }
+
+      // 2. Fabrication Milestone
+      if (isDateMatch(j.fabDate?.date, calDay)) {
+        results.push({
+          key: `${j.id}_fab_${calDay.dateStr}`,
+          job: j,
+          phase: 'fab',
+          phaseLabel: 'Fab',
+          crew: 'Bridge Saw 1 & CNC',
+          badgeClass: 'bg-purple-600 text-white',
+          cardClass: 'bg-purple-50/90 hover:bg-purple-100/90 text-purple-900 border-purple-300 dark:bg-purple-950/80 dark:text-purple-200 dark:border-purple-800'
+        });
+      }
+
+      // 3. Field Installation Milestone
+      if (isDateMatch(j.installDate?.date, calDay)) {
+        const isWarranty = j.jobCategory === 'REWORK_WARRANTY';
+        results.push({
+          key: `${j.id}_install_${calDay.dateStr}`,
+          job: j,
+          phase: 'install',
+          phaseLabel: isWarranty ? 'Warranty Rework' : 'Install',
+          crew: j.assignedCrew || 'Install Truck 1',
+          badgeClass: isWarranty ? 'bg-rose-600 text-white' : 'bg-emerald-600 text-white',
+          cardClass: isWarranty 
+            ? 'bg-rose-50/90 hover:bg-rose-100/90 text-rose-900 border-rose-300 dark:bg-rose-950/80 dark:text-rose-200 dark:border-rose-800' 
+            : 'bg-emerald-50/90 hover:bg-emerald-100/90 text-emerald-900 border-emerald-300 dark:bg-emerald-950/80 dark:text-emerald-200 dark:border-emerald-800'
+        });
+      }
+    });
+
+    return results;
+  };
 
   const shiftCalendarDays = (offsetDays: number) => {
     const d = new Date(centerDate);
@@ -2769,11 +2861,16 @@ export default function App() {
               <div className={`px-6 py-3 border-b flex items-center justify-between ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-300 shadow-sm'}`}>
                 <div className="flex items-center space-x-4">
                   <button
-                    onClick={() => setActiveNav('jobs')}
+                    onClick={() => setActiveNav(jobDetailOriginNav)}
                     className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center space-x-1 font-bold text-xs cursor-pointer"
                   >
                     <ArrowLeft className="w-4 h-4" />
-                    <span>Jobs List</span>
+                    <span>
+                      {jobDetailOriginNav === 'calendar' && 'Back to Calendar'}
+                      {jobDetailOriginNav === 'jobs' && 'Back to Jobs List'}
+                      {jobDetailOriginNav === 'community_detail' && 'Back to Community'}
+                      {jobDetailOriginNav === 'accounts' && 'Back to Accounts'}
+                    </span>
                   </button>
 
                   <h2 className="text-base font-black text-blue-600 dark:text-blue-400 tracking-tight">
@@ -3406,10 +3503,11 @@ export default function App() {
                       })}
                     </div>
 
-                    <div className="grid grid-cols-7 gap-2 mt-2">
+                    <div className="grid grid-cols-7 gap-2 mt-2 items-start">
                       {week1Days.map((d, i) => {
                         const isWork = isDateWorkingDay(d.dateStr);
                         const isOvertime = customWorkDays.includes(d.dateStr);
+                        const milestones = isWork ? getCalendarMilestonesForDay(d) : [];
                         return (
                           <div
                             key={i}
@@ -3432,15 +3530,15 @@ export default function App() {
                               }
                               setDraggedActivity(null);
                             }}
-                            className={`min-h-[110px] p-2 border rounded transition-all flex flex-col justify-between ${
+                            className={`min-h-[130px] h-auto p-2 border rounded-lg transition-all flex flex-col justify-between ${
                               !isWork
                                 ? 'bg-slate-200/50 dark:bg-slate-950/60 border-slate-300 dark:border-slate-800'
-                                : 'bg-slate-50/50 dark:bg-slate-950/30 border-dashed border-slate-300 dark:border-slate-800'
+                                : 'bg-slate-50/70 dark:bg-slate-950/30 border-dashed border-slate-300 dark:border-slate-800'
                             }`}
                           >
-                            <div className="space-y-1.5">
+                            <div className="space-y-1.5 flex flex-col w-full">
                               {!isWork ? (
-                                <div className="text-center py-4 text-slate-400">
+                                <div className="text-center py-5 text-slate-400">
                                   <div className="font-bold text-[10px] flex items-center justify-center space-x-1">
                                     <Lock className="w-3 h-3" />
                                     <span>Non-Working Day</span>
@@ -3454,26 +3552,41 @@ export default function App() {
                                 </div>
                               ) : (
                                 <>
-                                  {/* Render matching jobs / activities */}
-                                  {jobsData.filter(j => j.templateDate.date.includes(d.formatted) || j.installDate.date.includes(d.formatted)).map((j) => (
-                                    <div
-                                      key={j.id}
-                                      draggable={activeUserRole !== 'EXTERNAL_FIELD_INSTALLER' && activeUserRole !== 'EXTERNAL_SUBCONTRACTOR'}
-                                      onDragStart={() => setDraggedActivity({ jobId: j.id, activityId: 'act_temp', activityName: j.jobName, currentDate: d.formatted, phase: 'template' })}
-                                      onClick={() => openJobDetailScreen(j)}
-                                      className={`p-1.5 rounded text-[10px] font-bold shadow-xs cursor-pointer transition-all border flex items-center justify-between group ${
-                                        j.jobCategory === 'REWORK_WARRANTY'
-                                          ? 'bg-rose-100 text-rose-900 border-rose-300 dark:bg-rose-950 dark:text-rose-200'
-                                          : 'bg-blue-100 hover:bg-blue-200 text-blue-900 border-blue-300 dark:bg-blue-950 dark:text-blue-200'
-                                      }`}
-                                    >
-                                      <div className="overflow-hidden truncate">
-                                        <div>{j.jobName}</div>
-                                        <div className="text-[9px] font-medium opacity-80">{j.assignedCrew || 'Plant Crew'}</div>
-                                      </div>
-                                      <ExternalLink className="w-3 h-3 shrink-0 opacity-70 group-hover:opacity-100" />
+                                  {milestones.length === 0 ? (
+                                    <div className="text-slate-400 dark:text-slate-600 text-[10px] italic py-4 text-center">
+                                      No Scheduled Milestones
                                     </div>
-                                  ))}
+                                  ) : (
+                                    milestones.map((item) => (
+                                      <div
+                                        key={item.key}
+                                        draggable={activeUserRole !== 'EXTERNAL_FIELD_INSTALLER' && activeUserRole !== 'EXTERNAL_SUBCONTRACTOR'}
+                                        onDragStart={() => setDraggedActivity({
+                                          jobId: item.job.id,
+                                          activityId: `act_${item.phase}`,
+                                          activityName: item.job.jobName,
+                                          currentDate: d.formatted,
+                                          phase: item.phase
+                                        })}
+                                        onClick={() => openJobDetailScreen(item.job, 'calendar')}
+                                        className={`p-2 rounded-lg text-[10px] font-bold shadow-xs cursor-pointer transition-all border flex flex-col space-y-1 group ${item.cardClass}`}
+                                      >
+                                        <div className="flex items-center justify-between">
+                                          <span className={`px-1.5 py-0.5 rounded text-[9px] font-black ${item.badgeClass}`}>
+                                            {item.phaseLabel}
+                                          </span>
+                                          <span className="text-[9px] font-medium opacity-80">Lot {item.job.lotNumber}</span>
+                                        </div>
+                                        <div className="font-bold text-xs truncate leading-tight">
+                                          {item.job.jobName}
+                                        </div>
+                                        <div className="text-[9px] opacity-80 flex items-center justify-between pt-0.5 border-t border-black/10 dark:border-white/10">
+                                          <span className="truncate">{item.crew}</span>
+                                          <ExternalLink className="w-3 h-3 shrink-0 opacity-60 group-hover:opacity-100" />
+                                        </div>
+                                      </div>
+                                    ))
+                                  )}
                                 </>
                               )}
                             </div>
@@ -3481,9 +3594,9 @@ export default function App() {
                             {isOvertime && (
                               <button
                                 onClick={() => handleToggleOvertimeDay(d.dateStr)}
-                                className="text-[9px] text-amber-700 dark:text-amber-400 hover:underline font-semibold text-center cursor-pointer"
+                                className="text-[9px] text-amber-700 dark:text-amber-400 hover:underline font-semibold text-center cursor-pointer mt-2"
                               >
-                                Overtime Enabled (Click to Revert)
+                                Overtime Enabled (Revert)
                               </button>
                             )}
                           </div>
@@ -3527,10 +3640,11 @@ export default function App() {
                       })}
                     </div>
 
-                    <div className="grid grid-cols-8 gap-2 mt-2">
+                    <div className="grid grid-cols-8 gap-2 mt-2 items-start">
                       {week2Days.map((d, i) => {
                         const isWork = isDateWorkingDay(d.dateStr);
                         const isOvertime = customWorkDays.includes(d.dateStr);
+                        const milestones = isWork ? getCalendarMilestonesForDay(d) : [];
                         return (
                           <div
                             key={i}
@@ -3553,15 +3667,15 @@ export default function App() {
                               }
                               setDraggedActivity(null);
                             }}
-                            className={`min-h-[110px] p-2 border rounded transition-all flex flex-col justify-between ${
+                            className={`min-h-[130px] h-auto p-2 border rounded-lg transition-all flex flex-col justify-between ${
                               !isWork
                                 ? 'bg-slate-200/50 dark:bg-slate-950/60 border-slate-300 dark:border-slate-800'
-                                : 'bg-slate-50/50 dark:bg-slate-950/30 border-dashed border-slate-300 dark:border-slate-800'
+                                : 'bg-slate-50/70 dark:bg-slate-950/30 border-dashed border-slate-300 dark:border-slate-800'
                             }`}
                           >
-                            <div className="space-y-1.5">
+                            <div className="space-y-1.5 flex flex-col w-full">
                               {!isWork ? (
-                                <div className="text-center py-4 text-slate-400">
+                                <div className="text-center py-5 text-slate-400">
                                   <div className="font-bold text-[10px] flex items-center justify-center space-x-1">
                                     <Lock className="w-3 h-3" />
                                     <span>Non-Working Day</span>
@@ -3575,25 +3689,41 @@ export default function App() {
                                 </div>
                               ) : (
                                 <>
-                                  {jobsData.filter(j => j.templateDate.date.includes(d.formatted) || j.fabDate.date.includes(d.formatted) || j.installDate.date.includes(d.formatted)).map((j) => (
-                                    <div
-                                      key={j.id}
-                                      draggable={activeUserRole !== 'EXTERNAL_FIELD_INSTALLER' && activeUserRole !== 'EXTERNAL_SUBCONTRACTOR'}
-                                      onDragStart={() => setDraggedActivity({ jobId: j.id, activityId: 'act_inst', activityName: j.jobName, currentDate: d.formatted, phase: 'install' })}
-                                      onClick={() => openJobDetailScreen(j)}
-                                      className={`p-1.5 rounded text-[10px] font-bold shadow-xs cursor-pointer transition-all border flex items-center justify-between group ${
-                                        j.jobCategory === 'REWORK_WARRANTY'
-                                          ? 'bg-rose-100 text-rose-900 border-rose-300 dark:bg-rose-950 dark:text-rose-200'
-                                          : 'bg-purple-100 hover:bg-purple-200 text-purple-900 border-purple-300 dark:bg-purple-950 dark:text-purple-200'
-                                      }`}
-                                    >
-                                      <div className="overflow-hidden truncate">
-                                        <div>{j.jobName}</div>
-                                        <div className="text-[9px] font-medium opacity-80">{j.assignedCrew || 'Install Truck 1'}</div>
-                                      </div>
-                                      <ExternalLink className="w-3 h-3 shrink-0 opacity-70 group-hover:opacity-100" />
+                                  {milestones.length === 0 ? (
+                                    <div className="text-slate-400 dark:text-slate-600 text-[10px] italic py-4 text-center">
+                                      No Scheduled Milestones
                                     </div>
-                                  ))}
+                                  ) : (
+                                    milestones.map((item) => (
+                                      <div
+                                        key={item.key}
+                                        draggable={activeUserRole !== 'EXTERNAL_FIELD_INSTALLER' && activeUserRole !== 'EXTERNAL_SUBCONTRACTOR'}
+                                        onDragStart={() => setDraggedActivity({
+                                          jobId: item.job.id,
+                                          activityId: `act_${item.phase}`,
+                                          activityName: item.job.jobName,
+                                          currentDate: d.formatted,
+                                          phase: item.phase
+                                        })}
+                                        onClick={() => openJobDetailScreen(item.job, 'calendar')}
+                                        className={`p-2 rounded-lg text-[10px] font-bold shadow-xs cursor-pointer transition-all border flex flex-col space-y-1 group ${item.cardClass}`}
+                                      >
+                                        <div className="flex items-center justify-between">
+                                          <span className={`px-1.5 py-0.5 rounded text-[9px] font-black ${item.badgeClass}`}>
+                                            {item.phaseLabel}
+                                          </span>
+                                          <span className="text-[9px] font-medium opacity-80">Lot {item.job.lotNumber}</span>
+                                        </div>
+                                        <div className="font-bold text-xs truncate leading-tight">
+                                          {item.job.jobName}
+                                        </div>
+                                        <div className="text-[9px] opacity-80 flex items-center justify-between pt-0.5 border-t border-black/10 dark:border-white/10">
+                                          <span className="truncate">{item.crew}</span>
+                                          <ExternalLink className="w-3 h-3 shrink-0 opacity-60 group-hover:opacity-100" />
+                                        </div>
+                                      </div>
+                                    ))
+                                  )}
                                 </>
                               )}
                             </div>
@@ -3601,9 +3731,9 @@ export default function App() {
                             {isOvertime && (
                               <button
                                 onClick={() => handleToggleOvertimeDay(d.dateStr)}
-                                className="text-[9px] text-amber-700 dark:text-amber-400 hover:underline font-semibold text-center cursor-pointer"
+                                className="text-[9px] text-amber-700 dark:text-amber-400 hover:underline font-semibold text-center cursor-pointer mt-2"
                               >
-                                Overtime Enabled (Click to Revert)
+                                Overtime Enabled (Revert)
                               </button>
                             )}
                           </div>
@@ -3651,7 +3781,7 @@ export default function App() {
                           {jobsData.filter(j => j.assignedCrew === lane.crew || (idx === 0 && j.id === '1') || (idx === 3 && j.id === '2')).map((j) => (
                             <div
                               key={j.id}
-                              onClick={() => openJobDetailScreen(j)}
+                              onClick={() => openJobDetailScreen(j, 'calendar')}
                               className="p-2.5 bg-white dark:bg-slate-900 border rounded-lg shadow-xs cursor-pointer hover:border-blue-500 transition-all"
                             >
                               <div className="font-bold text-xs text-blue-700 dark:text-blue-400">{j.jobName}</div>
