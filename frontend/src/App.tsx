@@ -1212,6 +1212,47 @@ export default function App() {
 
   const [globalMilestoneNames, setGlobalMilestoneNames] = useState<GlobalMilestoneNames>(defaultGlobalMilestoneNames);
 
+  // Job Activity Catalog State & Interfaces
+  interface JobActivityCatalogItem {
+    id: string;
+    name: string;
+    shortCode: string;
+    phase: 'STONE' | 'CABINETRY' | 'TILE' | 'GENERAL';
+    defaultDurationMinutes: number;
+    assignedRole: string;
+    color: string;
+    description: string;
+    enabled: boolean;
+  }
+
+  const defaultJobActivityCatalog: JobActivityCatalogItem[] = [
+    { id: 'act_laser_temp', name: 'Laser Digital Templating', shortCode: 'TEMP', phase: 'STONE', defaultDurationMinutes: 120, assignedRole: 'Field Templater', color: 'blue', description: 'Digital laser measure & room perimeter scan on job site', enabled: true },
+    { id: 'act_slabsmith_layout', name: 'SlabSmith Digital Slab Layout', shortCode: 'LAYOUT', phase: 'STONE', defaultDurationMinutes: 60, assignedRole: 'CAD Drafter', color: 'purple', description: 'Slab photo matching, vein flow alignment & seam placement', enabled: true },
+    { id: 'act_cad_programming', name: 'CAD / CAM Machine Programming', shortCode: 'CAD', phase: 'STONE', defaultDurationMinutes: 90, assignedRole: 'CAD Drafter', color: 'purple', description: 'DXF toolpath generation & sink cutout programming', enabled: true },
+    { id: 'act_saw_cnc_cut', name: 'Bridge Saw / Waterjet CNC Cut', shortCode: 'CUT', phase: 'STONE', defaultDurationMinutes: 180, assignedRole: 'CNC Operator', color: 'indigo', description: '5-axis bridge saw cutting, miter edges & waterjet sink dropouts', enabled: true },
+    { id: 'act_hand_polish', name: 'Edge Profiling & Hand Polish', shortCode: 'POLISH', phase: 'STONE', defaultDurationMinutes: 240, assignedRole: 'Shop Fabricator', color: 'emerald', description: 'CNC edge polishing, miter lamination, and rodding reinforcement', enabled: true },
+    { id: 'act_dry_fit_qc', name: 'Shop Dry-Fit & QC Inspection', shortCode: 'QC', phase: 'STONE', defaultDurationMinutes: 60, assignedRole: 'Shop QC Lead', color: 'teal', description: 'Shop dry-fit seam check, color match verification & packaging', enabled: true },
+    { id: 'act_field_install', name: 'Field Countertop Installation', shortCode: 'INST', phase: 'STONE', defaultDurationMinutes: 240, assignedRole: 'Install Crew', color: 'emerald', description: 'A-frame truck delivery, stone set, seam epoxying & undermount sink clip mounting', enabled: true },
+    { id: 'act_cust_signoff', name: 'Field Inspection & Builder Signoff', shortCode: 'QA', phase: 'STONE', defaultDurationMinutes: 30, assignedRole: 'Field Superintendent', color: 'amber', description: 'Builder signoff walkthrough, cleaning, sealer application & completion checklist', enabled: true },
+    { id: 'act_plumb_disconnect', name: 'Plumbing & Appliance Disconnect', shortCode: 'PLUMB', phase: 'GENERAL', defaultDurationMinutes: 60, assignedRole: 'Plumbing Subcontractor', color: 'cyan', description: 'Pre-tearout sink and cooktop water/gas shutoff', enabled: true },
+    { id: 'act_warranty_rework', name: 'Warranty Seam Touch-Up / Chip Repair', shortCode: 'REPAIR', phase: 'STONE', defaultDurationMinutes: 90, assignedRole: 'Service Tech', color: 'rose', description: 'Post-install chip fill, silicone touch-up or scratch buffing', enabled: true },
+  ];
+
+  const [activityCatalog, setActivityCatalog] = useState<JobActivityCatalogItem[]>(defaultJobActivityCatalog);
+  const [selectedActivityPhaseFilter, setSelectedActivityPhaseFilter] = useState<'ALL' | 'STONE' | 'CABINETRY' | 'TILE' | 'GENERAL'>('ALL');
+  const [activityCatalogSearch, setActivityCatalogSearch] = useState('');
+  const [activityStatusFilter, setActivityStatusFilter] = useState<'ALL' | 'ACTIVE' | 'DISABLED'>('ALL');
+  const [isAddingActivityType, setIsAddingActivityType] = useState(false);
+  const [editingActivityTypeId, setEditingActivityTypeId] = useState<string | null>(null);
+
+  const [newActTypeName, setNewActTypeName] = useState('');
+  const [newActTypeCode, setNewActTypeCode] = useState('');
+  const [newActTypePhase, setNewActTypePhase] = useState<'STONE' | 'CABINETRY' | 'TILE' | 'GENERAL'>('STONE');
+  const [newActTypeDuration, setNewActTypeDuration] = useState(120);
+  const [newActTypeRole, setNewActTypeRole] = useState('Install Crew');
+  const [newActTypeColor, setNewActTypeColor] = useState('blue');
+  const [newActTypeDesc, setNewActTypeDesc] = useState('');
+
   const isDark = theme === 'dark';
 
   // Navigation handlers
@@ -2221,6 +2262,175 @@ export default function App() {
     }
   };
 
+  // Job Activity Catalog Handlers
+  const getActivityAssignedJobsCount = (act: JobActivityCatalogItem, scopeName: string = 'GLOBAL'): number => {
+    const scopedJobs = jobsData.filter(j => {
+      if (scopeName === 'GLOBAL') return true;
+      const locMatch = (j.regionName && j.regionName.toLowerCase().includes(scopeName.toLowerCase())) ||
+                       (scopeName.toLowerCase().includes(j.regionName?.toLowerCase() || '___')) ||
+                       (selectedRegion.toLowerCase().includes(scopeName.toLowerCase()));
+      return locMatch;
+    });
+
+    const code = (act.shortCode || '').toUpperCase();
+    const name = (act.name || '').toLowerCase();
+    const id = (act.id || '').toLowerCase();
+
+    let count = 0;
+    for (const job of scopedJobs) {
+      if (job.activities?.some(a =>
+        a.activityName.toLowerCase() === name ||
+        a.activityName.toLowerCase().includes(name) ||
+        a.activityName.toUpperCase().includes(code) ||
+        (code === 'TEMP' && a.activityName.toLowerCase().includes('template')) ||
+        (code === 'INST' && a.activityName.toLowerCase().includes('install')) ||
+        (code === 'CUT' && a.activityName.toLowerCase().includes('saw')) ||
+        (code === 'POLISH' && a.activityName.toLowerCase().includes('polish'))
+      )) {
+        count++;
+      } else {
+        if ((code === 'TEMP' || id.includes('temp')) && job.templateDate?.date && job.templateDate.date !== 'No Date') {
+          count++;
+        } else if ((code === 'INST' || id.includes('install')) && job.installDate?.date && job.installDate.date !== 'No Date') {
+          count++;
+        } else if ((code === 'CUT' || code === 'POLISH' || id.includes('fab') || id.includes('saw')) && job.fabDate?.date && job.fabDate.date !== 'No Date') {
+          count++;
+        }
+      }
+    }
+    return count;
+  };
+
+  const handleOpenAddActivityType = () => {
+    setEditingActivityTypeId(null);
+    setNewActTypeName('');
+    setNewActTypeCode('');
+    setNewActTypePhase('STONE');
+    setNewActTypeDuration(120);
+    setNewActTypeRole('Install Crew');
+    setNewActTypeColor('blue');
+    setNewActTypeDesc('');
+    setIsAddingActivityType(true);
+  };
+
+  const handleOpenEditActivityType = (act: JobActivityCatalogItem) => {
+    setEditingActivityTypeId(act.id);
+    setNewActTypeName(act.name);
+    setNewActTypeCode(act.shortCode);
+    setNewActTypePhase(act.phase);
+    setNewActTypeDuration(act.defaultDurationMinutes);
+    setNewActTypeRole(act.assignedRole);
+    setNewActTypeColor(act.color);
+    setNewActTypeDesc(act.description);
+    setIsAddingActivityType(true);
+  };
+
+  const handleSaveActivityType = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newActTypeName.trim()) return;
+
+    const shortCode = newActTypeCode.trim().toUpperCase() || newActTypeName.slice(0, 4).toUpperCase();
+
+    if (editingActivityTypeId) {
+      const updatedList = activityCatalog.map(a => a.id === editingActivityTypeId ? {
+        ...a,
+        name: newActTypeName.trim(),
+        shortCode,
+        phase: newActTypePhase,
+        defaultDurationMinutes: newActTypeDuration,
+        assignedRole: newActTypeRole.trim() || 'Plant Team',
+        color: newActTypeColor,
+        description: newActTypeDesc.trim(),
+      } : a);
+
+      setActivityCatalog(updatedList);
+
+      const newLog: ChangeLogEntry = {
+        id: String(Date.now()),
+        timestamp: new Date().toLocaleString(),
+        changedBy: `${activeUserRole === 'SUBSCRIBER_ADMIN' ? 'Admin' : 'Scheduler'} (${activeUserRole})`,
+        summary: `Activity Catalog Type Updated: [${newActTypeName}]`,
+        diffs: [
+          { field: 'Activity Name', from: '-', to: newActTypeName },
+          { field: 'Phase / Duration', from: '-', to: `${newActTypePhase} (${newActTypeDuration}m)` }
+        ]
+      };
+      setChangeLogs([newLog, ...changeLogs]);
+    } else {
+      const newAct: JobActivityCatalogItem = {
+        id: `act_${Date.now()}`,
+        name: newActTypeName.trim(),
+        shortCode,
+        phase: newActTypePhase,
+        defaultDurationMinutes: newActTypeDuration,
+        assignedRole: newActTypeRole.trim() || 'Plant Team',
+        color: newActTypeColor,
+        description: newActTypeDesc.trim() || 'Standard job activity',
+        enabled: true,
+      };
+
+      setActivityCatalog([...activityCatalog, newAct]);
+
+      const newLog: ChangeLogEntry = {
+        id: String(Date.now()),
+        timestamp: new Date().toLocaleString(),
+        changedBy: `${activeUserRole === 'SUBSCRIBER_ADMIN' ? 'Admin' : 'Scheduler'} (${activeUserRole})`,
+        summary: `New Activity Catalog Type Created: [${newAct.name}]`,
+        diffs: [
+          { field: 'Activity Added', from: 'None', to: `${newAct.name} (${newAct.shortCode})` },
+          { field: 'Phase / Role', from: '-', to: `${newAct.phase} / ${newAct.assignedRole}` }
+        ]
+      };
+      setChangeLogs([newLog, ...changeLogs]);
+    }
+
+    setIsAddingActivityType(false);
+    setEditingActivityTypeId(null);
+  };
+
+  const handleDeleteActivityType = (actId: string) => {
+    const act = activityCatalog.find(a => a.id === actId);
+    if (!act) return;
+
+    const assignedCount = getActivityAssignedJobsCount(act, 'GLOBAL');
+    if (assignedCount > 0) {
+      alert(`Cannot delete activity type "${act.name}":\n\nThere are currently ${assignedCount} job(s) assigned with this activity in the system.\n\nTo preserve historical job tracking and avoid breaking existing work orders, activities with assigned jobs cannot be deleted. You can rename or disable (deactivate) this activity instead so it won't appear in new job activity dropdowns.`);
+      return;
+    }
+
+    setActivityCatalog(activityCatalog.filter(a => a.id !== actId));
+
+    const newLog: ChangeLogEntry = {
+      id: String(Date.now()),
+      timestamp: new Date().toLocaleString(),
+      changedBy: `${activeUserRole === 'SUBSCRIBER_ADMIN' ? 'Admin' : 'Scheduler'} (${activeUserRole})`,
+      summary: `Activity Catalog Type Removed: [${act.name}] (0 child assignments)`,
+      diffs: [{ field: 'Deleted Activity', from: act.name, to: 'Deleted' }]
+    };
+    setChangeLogs([newLog, ...changeLogs]);
+  };
+
+  const handleToggleActivityEnabled = (actId: string) => {
+    const updated = activityCatalog.map(a => a.id === actId ? { ...a, enabled: !a.enabled } : a);
+    setActivityCatalog(updated);
+    const act = activityCatalog.find(a => a.id === actId);
+    if (act) {
+      const nextStatus = !act.enabled ? 'Enabled (Active in Dropdowns)' : 'Disabled (Excluded from Dropdowns)';
+      const newLog: ChangeLogEntry = {
+        id: String(Date.now()),
+        timestamp: new Date().toLocaleString(),
+        changedBy: `${activeUserRole === 'SUBSCRIBER_ADMIN' ? 'Admin' : 'Scheduler'} (${activeUserRole})`,
+        summary: `Activity Catalog Status Toggled: [${act.name}] ➔ ${nextStatus}`,
+        diffs: [{ field: 'Status', from: act.enabled ? 'Active' : 'Disabled', to: nextStatus }]
+      };
+      setChangeLogs([newLog, ...changeLogs]);
+    }
+  };
+
+  const handleResetActivityCatalogToDefault = () => {
+    setActivityCatalog(defaultJobActivityCatalog);
+  };
+
   // Region & Operating Facility Handlers with Dedicated Address Breakdown
   const handleToggleShutdownRegion = (regId: string) => {
     const updated = regionsList.map((r) => {
@@ -2470,7 +2680,13 @@ export default function App() {
       setActiveModal('create');
     } else if (activeNav === 'job_detail' && selectedJob) {
       setCreateScope('activity');
-      setNewActivityName('Stone Quality Walk');
+      const activeActs = activityCatalog.filter(a => a.enabled);
+      if (activeActs.length > 0) {
+        setNewActivityName(activeActs[0].name);
+        setNewActivityPhase(activeActs[0].phase);
+      } else {
+        setNewActivityName('');
+      }
       setActiveModal('create');
     } else if (activeNav === 'settings' && settingsCategory === 'users') {
       setUsersSubSection('External Users');
@@ -2572,16 +2788,30 @@ export default function App() {
       };
       setJobsData([newJob, ...jobsData]);
     } else if (createScope === 'activity' && selectedJob) {
+      const activeCatalogItem = activityCatalog.find(a => a.name === newActivityName && a.enabled) ||
+                                activityCatalog.find(a => a.name === newActivityName) ||
+                                activityCatalog.find(a => a.enabled);
+
+      if (!activeCatalogItem && !newActivityName) {
+        alert('Please select an active activity type from the catalog.');
+        return;
+      }
+
+      const actName = activeCatalogItem ? activeCatalogItem.name : newActivityName;
+      const actPhase = activeCatalogItem ? activeCatalogItem.phase : newActivityPhase;
+      const actDuration = activeCatalogItem ? `${activeCatalogItem.defaultDurationMinutes}m` : '60m';
+      const actRole = activeCatalogItem ? activeCatalogItem.assignedRole : 'Plant Team';
+
       const newAct: JobActivityRow = {
         id: String(Date.now()),
-        activityName: newActivityName,
-        phase: newActivityPhase,
+        activityName: actName,
+        phase: actPhase,
         status: 'Auto-Schedule',
         startDate: 'No Date',
         schedTime: '9:00am',
-        duration: '60m',
-        assignedTo: 'Plant Team',
-        notes: 'Created via Job Detail view'
+        duration: actDuration,
+        assignedTo: actRole,
+        notes: `Created from active Activity Catalog [${activeCatalogItem?.shortCode || 'ACT'}]`
       };
       const updated = {
         ...selectedJob,
@@ -6282,15 +6512,258 @@ export default function App() {
                     </div>
                   )}
 
-                  {/* MODULE 6: JOB / BILLING */}
-                  {(settingsCategory === 'job' || settingsCategory === 'billing') && (
+                  {/* MODULE 6: JOB SETTINGS (ACTIVITY CATALOG & WORKFLOWS) */}
+                  {settingsCategory === 'job' && (
+                    <div className="space-y-6">
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b pb-4">
+                        <div>
+                          <div className="flex items-center space-x-2">
+                            <Briefcase className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                            <h3 className="text-lg font-black text-blue-600 dark:text-blue-400">
+                              Job Activities & Production Stages Catalog
+                            </h3>
+                          </div>
+                          <p className="text-xs text-slate-500 mt-1">
+                            Define, customize, and manage standard shop and field activities. Disabled activities are excluded from new job dropdowns while preserving history on existing work orders.
+                          </p>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <button
+                            type="button"
+                            onClick={handleOpenAddActivityType}
+                            className="bg-blue-600 hover:bg-blue-500 text-white font-bold px-3.5 py-2 rounded-lg text-xs flex items-center space-x-1.5 shadow-sm cursor-pointer transition-all"
+                          >
+                            <Plus className="w-4 h-4" />
+                            <span>Add Activity Type</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleResetActivityCatalogToDefault}
+                            className="text-[11px] text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 font-bold px-2.5 py-2 cursor-pointer border rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-all"
+                            title="Reset Activity Catalog to Default"
+                          >
+                            ↺ Reset Catalog
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Deletion Safeguard Notice */}
+                      <div className="p-3 rounded-xl bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 text-xs text-blue-800 dark:text-blue-300 flex items-center space-x-2.5 shadow-xs">
+                        <Lock className="w-4 h-4 text-amber-500 shrink-0" />
+                        <div>
+                          <strong>Activity Assignment Safeguard:</strong> Activities with child jobs attached in the system cannot be deleted to preserve work order logs and audit trails. You can rename or disable (deactivate) an activity so it will not appear in new job activity dropdowns.
+                        </div>
+                      </div>
+
+                      {/* Filter & Search Bar */}
+                      <div className="p-4 rounded-xl border bg-slate-50 dark:bg-slate-950 space-y-3">
+                        <div className="flex flex-col md:flex-row gap-3 items-center justify-between">
+                          {/* Search Input */}
+                          <div className="w-full md:w-72">
+                            <input
+                              type="text"
+                              placeholder="Search activities by name, code, or role..."
+                              value={activityCatalogSearch}
+                              onChange={(e) => setActivityCatalogSearch(e.target.value)}
+                              className="w-full p-2 border rounded-lg text-xs font-semibold text-slate-900 dark:bg-slate-900 dark:text-slate-100 dark:border-slate-800"
+                            />
+                          </div>
+
+                          {/* Phase Filter Buttons */}
+                          <div className="flex flex-wrap gap-1.5 text-xs font-bold w-full md:w-auto">
+                            {(['ALL', 'STONE', 'CABINETRY', 'TILE', 'GENERAL'] as const).map((phase) => (
+                              <button
+                                key={phase}
+                                type="button"
+                                onClick={() => setSelectedActivityPhaseFilter(phase)}
+                                className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                                  selectedActivityPhaseFilter === phase
+                                    ? 'bg-blue-600 text-white shadow-xs'
+                                    : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border hover:bg-slate-100 dark:hover:bg-slate-800'
+                                }`}
+                              >
+                                {phase === 'ALL' ? 'All Phases' : phase}
+                              </button>
+                            ))}
+                          </div>
+
+                          {/* Status Filter */}
+                          <div className="w-full md:w-auto">
+                            <select
+                              value={activityStatusFilter}
+                              onChange={(e) => setActivityStatusFilter(e.target.value as any)}
+                              className="w-full md:w-auto p-2 border rounded-lg text-xs font-bold text-slate-900 dark:bg-slate-900 dark:text-slate-100 dark:border-slate-800"
+                            >
+                              <option value="ALL">All Statuses ({activityCatalog.length})</option>
+                              <option value="ACTIVE">Active in Dropdowns ({activityCatalog.filter(a => a.enabled).length})</option>
+                              <option value="DISABLED">Disabled / Bypassed ({activityCatalog.filter(a => !a.enabled).length})</option>
+                            </select>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Activities Catalog Cards List */}
+                      <div className="space-y-3">
+                        {(() => {
+                          const filtered = activityCatalog.filter(act => {
+                            if (selectedActivityPhaseFilter !== 'ALL' && act.phase !== selectedActivityPhaseFilter) return false;
+                            if (activityStatusFilter === 'ACTIVE' && !act.enabled) return false;
+                            if (activityStatusFilter === 'DISABLED' && act.enabled) return false;
+                            if (activityCatalogSearch.trim()) {
+                              const q = activityCatalogSearch.toLowerCase();
+                              const match = act.name.toLowerCase().includes(q) ||
+                                            act.shortCode.toLowerCase().includes(q) ||
+                                            act.assignedRole.toLowerCase().includes(q) ||
+                                            act.description.toLowerCase().includes(q);
+                              if (!match) return false;
+                            }
+                            return true;
+                          });
+
+                          if (filtered.length === 0) {
+                            return (
+                              <div className="p-8 text-center border rounded-xl bg-slate-50 dark:bg-slate-950 text-slate-400 text-xs">
+                                No activity types found matching the current filters. Click "Add Activity Type" above to create one.
+                              </div>
+                            );
+                          }
+
+                          return filtered.map((act) => {
+                            const colorClasses: Record<string, { badge: string; border: string }> = {
+                              blue: { badge: 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300 border-blue-300', border: 'border-blue-200 dark:border-blue-900' },
+                              purple: { badge: 'bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300 border-purple-300', border: 'border-purple-200 dark:border-purple-900' },
+                              indigo: { badge: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-950 dark:text-indigo-300 border-indigo-300', border: 'border-indigo-200 dark:border-indigo-900' },
+                              emerald: { badge: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border-emerald-300', border: 'border-emerald-200 dark:border-emerald-900' },
+                              teal: { badge: 'bg-teal-100 text-teal-800 dark:bg-teal-950 dark:text-teal-300 border-teal-300', border: 'border-teal-200 dark:border-teal-900' },
+                              amber: { badge: 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border-amber-300', border: 'border-amber-200 dark:border-amber-900' },
+                              rose: { badge: 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 border-rose-300', border: 'border-rose-200 dark:border-rose-900' },
+                              cyan: { badge: 'bg-cyan-100 text-cyan-800 dark:bg-cyan-950 dark:text-cyan-300 border-cyan-300', border: 'border-cyan-200 dark:border-cyan-900' },
+                            };
+                            const theme = colorClasses[act.color] || colorClasses.blue;
+                            const assignedCount = getActivityAssignedJobsCount(act, 'GLOBAL');
+
+                            return (
+                              <div
+                                key={act.id}
+                                className={`p-4 rounded-xl border flex flex-col md:flex-row items-start md:items-center justify-between gap-3 transition-all ${
+                                  !act.enabled
+                                    ? 'bg-slate-100/60 dark:bg-slate-950/40 border-slate-300 opacity-60'
+                                    : 'bg-white dark:bg-slate-900 hover:shadow-xs'
+                                } ${theme.border}`}
+                              >
+                                {/* Left Info */}
+                                <div className="flex items-center space-x-3.5">
+                                  <span className={`px-2.5 py-1 rounded-md text-xs font-black uppercase border tracking-wider shrink-0 ${theme.badge}`}>
+                                    {act.shortCode}
+                                  </span>
+
+                                  <div className="space-y-1">
+                                    <div className="flex items-center space-x-2 flex-wrap gap-y-1">
+                                      <strong className="text-sm font-bold text-slate-900 dark:text-slate-100">
+                                        {act.name}
+                                      </strong>
+
+                                      <span className="text-[10px] font-extrabold px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                                        {act.phase}
+                                      </span>
+
+                                      {!act.enabled && (
+                                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 font-bold">
+                                          Disabled (Excluded from Dropdowns)
+                                        </span>
+                                      )}
+
+                                      {assignedCount > 0 ? (
+                                        <span
+                                          className="text-[10px] px-2 py-0.5 rounded font-bold bg-slate-200/80 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 flex items-center space-x-1"
+                                          title={`${assignedCount} active job(s) assigned with this activity. Protected from deletion.`}
+                                        >
+                                          <Lock className="w-3 h-3 text-amber-500" />
+                                          <span>{assignedCount} Assigned Jobs</span>
+                                        </span>
+                                      ) : (
+                                        <span
+                                          className="text-[10px] px-2 py-0.5 rounded font-bold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800"
+                                          title="0 child jobs assigned. Safe to delete."
+                                        >
+                                          0 Jobs (Safe to Delete)
+                                        </span>
+                                      )}
+                                    </div>
+
+                                    <p className="text-xs text-slate-500">
+                                      {act.description}
+                                    </p>
+
+                                    <div className="flex items-center space-x-4 text-[11px] text-slate-400 pt-0.5">
+                                      <span>Default Role: <strong className="text-slate-700 dark:text-slate-300">{act.assignedRole}</strong></span>
+                                      <span>Est Duration: <strong className="text-slate-700 dark:text-slate-300">{act.defaultDurationMinutes} mins</strong> ({Math.round(act.defaultDurationMinutes / 60 * 10) / 10} hrs)</span>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* Right Actions */}
+                                <div className="flex items-center space-x-2 w-full md:w-auto justify-end pt-2 md:pt-0 border-t md:border-t-0 border-slate-100 dark:border-slate-800">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleToggleActivityEnabled(act.id)}
+                                    className={`px-2.5 py-1.5 rounded-lg font-bold text-xs flex items-center space-x-1.5 cursor-pointer transition-colors ${
+                                      act.enabled
+                                        ? 'bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300'
+                                        : 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                                    }`}
+                                    title={act.enabled ? 'Click to disable / hide from new job dropdowns' : 'Click to activate / include in dropdowns'}
+                                  >
+                                    {act.enabled ? <Eye className="w-3.5 h-3.5 text-emerald-600" /> : <EyeOff className="w-3.5 h-3.5 text-slate-400" />}
+                                    <span>{act.enabled ? 'Active in Dropdowns' : 'Disabled'}</span>
+                                  </button>
+
+                                  <button
+                                    type="button"
+                                    onClick={() => handleOpenEditActivityType(act)}
+                                    className="p-2 text-slate-400 hover:text-blue-600 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+                                    title="Rename activity type or edit settings"
+                                  >
+                                    <Edit3 className="w-4 h-4" />
+                                  </button>
+
+                                  {assignedCount > 0 ? (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleDeleteActivityType(act.id)}
+                                      className="p-2 text-slate-400 hover:text-amber-600 rounded-lg hover:bg-amber-50 dark:hover:bg-amber-950/40 cursor-pointer"
+                                      title={`Cannot delete: ${assignedCount} job(s) assigned with this activity. You can rename or disable this activity instead.`}
+                                    >
+                                      <Lock className="w-4 h-4 text-amber-500" />
+                                    </button>
+                                  ) : (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleDeleteActivityType(act.id)}
+                                      className="p-2 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/40 cursor-pointer"
+                                      title="Delete activity type from catalog (0 assigned jobs)"
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          });
+                        })()}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* MODULE 7: BILLING */}
+                  {settingsCategory === 'billing' && (
                     <div className="space-y-6 text-xs">
                       <div className="border-b pb-4">
-                        <h3 className="text-lg font-black text-blue-600 dark:text-blue-400 capitalize">{settingsCategory} Settings</h3>
-                        <p className="text-slate-500 mt-1">Configuration parameters for {settingsCategory} active for subscriber tenant <strong>{subscriberName}</strong>.</p>
+                        <h3 className="text-lg font-black text-blue-600 dark:text-blue-400">Subscription & Billing Settings</h3>
+                        <p className="text-slate-500 mt-1">Configuration parameters for SaaS subscription active for subscriber tenant <strong>{subscriberName}</strong>.</p>
                       </div>
                       <div className="p-6 border rounded-xl bg-slate-50 dark:bg-slate-950">
-                        <span className="text-sm font-semibold">Active schema parameters and fields are synced with database models.</span>
+                        <span className="text-sm font-semibold">Active enterprise tier: Multi-Plant Unlimited Fabrication License.</span>
                       </div>
                     </div>
                   )}
@@ -6941,29 +7414,69 @@ export default function App() {
               {/* CONTEXT: ADD ACTIVITY TO JOB */}
               {createScope === 'activity' && (
                 <>
-                  <div>
-                    <label className="block font-bold mb-1">Activity Name</label>
-                    <input
-                      type="text"
-                      required
-                      value={newActivityName}
-                      onChange={(e) => setNewActivityName(e.target.value)}
-                      placeholder="e.g. Stone Quality Walk, Field Re-Measure"
-                      className="w-full p-2.5 border rounded text-slate-900 dark:bg-slate-950 dark:text-slate-100 dark:border-slate-800 font-bold"
-                    />
-                  </div>
+                  <div className="space-y-3">
+                    <label className="block font-bold">
+                      Select Active Activity Type <span className="text-rose-500">*</span>
+                    </label>
 
-                  <div>
-                    <label className="block font-bold mb-1">Phase</label>
-                    <select
-                      value={newActivityPhase}
-                      onChange={(e) => setNewActivityPhase(e.target.value)}
-                      className="w-full p-2 border rounded font-semibold text-slate-900 dark:bg-slate-950 dark:text-slate-100 dark:border-slate-800"
-                    >
-                      <option value="STONE">STONE</option>
-                      <option value="CABINETRY">CABINETRY</option>
-                      <option value="TILE">TILE</option>
-                    </select>
+                    {(() => {
+                      const activeActivities = activityCatalog.filter(a => a.enabled);
+                      const selectedCatItem = activityCatalog.find(a => a.name === newActivityName);
+
+                      if (activeActivities.length === 0) {
+                        return (
+                          <div className="p-3.5 bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800 rounded-lg text-amber-800 dark:text-amber-300 text-xs space-y-1">
+                            <strong>⚠️ No Active Activities Available:</strong>
+                            <p>All activity types in the catalog are currently disabled or deleted. Please visit <strong>Settings ➔ Job Settings</strong> to activate or add activity types.</p>
+                          </div>
+                        );
+                      }
+
+                      return (
+                        <div className="space-y-3">
+                          <select
+                            required
+                            value={newActivityName}
+                            onChange={(e) => {
+                              const chosen = activityCatalog.find(a => a.name === e.target.value);
+                              setNewActivityName(e.target.value);
+                              if (chosen) {
+                                setNewActivityPhase(chosen.phase);
+                              }
+                            }}
+                            className="w-full p-2.5 border rounded-lg font-bold text-slate-900 dark:bg-slate-950 dark:text-slate-100 dark:border-slate-800"
+                          >
+                            <option value="" disabled>-- Select an active activity from catalog --</option>
+                            {activeActivities.map((act) => (
+                              <option key={act.id} value={act.name}>
+                                [{act.shortCode}] {act.name} ({act.phase} • {act.defaultDurationMinutes}m)
+                              </option>
+                            ))}
+                          </select>
+
+                          {selectedCatItem && (
+                            <div className="p-3 rounded-lg border bg-slate-50 dark:bg-slate-950/60 space-y-1.5 text-[11px]">
+                              <div className="flex items-center justify-between">
+                                <span className="font-bold text-slate-700 dark:text-slate-300">Phase: <strong>{selectedCatItem.phase}</strong></span>
+                                <span className="font-bold text-blue-600 dark:text-blue-400">Est Duration: {selectedCatItem.defaultDurationMinutes} mins</span>
+                              </div>
+                              <div className="text-slate-500">
+                                Default Assignee: <strong>{selectedCatItem.assignedRole}</strong>
+                              </div>
+                              {selectedCatItem.description && (
+                                <div className="text-slate-400 italic">
+                                  "{selectedCatItem.description}"
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          <div className="text-[10px] text-slate-400">
+                            🔒 <em>Rule Enforced: Only active catalog items are available. Disabled or deleted activities are excluded from selection.</em>
+                          </div>
+                        </div>
+                      );
+                    })()}
                   </div>
                 </>
               )}
@@ -7364,6 +7877,149 @@ export default function App() {
                   className="bg-blue-600 hover:bg-blue-500 text-white font-bold px-6 py-2 rounded-lg shadow-md cursor-pointer"
                 >
                   {editingMilestoneId ? 'Update Milestone' : 'Add Milestone to Workflow'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 5. ADD / EDIT ACTIVITY TYPE MODAL */}
+      {isAddingActivityType && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 z-50 overflow-y-auto">
+          <div className={`max-w-lg w-full p-6 rounded-xl border shadow-2xl ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-300'}`}>
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
+              <h3 className="font-bold text-base flex items-center space-x-2 text-blue-600 dark:text-blue-400">
+                <Briefcase className="w-5 h-5" />
+                <span>{editingActivityTypeId ? 'Edit Activity Type' : 'Add New Activity Type to Catalog'}</span>
+              </h3>
+              <button
+                onClick={() => { setIsAddingActivityType(false); setEditingActivityTypeId(null); }}
+                className="text-slate-400 hover:text-slate-600 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveActivityType} className="mt-4 space-y-4 text-xs">
+              <div className="p-3 bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 rounded-lg text-blue-800 dark:text-blue-300 text-[11px]">
+                Configures standard activity for job orders. Active activities appear as selectable items in the Job Detail activity dropdown.
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="sm:col-span-2">
+                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Activity Name *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Laser Digital Templating, Edge Polish"
+                    value={newActTypeName}
+                    onChange={(e) => setNewActTypeName(e.target.value)}
+                    className="w-full p-2.5 border rounded-lg font-bold text-slate-900 dark:bg-slate-950 dark:text-slate-100"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Short Code *</label>
+                  <input
+                    type="text"
+                    required
+                    maxLength={6}
+                    placeholder="e.g. TEMP"
+                    value={newActTypeCode}
+                    onChange={(e) => setNewActTypeCode(e.target.value.toUpperCase())}
+                    className="w-full p-2.5 border rounded-lg font-mono font-black text-center text-slate-900 dark:bg-slate-950 dark:text-slate-100"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Phase Classification *</label>
+                  <select
+                    value={newActTypePhase}
+                    onChange={(e) => setNewActTypePhase(e.target.value as any)}
+                    className="w-full p-2.5 border rounded-lg font-bold text-slate-900 dark:bg-slate-950 dark:text-slate-100"
+                  >
+                    <option value="STONE">STONE</option>
+                    <option value="CABINETRY">CABINETRY</option>
+                    <option value="TILE">TILE</option>
+                    <option value="GENERAL">GENERAL</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Default Assigned Role / Crew</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Field Templater, CNC Operator, Install Crew"
+                    value={newActTypeRole}
+                    onChange={(e) => setNewActTypeRole(e.target.value)}
+                    className="w-full p-2.5 border rounded-lg text-slate-900 dark:bg-slate-950 dark:text-slate-100 font-medium"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    Default Duration (Minutes)
+                  </label>
+                  <input
+                    type="number"
+                    min="15"
+                    step="15"
+                    max="1440"
+                    value={newActTypeDuration}
+                    onChange={(e) => setNewActTypeDuration(parseInt(e.target.value) || 60)}
+                    className="w-full p-2.5 border rounded-lg font-black text-slate-900 dark:bg-slate-950 dark:text-slate-100"
+                  />
+                  <span className="text-[10px] text-slate-400 mt-0.5 block">Estimated minutes ({Math.round(newActTypeDuration / 60 * 10) / 10} hours)</span>
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Badge Color Theme</label>
+                  <select
+                    value={newActTypeColor}
+                    onChange={(e) => setNewActTypeColor(e.target.value)}
+                    className="w-full p-2.5 border rounded-lg font-bold text-slate-900 dark:bg-slate-950 dark:text-slate-100"
+                  >
+                    <option value="blue">🔵 Blue Theme</option>
+                    <option value="purple">🟣 Purple Theme</option>
+                    <option value="indigo">🔮 Indigo Theme</option>
+                    <option value="emerald">🟢 Emerald Green Theme</option>
+                    <option value="teal">🌊 Teal Theme</option>
+                    <option value="amber">🟠 Amber Orange Theme</option>
+                    <option value="rose">🔴 Rose Red Theme</option>
+                    <option value="cyan">🩵 Cyan Theme</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Activity Description / Standard Operating Notes</label>
+                <textarea
+                  rows={2}
+                  placeholder="e.g. Standard shop fabrication procedures and safety requirements"
+                  value={newActTypeDesc}
+                  onChange={(e) => setNewActTypeDesc(e.target.value)}
+                  className="w-full p-2.5 border rounded-lg text-slate-900 dark:bg-slate-950 dark:text-slate-100"
+                />
+              </div>
+
+              <div className="pt-4 flex justify-end space-x-2 border-t border-slate-200 dark:border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => { setIsAddingActivityType(false); setEditingActivityTypeId(null); }}
+                  className="px-4 py-2 border rounded-lg font-bold cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="bg-blue-600 hover:bg-blue-500 text-white font-bold px-6 py-2 rounded-lg shadow-md cursor-pointer"
+                >
+                  {editingActivityTypeId ? 'Update Activity' : 'Add Activity to Catalog'}
                 </button>
               </div>
             </form>
