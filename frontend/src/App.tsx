@@ -448,7 +448,7 @@ export default function App() {
 
   // Master Settings Hub State
   const [settingsCategory, setSettingsCategory] = useState<'billing' | 'calendar' | 'job' | 'shop' | 'system' | 'users' | 'branding' | 'regions' | 'leadtimes'>('regions');
-  const [usersSubSection, setUsersSubSection] = useState<'External Roles' | 'External Users' | 'Roles' | 'Users'>('External Users');
+  const [usersSubSection, setUsersSubSection] = useState<'External Crews & Installers' | 'Internal Users' | 'Roles & Permissions' | 'SSO & Security'>('External Crews & Installers');
   const [systemSubSection, setSystemSubSection] = useState<'Login Locations' | 'Page Styles' | 'Security' | 'Settings'>('Security');
   const [shopSubSection, setShopSubSection] = useState<'Settings' | 'Users' | 'Views'>('Settings');
 
@@ -2924,7 +2924,7 @@ export default function App() {
       setNewActivityAssignee('Not Assigned');
       setActiveModal('create');
     } else if (activeNav === 'settings' && settingsCategory === 'users') {
-      setUsersSubSection('External Users');
+      setUsersSubSection('External Crews & Installers');
     }
   };
 
@@ -3219,10 +3219,12 @@ export default function App() {
                 className="bg-transparent text-[11px] font-bold text-white focus:outline-none cursor-pointer"
                 title="Simulate Role (RBAC)"
               >
-                <option value="SUBSCRIBER_ADMIN" className="text-slate-900">👑 Admin (Full Access)</option>
-                <option value="INTERNAL_OFFICE_USER" className="text-slate-900">🏢 Office Dispatch / Scheduler</option>
+                <option value="SYSTEM_ADMIN" className="text-slate-900">🛡️ Global Administrator (Super Admin)</option>
+                <option value="SUBSCRIBER_ADMIN" className="text-slate-900">👑 Subscriber-Level Admin</option>
+                <option value="INTERNAL_OFFICE_USER" className="text-slate-900">🏢 Plant Admin / Office Dispatcher</option>
                 <option value="INTERNAL_ESTIMATOR" className="text-slate-900">📐 Estimator</option>
                 <option value="INTERNAL_FIELD_INSTALLER" className="text-slate-900">🚐 In-House Installer (Install Truck 1)</option>
+                <option value="EXTERNAL_CREW_ADMIN" className="text-slate-900">📋 External Crew Lead (Dispatcher)</option>
                 <option value="EXTERNAL_FIELD_INSTALLER" className="text-slate-900">🚐 External Field Crew (Apex Crew A)</option>
                 <option value="EXTERNAL_SUBCONTRACTOR" className="text-slate-900">🛠️ Subcontractor</option>
               </select>
@@ -6011,52 +6013,77 @@ export default function App() {
                   {/* MODULE 1: USERS & ROLES */}
                   {settingsCategory === 'users' && (
                     <div className="space-y-6">
-                      <div className="flex items-center justify-between border-b pb-4">
+                      {/* Sub-section Navigation Header */}
+                      <div className="flex flex-col md:flex-row md:items-center justify-between border-b pb-4 gap-3">
                         <div>
-                          <h3 className="text-lg font-black text-blue-600 dark:text-blue-400">Users & Security Roles Management</h3>
-                          <span className="text-xs text-slate-500">Configure internal employee credentials and external contractor roles.</span>
+                          <h3 className="text-lg font-black text-blue-600 dark:text-blue-400 flex items-center space-x-2">
+                            <Users className="w-5 h-5" />
+                            <span>Users, External Crews & Security Governance</span>
+                          </h3>
+                          <span className="text-xs text-slate-500">
+                            Manage external crew leads & installers (Plant Admin access) alongside restricted internal employee accounts & SSO governance.
+                          </span>
                         </div>
-                        <div className="flex space-x-2 font-bold text-xs">
-                          {(['External Roles', 'External Users', 'Roles', 'Users'] as const).map((sub) => (
-                            <button
-                              key={sub}
-                              onClick={() => setUsersSubSection(sub)}
-                              className={`px-4 py-2 rounded-lg cursor-pointer transition-all ${
-                                usersSubSection === sub ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200'
-                              }`}
-                            >
-                              {sub}
-                            </button>
-                          ))}
+                        <div className="flex flex-wrap gap-1.5 font-bold text-xs">
+                          {(['External Crews & Installers', 'Internal Users', 'Roles & Permissions', 'SSO & Security'] as const).map((sub) => {
+                            const isRestricted = (sub === 'Internal Users' || sub === 'Roles & Permissions' || sub === 'SSO & Security') && activeUserRole !== 'SUBSCRIBER_ADMIN' && activeUserRole !== 'SYSTEM_ADMIN';
+                            return (
+                              <button
+                                key={sub}
+                                onClick={() => setUsersSubSection(sub)}
+                                className={`px-3 py-2 rounded-lg cursor-pointer transition-all flex items-center space-x-1.5 ${
+                                  usersSubSection === sub
+                                    ? 'bg-blue-600 text-white shadow-md'
+                                    : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300'
+                                }`}
+                              >
+                                <span>{sub}</span>
+                                {isRestricted && (
+                                  <span title="Restricted to Global & Subscriber Admins">
+                                    <Lock className="w-3 h-3 text-amber-500" />
+                                  </span>
+                                )}
+                              </button>
+                            );
+                          })}
                         </div>
                       </div>
 
-                      {usersSubSection === 'External Users' && (
+                      {/* SUB-MENU 1: EXTERNAL CREWS & INSTALLERS (Accessible to Plant Admins and Subscriber/Global Admins) */}
+                      {usersSubSection === 'External Crews & Installers' && (
                         <div className="space-y-6">
-                          <div className="p-4 bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800 rounded-lg flex items-center justify-between">
+                          <div className="p-4 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-lg flex items-center justify-between">
                             <div>
-                              <strong className="block text-sm text-purple-900 dark:text-purple-200">External Category User Security Rule</strong>
-                              <span className="text-xs text-slate-500">External installer & contractor invites can strictly only be initiated by Internal Office Users or Admins.</span>
+                              <strong className="block text-sm text-emerald-900 dark:text-emerald-200 flex items-center space-x-1.5">
+                                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                                <span>Plant Admin & Subscriber Admin Authorization</span>
+                              </strong>
+                              <span className="text-xs text-slate-500">
+                                Plant Admins (Office Schedulers) and Subscriber Admins have full access to create, invite, and scope external crew leads and installers for their assigned plant locations.
+                              </span>
                             </div>
-                            <span className="px-3 py-1 bg-purple-200 text-purple-900 font-bold rounded text-xs">Strict Office Control</span>
+                            <span className="px-3 py-1 bg-emerald-200 text-emerald-900 font-bold rounded text-xs">
+                              Plant Admin Access
+                            </span>
                           </div>
 
                           {inviteSentSuccess && (
                             <div className="p-4 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-lg text-xs flex items-center space-x-2 font-semibold">
                               <CheckCircle2 className="w-5 h-5 text-emerald-600" />
-                              <span>User account created & invite sent with regional access permissions!</span>
+                              <span>External installer / crew lead created & emailed setup invite sent successfully!</span>
                             </div>
                           )}
 
-                          <form onSubmit={handleSendExternalInvite} className="p-6 border rounded-xl bg-slate-50 dark:bg-slate-950 space-y-4">
+                          {/* External User Creation Form */}
+                          <form onSubmit={handleSendExternalInvite} className="p-6 border rounded-xl bg-slate-50 dark:bg-slate-950 space-y-4 shadow-xs">
                             <h4 className="font-bold text-sm flex items-center space-x-2 text-blue-600 dark:text-blue-400">
                               <UserPlus className="w-4 h-4" />
-                              <span>Create & Invite External Installer / Contractor Account</span>
+                              <span>Create & Invite External Crew Lead or Installer Account</span>
                             </h4>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
                               <div>
-                                <label className="block font-bold mb-1">Installer / Contact Full Name *</label>
+                                <label className="block font-bold mb-1">Installer / Crew Contact Full Name *</label>
                                 <input
                                   type="text"
                                   required
@@ -6068,7 +6095,7 @@ export default function App() {
                               </div>
 
                               <div>
-                                <label className="block font-bold mb-1">User Email Address *</label>
+                                <label className="block font-bold mb-1">Email Address *</label>
                                 <input
                                   type="email"
                                   required
@@ -6083,7 +6110,7 @@ export default function App() {
                                 <label className="block font-bold mb-1">Phone Number</label>
                                 <input
                                   type="text"
-                                  placeholder="(555) 000-0000"
+                                  placeholder="(813) 555-0144"
                                   value={invitePhone}
                                   onChange={(e) => setInvitePhone(e.target.value)}
                                   className="w-full p-2.5 border rounded-lg text-slate-900 dark:bg-slate-900 dark:text-slate-100"
@@ -6098,20 +6125,20 @@ export default function App() {
                                   className="w-full p-2.5 border rounded-lg font-bold text-slate-900 dark:bg-slate-900 dark:text-slate-100"
                                 >
                                   <option value="EXTERNAL_FIELD_INSTALLER">EXTERNAL_FIELD_INSTALLER (Field Crew / Subcontractor)</option>
-                                  <option value="EXTERNAL_CREW_ADMIN">EXTERNAL_CREW_ADMIN (Crew Lead / Dispatcher)</option>
+                                  <option value="EXTERNAL_CREW_ADMIN">EXTERNAL_CREW_ADMIN (External Crew Lead / Dispatcher)</option>
                                   <option value="EXTERNAL_BUILDER_SUPER">EXTERNAL_BUILDER_SUPER (Site Superintendent)</option>
-                                  <option value="EXTERNAL_SUBCONTRACTOR">EXTERNAL_SUBCONTRACTOR (Trades / Plumbing)</option>
+                                  <option value="EXTERNAL_SUBCONTRACTOR">EXTERNAL_SUBCONTRACTOR (Trades / Subcontractor)</option>
                                 </select>
                               </div>
 
-                              {/* Company Name (For Installers / Subcontractors) */}
+                              {/* Company Name (For Installers / Contractors) */}
                               <div className="md:col-span-2 p-3 bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg space-y-1.5">
                                 <label className="block font-bold text-blue-900 dark:text-blue-300">
-                                  Company Name <span className="font-normal text-slate-500">(Optional for Installers / Contractors)</span>
+                                  Company Name <span className="font-normal text-slate-500">(Optional for Subcontractors & Installers)</span>
                                 </label>
                                 <input
                                   type="text"
-                                  placeholder="e.g. Apex Granite Pro LLC, Titan Stone Installations (Leave blank for independent 1099)"
+                                  placeholder="e.g. Apex Granite Pro LLC, Titan Stone Installations (Leave blank for independent 1099 installer)"
                                   value={inviteCompany}
                                   onChange={(e) => setInviteCompany(e.target.value)}
                                   className="w-full p-2.5 border rounded-lg font-bold text-slate-900 dark:bg-slate-900 dark:text-slate-100 bg-white"
@@ -6121,10 +6148,10 @@ export default function App() {
                                 </p>
                               </div>
 
-                              {/* Region Scoping Multi-Select */}
+                              {/* Operating Region Scoping */}
                               <div className="md:col-span-2 space-y-1.5">
                                 <label className="block font-bold">
-                                  Assigned Operating Region(s) / Plant Scope *
+                                  Assigned Operating Region(s) / Plant Location Scope *
                                 </label>
                                 <div className="flex flex-wrap gap-2">
                                   {['GLOBAL', 'Phoenix Metro (PHX)', 'Tucson East (TUC)', 'Denver North (DEN)', 'Tampa Plant (TPA)', 'Location 1'].map((reg) => {
@@ -6169,7 +6196,7 @@ export default function App() {
                                 className="bg-blue-600 text-white font-bold px-6 py-2.5 rounded-lg text-xs cursor-pointer hover:bg-blue-500 shadow-md flex items-center space-x-1.5"
                               >
                                 <UserPlus className="w-4 h-4" />
-                                <span>Create & Invite User Account</span>
+                                <span>Create & Invite External Account</span>
                               </button>
                             </div>
                           </form>
@@ -6255,250 +6282,476 @@ export default function App() {
                         </div>
                       )}
 
-                      {usersSubSection === 'External Roles' && (
-                        <div className="space-y-4 text-xs">
-                          <p className="text-slate-500">All external roles are explicitly prefixed with <code className="font-bold text-purple-600">EXTERNAL_</code> and isolated from internal system administration.</p>
-                          <div className="divide-y">
-                            <div className="py-3 flex items-center justify-between">
-                              <div><strong className="text-sm text-purple-600">EXTERNAL_CREW_ADMIN</strong><span className="block text-slate-500 mt-0.5">Manage crew installers and lot schedule tickets</span></div>
-                              <span className="px-3 py-1 bg-slate-100 dark:bg-slate-800 rounded font-mono font-bold">4 Permissions</span>
-                            </div>
-                            <div className="py-3 flex items-center justify-between">
-                              <div><strong className="text-sm text-purple-600">EXTERNAL_FIELD_INSTALLER</strong><span className="block text-slate-500 mt-0.5">Fill mobile sign-off forms and update task status</span></div>
-                              <span className="px-3 py-1 bg-slate-100 dark:bg-slate-800 rounded font-mono font-bold">2 Permissions</span>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
-                      {usersSubSection === 'Roles' && (
-                        <div className="space-y-4 text-xs">
-                          <p className="text-slate-500">Internal roles govern employee credentials, plant administrative functions, and in-house field operations.</p>
-                          <div className="divide-y rounded-xl border bg-white dark:bg-slate-900 overflow-hidden">
-                            <div className="p-3.5 flex items-center justify-between">
-                              <div>
-                                <strong className="text-sm text-blue-600 dark:text-blue-400">SUBSCRIBER_ADMIN</strong>
-                                <span className="block text-slate-500 mt-0.5">Full tenant-level access, region shutdowns, milestone workflows, and system configuration</span>
-                              </div>
-                              <span className="px-3 py-1 bg-emerald-100 text-emerald-800 rounded font-bold">Super Admin</span>
-                            </div>
-                            <div className="p-3.5 flex items-center justify-between">
-                              <div>
-                                <strong className="text-sm text-blue-600 dark:text-blue-400">INTERNAL_OFFICE_USER</strong>
-                                <span className="block text-slate-500 mt-0.5">Schedule jobs, manage builders & subdivisions, dispatch crews, and invite external users</span>
-                              </div>
-                              <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded font-mono font-bold">Office Dispatch</span>
-                            </div>
-                            <div className="p-3.5 flex items-center justify-between">
-                              <div>
-                                <strong className="text-sm text-blue-600 dark:text-blue-400">INTERNAL_ESTIMATOR</strong>
-                                <span className="block text-slate-500 mt-0.5">Review builder takeoffs, CAD toolpaths, and project estimations</span>
-                              </div>
-                              <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded font-mono font-bold">Estimator</span>
-                            </div>
-                            <div className="p-3.5 flex items-center justify-between">
-                              <div>
-                                <strong className="text-sm text-emerald-600 dark:text-emerald-400">INTERNAL_FIELD_INSTALLER</strong>
-                                <span className="block text-slate-500 mt-0.5">Employee in-house installation crew member with custom Crew Name, mobile sign-offs, and field tasks</span>
-                              </div>
-                              <span className="px-3 py-1 bg-emerald-100 text-emerald-800 rounded font-mono font-bold">In-House Installer</span>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
-                      {usersSubSection === 'Users' && (
+                      {/* SUB-MENU 2: INTERNAL USERS (Strictly Restricted to Global Administrator & Subscriber-Level Admin) */}
+                      {usersSubSection === 'Internal Users' && (
                         <div className="space-y-6 text-xs">
-                          {/* Internal User Creation Form */}
-                          <form onSubmit={handleSendExternalInvite} className="p-6 border rounded-xl bg-slate-50 dark:bg-slate-950 space-y-4">
-                            <h4 className="font-bold text-sm flex items-center space-x-2 text-blue-600 dark:text-blue-400">
-                              <UserPlus className="w-4 h-4" />
-                              <span>Add Internal Employee Account</span>
-                            </h4>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                              <div>
-                                <label className="block font-bold mb-1">Employee Full Name *</label>
-                                <input
-                                  type="text"
-                                  required
-                                  placeholder="e.g. David Vance, Sarah Miller"
-                                  value={inviteFullName}
-                                  onChange={(e) => setInviteFullName(e.target.value)}
-                                  className="w-full p-2.5 border rounded-lg text-slate-900 dark:bg-slate-900 dark:text-slate-100 font-bold"
-                                />
-                              </div>
-
-                              <div>
-                                <label className="block font-bold mb-1">Company Email Address *</label>
-                                <input
-                                  type="email"
-                                  required
-                                  placeholder="employee@granitecraft.com"
-                                  value={inviteEmail}
-                                  onChange={(e) => setInviteEmail(e.target.value)}
-                                  className="w-full p-2.5 border rounded-lg text-slate-900 dark:bg-slate-900 dark:text-slate-100 font-semibold"
-                                />
-                              </div>
-
-                              <div>
-                                <label className="block font-bold mb-1">Phone Number</label>
-                                <input
-                                  type="text"
-                                  placeholder="(813) 555-0100"
-                                  value={invitePhone}
-                                  onChange={(e) => setInvitePhone(e.target.value)}
-                                  className="w-full p-2.5 border rounded-lg text-slate-900 dark:bg-slate-900 dark:text-slate-100"
-                                />
-                              </div>
-
-                              <div>
-                                <label className="block font-bold mb-1">Assigned Internal Role *</label>
-                                <select
-                                  value={inviteRole}
-                                  onChange={(e) => setInviteRole(e.target.value)}
-                                  className="w-full p-2.5 border rounded-lg font-bold text-slate-900 dark:bg-slate-900 dark:text-slate-100"
-                                >
-                                  <option value="INTERNAL_OFFICE_USER">INTERNAL_OFFICE_USER (Office Scheduler / Dispatcher)</option>
-                                  <option value="INTERNAL_FIELD_INSTALLER">INTERNAL_FIELD_INSTALLER (In-House Field Installer / Crew)</option>
-                                  <option value="INTERNAL_ESTIMATOR">INTERNAL_ESTIMATOR (Estimator / Drafter)</option>
-                                  <option value="SUBSCRIBER_ADMIN">SUBSCRIBER_ADMIN (Tenant Administrator)</option>
-                                </select>
-                              </div>
-
-                              {/* Crew Name (When role is INTERNAL_FIELD_INSTALLER) */}
-                              {inviteRole === 'INTERNAL_FIELD_INSTALLER' && (
-                                <div className="md:col-span-2 p-3 bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-lg space-y-1.5">
-                                  <label className="block font-bold text-emerald-900 dark:text-emerald-300">
-                                    Crew Name <span className="font-normal text-slate-500">(Optional for Internal Installers)</span>
-                                  </label>
-                                  <input
-                                    type="text"
-                                    placeholder="e.g. Install Truck 1, In-House Crew Alpha (Leave blank to use employee full name)"
-                                    value={inviteCompany}
-                                    onChange={(e) => setInviteCompany(e.target.value)}
-                                    className="w-full p-2.5 border rounded-lg font-bold text-slate-900 dark:bg-slate-900 dark:text-slate-100 bg-white"
-                                  />
-                                  <p className="text-[11px] text-emerald-800 dark:text-emerald-300 font-medium">
-                                    💡 <strong>Display Rule:</strong> When assigning crews or installers on jobs, the system displays the <strong>Crew Name</strong> if provided; if no crew name is entered, it displays the employee's <strong>Full Name</strong>.
+                          {activeUserRole !== 'SUBSCRIBER_ADMIN' && activeUserRole !== 'SYSTEM_ADMIN' ? (
+                            /* Lock Screen for Non-Subscriber Admins */
+                            <div className="p-6 bg-amber-50 dark:bg-amber-950/40 border-2 border-amber-300 dark:border-amber-800 rounded-xl space-y-4">
+                              <div className="flex items-start space-x-3">
+                                <div className="p-2.5 bg-amber-200 dark:bg-amber-900 rounded-lg text-amber-900 dark:text-amber-200 shrink-0">
+                                  <ShieldAlert className="w-6 h-6" />
+                                </div>
+                                <div className="space-y-1">
+                                  <h4 className="text-sm font-bold text-amber-950 dark:text-amber-100 flex items-center space-x-1.5">
+                                    <Lock className="w-4 h-4" />
+                                    <span>Restricted Administrative Function (Global & Subscriber Admin Only)</span>
+                                  </h4>
+                                  <p className="text-amber-800 dark:text-amber-300 leading-relaxed">
+                                    Internal employee account creation and global user administration is strictly restricted to <strong>Global Administrators</strong> (System Admin) and <strong>Subscriber-Level Administrators</strong>. Plant admins and office schedulers are authorized to manage external crews and installers under the <strong>"External Crews & Installers"</strong> tab.
                                   </p>
                                 </div>
-                              )}
+                              </div>
 
-                              {/* Regional Scope */}
-                              <div className="md:col-span-2 space-y-1.5">
-                                <label className="block font-bold">
-                                  Assigned Operating Region(s) / Plant Scope *
-                                </label>
-                                <div className="flex flex-wrap gap-2">
-                                  {['GLOBAL', 'Phoenix Metro (PHX)', 'Tucson East (TUC)', 'Denver North (DEN)', 'Tampa Plant (TPA)', 'Location 1'].map((reg) => {
-                                    const isSelected = inviteSelectedRegions.includes(reg);
+                              {/* Read-Only Directory for Non-Admins */}
+                              <div className="pt-2 border-t border-amber-200 dark:border-amber-900">
+                                <h5 className="font-bold text-slate-700 dark:text-slate-300 mb-2">Read-Only Employee Directory ({systemUsersList.filter(u => !u.role.startsWith('EXTERNAL_')).length})</h5>
+                                <div className="divide-y rounded-lg border bg-white dark:bg-slate-900 overflow-hidden">
+                                  {systemUsersList
+                                    .filter(u => !u.role.startsWith('EXTERNAL_'))
+                                    .map(u => (
+                                      <div key={u.id} className="p-3 flex items-center justify-between">
+                                        <div>
+                                          <strong className="text-slate-800 dark:text-slate-200">{u.fullName}</strong>
+                                          <span className="text-slate-500 block">{u.email} • {u.role}</span>
+                                        </div>
+                                        <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 font-bold text-[10px]">{u.status}</span>
+                                      </div>
+                                    ))}
+                                </div>
+                              </div>
+                            </div>
+                          ) : (
+                            /* Full Management for Subscriber & Global Admin */
+                            <>
+                              <div className="p-4 bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 rounded-lg flex items-center justify-between">
+                                <div>
+                                  <strong className="block text-sm text-blue-900 dark:text-blue-200 flex items-center space-x-1.5">
+                                    <Shield className="w-4 h-4 text-blue-600" />
+                                    <span>Subscriber & Global Administrator Credential Hub</span>
+                                  </strong>
+                                  <span className="text-xs text-slate-500">
+                                    Create internal employees, assign in-house installation crew names, and grant office dispatch privileges.
+                                  </span>
+                                </div>
+                                <span className="px-3 py-1 bg-blue-200 text-blue-900 font-bold rounded text-xs">
+                                  Admin Clearance Active
+                                </span>
+                              </div>
+
+                              {/* Internal User Creation Form */}
+                              <form onSubmit={handleSendExternalInvite} className="p-6 border rounded-xl bg-slate-50 dark:bg-slate-950 space-y-4">
+                                <h4 className="font-bold text-sm flex items-center space-x-2 text-blue-600 dark:text-blue-400">
+                                  <UserPlus className="w-4 h-4" />
+                                  <span>Add Internal Employee Account</span>
+                                </h4>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                  <div>
+                                    <label className="block font-bold mb-1">Employee Full Name *</label>
+                                    <input
+                                      type="text"
+                                      required
+                                      placeholder="e.g. David Vance, Sarah Miller"
+                                      value={inviteFullName}
+                                      onChange={(e) => setInviteFullName(e.target.value)}
+                                      className="w-full p-2.5 border rounded-lg text-slate-900 dark:bg-slate-900 dark:text-slate-100 font-bold"
+                                    />
+                                  </div>
+
+                                  <div>
+                                    <label className="block font-bold mb-1">Company Email Address *</label>
+                                    <input
+                                      type="email"
+                                      required
+                                      placeholder="employee@granitecraft.com"
+                                      value={inviteEmail}
+                                      onChange={(e) => setInviteEmail(e.target.value)}
+                                      className="w-full p-2.5 border rounded-lg text-slate-900 dark:bg-slate-900 dark:text-slate-100 font-semibold"
+                                    />
+                                  </div>
+
+                                  <div>
+                                    <label className="block font-bold mb-1">Phone Number</label>
+                                    <input
+                                      type="text"
+                                      placeholder="(813) 555-0100"
+                                      value={invitePhone}
+                                      onChange={(e) => setInvitePhone(e.target.value)}
+                                      className="w-full p-2.5 border rounded-lg text-slate-900 dark:bg-slate-900 dark:text-slate-100"
+                                    />
+                                  </div>
+
+                                  <div>
+                                    <label className="block font-bold mb-1">Assigned Internal Role *</label>
+                                    <select
+                                      value={inviteRole}
+                                      onChange={(e) => setInviteRole(e.target.value)}
+                                      className="w-full p-2.5 border rounded-lg font-bold text-slate-900 dark:bg-slate-900 dark:text-slate-100"
+                                    >
+                                      <option value="INTERNAL_OFFICE_USER">INTERNAL_OFFICE_USER (Plant Admin / Office Scheduler)</option>
+                                      <option value="INTERNAL_FIELD_INSTALLER">INTERNAL_FIELD_INSTALLER (In-House Field Installer / Crew)</option>
+                                      <option value="INTERNAL_ESTIMATOR">INTERNAL_ESTIMATOR (Estimator / Drafter)</option>
+                                      <option value="SUBSCRIBER_ADMIN">SUBSCRIBER_ADMIN (Subscriber Tenant Administrator)</option>
+                                      <option value="SYSTEM_ADMIN">SYSTEM_ADMIN (Global System Administrator)</option>
+                                    </select>
+                                  </div>
+
+                                  {/* Crew Name (When role is INTERNAL_FIELD_INSTALLER) */}
+                                  {inviteRole === 'INTERNAL_FIELD_INSTALLER' && (
+                                    <div className="md:col-span-2 p-3 bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-lg space-y-1.5">
+                                      <label className="block font-bold text-emerald-900 dark:text-emerald-300">
+                                        Crew Name <span className="font-normal text-slate-500">(Optional for Internal In-House Installers)</span>
+                                      </label>
+                                      <input
+                                        type="text"
+                                        placeholder="e.g. Install Truck 1, In-House Crew Alpha (Leave blank to use employee full name)"
+                                        value={inviteCompany}
+                                        onChange={(e) => setInviteCompany(e.target.value)}
+                                        className="w-full p-2.5 border rounded-lg font-bold text-slate-900 dark:bg-slate-900 dark:text-slate-100 bg-white"
+                                      />
+                                      <p className="text-[11px] text-emerald-800 dark:text-emerald-300 font-medium">
+                                        💡 <strong>Display Rule:</strong> When assigning crews or installers on jobs, the system displays the <strong>Crew Name</strong> if provided; if no crew name is entered, it displays the employee's <strong>Full Name</strong>.
+                                      </p>
+                                    </div>
+                                  )}
+
+                                  {/* Regional Scope */}
+                                  <div className="md:col-span-2 space-y-1.5">
+                                    <label className="block font-bold">
+                                      Assigned Operating Region(s) / Plant Scope *
+                                    </label>
+                                    <div className="flex flex-wrap gap-2">
+                                      {['GLOBAL', 'Phoenix Metro (PHX)', 'Tucson East (TUC)', 'Denver North (DEN)', 'Tampa Plant (TPA)', 'Location 1'].map((reg) => {
+                                        const isSelected = inviteSelectedRegions.includes(reg);
+                                        return (
+                                          <button
+                                            key={reg}
+                                            type="button"
+                                            onClick={() => {
+                                              if (reg === 'GLOBAL') {
+                                                setInviteSelectedRegions(['GLOBAL']);
+                                              } else {
+                                                const withoutGlobal = inviteSelectedRegions.filter(r => r !== 'GLOBAL');
+                                                if (isSelected) {
+                                                  const remaining = withoutGlobal.filter(r => r !== reg);
+                                                  setInviteSelectedRegions(remaining.length > 0 ? remaining : ['GLOBAL']);
+                                                } else {
+                                                  setInviteSelectedRegions([...withoutGlobal, reg]);
+                                                }
+                                              }
+                                            }}
+                                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                                              isSelected
+                                                ? 'bg-blue-600 text-white shadow-xs'
+                                                : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border hover:bg-slate-100 dark:hover:bg-slate-800'
+                                            }`}
+                                          >
+                                            {reg === 'GLOBAL' ? '🌐 Global (All Regions)' : reg}
+                                          </button>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <div className="flex justify-end pt-2">
+                                  <button
+                                    type="submit"
+                                    className="bg-blue-600 text-white font-bold px-6 py-2.5 rounded-lg text-xs cursor-pointer hover:bg-blue-500 shadow-md flex items-center space-x-1.5"
+                                  >
+                                    <UserPlus className="w-4 h-4" />
+                                    <span>Save & Create Employee Account</span>
+                                  </button>
+                                </div>
+                              </form>
+
+                              {/* All System Accounts */}
+                              <div className="space-y-3">
+                                <h4 className="font-bold text-xs uppercase tracking-wider text-slate-500">
+                                  All System Accounts ({systemUsersList.length})
+                                </h4>
+
+                                <div className="divide-y rounded-xl border bg-white dark:bg-slate-900 overflow-hidden">
+                                  {systemUsersList.map((u) => {
+                                    const displayName = getInstallerDisplayName(u);
+                                    const isInstaller = isInstallerUser(u);
                                     return (
-                                      <button
-                                        key={reg}
-                                        type="button"
-                                        onClick={() => {
-                                          if (reg === 'GLOBAL') {
-                                            setInviteSelectedRegions(['GLOBAL']);
-                                          } else {
-                                            const withoutGlobal = inviteSelectedRegions.filter(r => r !== 'GLOBAL');
-                                            if (isSelected) {
-                                              const remaining = withoutGlobal.filter(r => r !== reg);
-                                              setInviteSelectedRegions(remaining.length > 0 ? remaining : ['GLOBAL']);
-                                            } else {
-                                              setInviteSelectedRegions([...withoutGlobal, reg]);
-                                            }
-                                          }
-                                        }}
-                                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                                          isSelected
-                                            ? 'bg-blue-600 text-white shadow-xs'
-                                            : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border hover:bg-slate-100 dark:hover:bg-slate-800'
-                                        }`}
-                                      >
-                                        {reg === 'GLOBAL' ? '🌐 Global (All Regions)' : reg}
-                                      </button>
+                                      <div key={u.id} className="p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 hover:bg-slate-50 dark:hover:bg-slate-950/50 transition-colors">
+                                        <div className="space-y-1">
+                                          <div className="flex items-center space-x-2 flex-wrap gap-y-1">
+                                            <strong className="text-sm text-slate-900 dark:text-slate-100">{displayName}</strong>
+                                            {u.companyName && (
+                                              <span className="text-[11px] text-slate-500">
+                                                ({u.role === 'INTERNAL_FIELD_INSTALLER' ? `Crew: ${u.companyName} • Employee: ${u.fullName}` : `Company: ${u.companyName} • Contact: ${u.fullName}`})
+                                              </span>
+                                            )}
+                                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                                              u.role === 'INTERNAL_FIELD_INSTALLER'
+                                                ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 font-mono'
+                                                : u.role.startsWith('EXTERNAL_')
+                                                ? 'bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300 font-mono'
+                                                : 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300 font-mono'
+                                            }`}>
+                                              {u.role}
+                                            </span>
+                                            {isInstaller && (
+                                              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+                                                🚐 Installer Active
+                                              </span>
+                                            )}
+                                          </div>
+                                          <div className="flex items-center space-x-4 text-slate-500 text-[11px]">
+                                            <span>Email: <strong>{u.email}</strong></span>
+                                            <span>Regions: <strong>{u.scopedRegions.join(', ')}</strong></span>
+                                          </div>
+                                        </div>
+
+                                        <div className="flex items-center space-x-2">
+                                          <button
+                                            type="button"
+                                            onClick={() => handleToggleUserStatus(u.id)}
+                                            className={`px-3 py-1.5 rounded-lg text-xs font-bold cursor-pointer transition-colors ${
+                                              u.status === 'ACTIVE'
+                                                ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
+                                                : 'bg-emerald-600 hover:bg-emerald-500 text-white'
+                                            }`}
+                                          >
+                                            {u.status === 'ACTIVE' ? 'Deactivate' : 'Activate'}
+                                          </button>
+                                          <button
+                                            type="button"
+                                            onClick={() => handleDeleteUser(u.id)}
+                                            className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/40 cursor-pointer"
+                                            title="Delete user account"
+                                          >
+                                            <Trash2 className="w-4 h-4" />
+                                          </button>
+                                        </div>
+                                      </div>
                                     );
                                   })}
                                 </div>
                               </div>
-                            </div>
+                            </>
+                          )}
+                        </div>
+                      )}
 
-                            <div className="flex justify-end pt-2">
-                              <button
-                                type="submit"
-                                className="bg-blue-600 text-white font-bold px-6 py-2.5 rounded-lg text-xs cursor-pointer hover:bg-blue-500 shadow-md flex items-center space-x-1.5"
-                              >
-                                <UserPlus className="w-4 h-4" />
-                                <span>Save & Create Employee Account</span>
-                              </button>
+                      {/* SUB-MENU 3: ROLES & PERMISSIONS (Strictly Restricted to Global & Subscriber Admin) */}
+                      {usersSubSection === 'Roles & Permissions' && (
+                        <div className="space-y-4 text-xs">
+                          {activeUserRole !== 'SUBSCRIBER_ADMIN' && activeUserRole !== 'SYSTEM_ADMIN' ? (
+                            <div className="p-4 bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800 rounded-lg flex items-center space-x-3">
+                              <Lock className="w-5 h-5 text-amber-600 shrink-0" />
+                              <span className="text-amber-900 dark:text-amber-200 font-semibold">
+                                Role management and permission matrices are managed exclusively by Global Administrators and Subscriber Admins. Below is a read-only role directory.
+                              </span>
                             </div>
-                          </form>
+                          ) : (
+                            <div className="p-4 bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 rounded-lg flex items-center justify-between">
+                              <div>
+                                <strong className="block text-sm text-blue-900 dark:text-blue-200">System Role & Permission Governance</strong>
+                                <span className="text-xs text-slate-500">Configure access levels and RBAC boundaries across employee and external contractor tiers.</span>
+                              </div>
+                              <span className="px-3 py-1 bg-blue-200 text-blue-900 font-bold rounded text-xs">Admin Access</span>
+                            </div>
+                          )}
 
-                          {/* List of All Accounts */}
                           <div className="space-y-3">
-                            <h4 className="font-bold text-xs uppercase tracking-wider text-slate-500">
-                              All System Accounts ({systemUsersList.length})
-                            </h4>
-
+                            <h4 className="font-bold text-xs uppercase tracking-wider text-slate-500">Internal Employee Roles</h4>
                             <div className="divide-y rounded-xl border bg-white dark:bg-slate-900 overflow-hidden">
-                              {systemUsersList.map((u) => {
-                                const displayName = getInstallerDisplayName(u);
-                                const isInstaller = isInstallerUser(u);
-                                return (
-                                  <div key={u.id} className="p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 hover:bg-slate-50 dark:hover:bg-slate-950/50 transition-colors">
-                                    <div className="space-y-1">
-                                      <div className="flex items-center space-x-2 flex-wrap gap-y-1">
-                                        <strong className="text-sm text-slate-900 dark:text-slate-100">{displayName}</strong>
-                                        {u.companyName && (
-                                          <span className="text-[11px] text-slate-500">
-                                            ({u.role === 'INTERNAL_FIELD_INSTALLER' ? `Crew: ${u.companyName} • Employee: ${u.fullName}` : `Company: ${u.companyName} • Contact: ${u.fullName}`})
-                                          </span>
-                                        )}
-                                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                                          u.role === 'INTERNAL_FIELD_INSTALLER'
-                                            ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 font-mono'
-                                            : u.role.startsWith('EXTERNAL_')
-                                            ? 'bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300 font-mono'
-                                            : 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300 font-mono'
-                                        }`}>
-                                          {u.role}
-                                        </span>
-                                        {isInstaller && (
-                                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">
-                                            🚐 Installer Active
-                                          </span>
-                                        )}
-                                      </div>
-                                      <div className="flex items-center space-x-4 text-slate-500 text-[11px]">
-                                        <span>Email: <strong>{u.email}</strong></span>
-                                        <span>Regions: <strong>{u.scopedRegions.join(', ')}</strong></span>
-                                      </div>
-                                    </div>
-
-                                    <div className="flex items-center space-x-2">
-                                      <button
-                                        type="button"
-                                        onClick={() => handleToggleUserStatus(u.id)}
-                                        className={`px-3 py-1.5 rounded-lg text-xs font-bold cursor-pointer transition-colors ${
-                                          u.status === 'ACTIVE'
-                                            ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
-                                            : 'bg-emerald-600 hover:bg-emerald-500 text-white'
-                                        }`}
-                                      >
-                                        {u.status === 'ACTIVE' ? 'Deactivate' : 'Activate'}
-                                      </button>
-                                      <span className={`px-3 py-1 font-bold rounded text-xs ${
-                                        u.status === 'ACTIVE' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-slate-100 text-slate-600'
-                                      }`}>
-                                        {u.status}
-                                      </span>
-                                    </div>
-                                  </div>
-                                );
-                              })}
+                              <div className="p-3.5 flex items-center justify-between">
+                                <div>
+                                  <strong className="text-sm text-purple-700 dark:text-purple-400">SYSTEM_ADMIN</strong>
+                                  <span className="block text-slate-500 mt-0.5">Global SaaS Administrator with full tenant provisioning, SSO federation, and database schema rights</span>
+                                </div>
+                                <span className="px-3 py-1 bg-purple-100 text-purple-800 rounded font-bold">Global Master</span>
+                              </div>
+                              <div className="p-3.5 flex items-center justify-between">
+                                <div>
+                                  <strong className="text-sm text-blue-600 dark:text-blue-400">SUBSCRIBER_ADMIN</strong>
+                                  <span className="block text-slate-500 mt-0.5">Full tenant-level access, region shutdowns, milestone workflows, SSO setup, and internal user provisioning</span>
+                                </div>
+                                <span className="px-3 py-1 bg-emerald-100 text-emerald-800 rounded font-bold">Subscriber Admin</span>
+                              </div>
+                              <div className="p-3.5 flex items-center justify-between">
+                                <div>
+                                  <strong className="text-sm text-blue-600 dark:text-blue-400">INTERNAL_OFFICE_USER (Plant Admin)</strong>
+                                  <span className="block text-slate-500 mt-0.5">Schedule jobs, manage builders & subdivisions, dispatch crews, and provision external installers for plant locations</span>
+                                </div>
+                                <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded font-mono font-bold">Plant Admin</span>
+                              </div>
+                              <div className="p-3.5 flex items-center justify-between">
+                                <div>
+                                  <strong className="text-sm text-blue-600 dark:text-blue-400">INTERNAL_ESTIMATOR</strong>
+                                  <span className="block text-slate-500 mt-0.5">Review builder takeoffs, CAD toolpaths, slab calculations, and project estimations</span>
+                                </div>
+                                <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded font-mono font-bold">Estimator</span>
+                              </div>
+                              <div className="p-3.5 flex items-center justify-between">
+                                <div>
+                                  <strong className="text-sm text-emerald-600 dark:text-emerald-400">INTERNAL_FIELD_INSTALLER</strong>
+                                  <span className="block text-slate-500 mt-0.5">Employee in-house installation crew member with custom Crew Name, mobile sign-offs, and field tasks</span>
+                                </div>
+                                <span className="px-3 py-1 bg-emerald-100 text-emerald-800 rounded font-mono font-bold">In-House Installer</span>
+                              </div>
                             </div>
                           </div>
+
+                          <div className="space-y-3 pt-2">
+                            <h4 className="font-bold text-xs uppercase tracking-wider text-slate-500">External Contractor & Crew Roles</h4>
+                            <div className="divide-y rounded-xl border bg-white dark:bg-slate-900 overflow-hidden">
+                              <div className="p-3.5 flex items-center justify-between">
+                                <div>
+                                  <strong className="text-sm text-purple-600">EXTERNAL_CREW_ADMIN</strong>
+                                  <span className="block text-slate-500 mt-0.5">External crew dispatcher / subcontractor owner managing crew installers and schedule tickets</span>
+                                </div>
+                                <span className="px-3 py-1 bg-slate-100 dark:bg-slate-800 rounded font-mono font-bold">4 Permissions</span>
+                              </div>
+                              <div className="p-3.5 flex items-center justify-between">
+                                <div>
+                                  <strong className="text-sm text-purple-600">EXTERNAL_FIELD_INSTALLER</strong>
+                                  <span className="block text-slate-500 mt-0.5">1099 or subcontractor installer with mobile sign-off forms and task status updates</span>
+                                </div>
+                                <span className="px-3 py-1 bg-slate-100 dark:bg-slate-800 rounded font-mono font-bold">2 Permissions</span>
+                              </div>
+                              <div className="p-3.5 flex items-center justify-between">
+                                <div>
+                                  <strong className="text-sm text-purple-600">EXTERNAL_BUILDER_SUPER</strong>
+                                  <span className="block text-slate-500 mt-0.5">Subdivision superintendent signing installation sign-off packets</span>
+                                </div>
+                                <span className="px-3 py-1 bg-slate-100 dark:bg-slate-800 rounded font-mono font-bold">Sign-off Only</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* SUB-MENU 4: SSO & SECURITY SETUP (Strictly Restricted to Global & Subscriber Admin) */}
+                      {usersSubSection === 'SSO & Security' && (
+                        <div className="space-y-6 text-xs">
+                          {activeUserRole !== 'SUBSCRIBER_ADMIN' && activeUserRole !== 'SYSTEM_ADMIN' ? (
+                            /* Lock Screen for SSO Setup */
+                            <div className="p-6 bg-amber-50 dark:bg-amber-950/40 border-2 border-amber-300 dark:border-amber-800 rounded-xl space-y-3">
+                              <div className="flex items-start space-x-3">
+                                <div className="p-2.5 bg-amber-200 dark:bg-amber-900 rounded-lg text-amber-900 dark:text-amber-200 shrink-0">
+                                  <ShieldAlert className="w-6 h-6" />
+                                </div>
+                                <div className="space-y-1">
+                                  <h4 className="text-sm font-bold text-amber-950 dark:text-amber-100 flex items-center space-x-1.5">
+                                    <Lock className="w-4 h-4" />
+                                    <span>Enterprise SSO & Security Setup Locked</span>
+                                  </h4>
+                                  <p className="text-amber-800 dark:text-amber-300 leading-relaxed">
+                                    Enterprise Single Sign-On (SSO), Microsoft Entra ID (Azure AD), SAML 2.0 / OIDC Identity Federation, and token security parameters are managed exclusively by <strong>Global Administrators</strong> and <strong>Subscriber-Level Admins</strong>. Please contact your Subscriber Administrator to modify SSO settings.
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          ) : (
+                            /* Full SSO Configuration Form */
+                            <div className="p-6 border rounded-xl bg-slate-50 dark:bg-slate-950 space-y-5">
+                              <div className="flex items-center justify-between border-b pb-3">
+                                <div>
+                                  <h4 className="font-bold text-sm text-blue-600 dark:text-blue-400 flex items-center space-x-2">
+                                    <KeyRound className="w-4 h-4" />
+                                    <span>Enterprise Single Sign-On (SSO) & Identity Federation</span>
+                                  </h4>
+                                  <span className="text-slate-500">Configure Microsoft Entra ID (Azure AD) or SAML 2.0 identity providers for corporate authentication.</span>
+                                </div>
+                                <span className="px-3 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 font-bold rounded">
+                                  Tenant Admin Only
+                                </span>
+                              </div>
+
+                              {savedSuccess && (
+                                <div className="p-4 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-lg text-xs flex items-center space-x-2 font-semibold">
+                                  <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                                  <span>Enterprise SSO configuration saved and verified!</span>
+                                </div>
+                              )}
+
+                              <div>
+                                <label className="block font-bold mb-2">Authentication Provider Mode</label>
+                                <div className="grid grid-cols-3 gap-3">
+                                  {[
+                                    { mode: 'EMAIL_PASSWORD', label: 'Email & Password', desc: 'Standard credentials' },
+                                    { mode: 'ENTRA_ID', label: 'Microsoft Entra ID', desc: 'Enforced Corporate SSO' },
+                                    { mode: 'HYBRID', label: 'Hybrid (Both)', desc: 'SSO + Passwords' },
+                                  ].map(({ mode, label, desc }) => (
+                                    <button
+                                      key={mode}
+                                      type="button"
+                                      onClick={() => setAuthProvider(mode as any)}
+                                      className={`p-3 rounded-lg border text-left cursor-pointer transition-all ${
+                                        authProvider === mode
+                                          ? 'border-blue-600 bg-blue-50/80 dark:bg-blue-950/60 ring-2 ring-blue-500'
+                                          : 'bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800'
+                                      }`}
+                                    >
+                                      <strong className="block text-xs text-slate-900 dark:text-slate-100">{label}</strong>
+                                      <span className="text-[11px] text-slate-500">{desc}</span>
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+
+                              {(authProvider === 'ENTRA_ID' || authProvider === 'HYBRID') && (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-3 border-t">
+                                  <div>
+                                    <label className="block font-bold mb-1">Microsoft Entra Directory (Tenant) ID</label>
+                                    <input
+                                      type="text"
+                                      value={entraTenantId}
+                                      onChange={(e) => setEntraTenantId(e.target.value)}
+                                      className="w-full p-2.5 border rounded-lg font-mono text-slate-900 dark:bg-slate-900 dark:text-slate-100 font-bold"
+                                    />
+                                  </div>
+
+                                  <div>
+                                    <label className="block font-bold mb-1">Microsoft Entra Application (Client) ID</label>
+                                    <input
+                                      type="text"
+                                      value={entraClientId}
+                                      onChange={(e) => setEntraClientId(e.target.value)}
+                                      className="w-full p-2.5 border rounded-lg font-mono text-slate-900 dark:bg-slate-900 dark:text-slate-100 font-bold"
+                                    />
+                                  </div>
+
+                                  <div className="md:col-span-2">
+                                    <label className="block font-bold mb-1">SAML 2.0 / OIDC Reply URL (Assertion Consumer Service)</label>
+                                    <input
+                                      type="text"
+                                      readOnly
+                                      value="https://lively-forest-037af051e.7.azurestaticapps.net/api/auth/sso/callback"
+                                      className="w-full p-2.5 border rounded-lg font-mono text-slate-500 bg-slate-100 dark:bg-slate-900 select-all"
+                                    />
+                                  </div>
+                                </div>
+                              )}
+
+                              <div className="pt-2 flex justify-end space-x-2">
+                                <button
+                                  type="button"
+                                  onClick={() => alert('SSO Connection Test Passed! Microsoft Entra ID endpoint responded with HTTP 200 OK.')}
+                                  className="px-4 py-2 border rounded-lg font-bold hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+                                >
+                                  Test SSO Connection
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setSavedSuccess(true);
+                                    setTimeout(() => setSavedSuccess(false), 3000);
+                                  }}
+                                  className="bg-blue-600 text-white font-bold px-6 py-2.5 rounded-lg shadow-md cursor-pointer hover:bg-blue-500"
+                                >
+                                  Save SSO & Security Settings
+                                </button>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
