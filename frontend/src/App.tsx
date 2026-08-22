@@ -2088,6 +2088,43 @@ export default function App() {
     setTimeout(() => setLeadTimesSavedSuccess(false), 3000);
   };
 
+  // Helper to count active child jobs/items assigned to a specific milestone in a scope
+  const getMilestoneAssignedItemsCount = (msId: string, msCode: string, msName: string, scopeName: string): number => {
+    const scopedJobs = jobsData.filter(j => {
+      if (scopeName === 'GLOBAL') return true;
+      const locMatch = (j.regionName && j.regionName.toLowerCase().includes(scopeName.toLowerCase())) ||
+                       (scopeName.toLowerCase().includes(j.regionName?.toLowerCase() || '___')) ||
+                       (selectedRegion.toLowerCase().includes(scopeName.toLowerCase()));
+      return locMatch;
+    });
+
+    const code = (msCode || '').toUpperCase();
+    const id = (msId || '').toLowerCase();
+    const name = (msName || '').toLowerCase();
+
+    let count = 0;
+    for (const job of scopedJobs) {
+      if (code === 'TEMP' || id.includes('template') || name.includes('template') || name.includes('measure')) {
+        if (job.templateDate?.date && job.templateDate.date !== 'No Date') count++;
+      } else if (code === 'CAD' || id.includes('cad') || name.includes('cad') || name.includes('draft')) {
+        if (job.templateDate?.date && job.templateDate.date !== 'No Date') count++;
+      } else if (code === 'CUT' || id.includes('cut') || name.includes('cut') || name.includes('saw') || name.includes('waterjet')) {
+        if (job.fabDate?.date && job.fabDate.date !== 'No Date') count++;
+      } else if (code === 'FAB' || id.includes('fab') || name.includes('fab') || name.includes('polish')) {
+        if (job.fabDate?.date && job.fabDate.date !== 'No Date') count++;
+      } else if (code === 'INST' || id.includes('install') || name.includes('install') || name.includes('field')) {
+        if (job.installDate?.date && job.installDate.date !== 'No Date') count++;
+      } else if (code === 'QA' || code === 'SIGN' || id.includes('signoff') || name.includes('sign-off') || name.includes('qa')) {
+        if (job.installDate?.date && job.installDate.date !== 'No Date' && job.installDate.status === 'conf') count++;
+      } else {
+        if (job.activities?.some(a => a.activityName.toLowerCase().includes(name) || a.phase.toLowerCase().includes(name) || a.activityName.toUpperCase().includes(code))) {
+          count++;
+        }
+      }
+    }
+    return count;
+  };
+
   const handleDeleteMilestone = (scopeName: string, id: string) => {
     const currentList = getEffectiveMilestones(scopeName);
     if (currentList.length <= 1) {
@@ -2095,6 +2132,15 @@ export default function App() {
       return;
     }
     const msToDelete = currentList.find(m => m.id === id);
+    if (!msToDelete) return;
+
+    // Strict validation: Milestones with assigned child items cannot be deleted
+    const assignedCount = getMilestoneAssignedItemsCount(msToDelete.id, msToDelete.shortCode, msToDelete.name, scopeName);
+    if (assignedCount > 0) {
+      alert(`Cannot delete milestone "${msToDelete.name}":\n\nThere are currently ${assignedCount} child job(s)/lot(s) assigned to this milestone in ${scopeName === 'GLOBAL' ? 'all plants' : scopeName}.\n\nTo preserve historical job data and protect scheduling integrity, milestones with child assignments cannot be deleted. You can rename or disable (bypass) this milestone globally or for this specific location instead.`);
+      return;
+    }
+
     const updatedList = currentList.filter(m => m.id !== id);
 
     if (scopeName === 'GLOBAL') {
@@ -2110,9 +2156,9 @@ export default function App() {
       id: String(Date.now()),
       timestamp: new Date().toLocaleString(),
       changedBy: `${activeUserRole === 'SUBSCRIBER_ADMIN' ? 'Admin' : 'Scheduler'} (${activeUserRole})`,
-      summary: `Workflow Milestone Removed: [${msToDelete?.name || id}] from [${scopeName === 'GLOBAL' ? 'Global Baseline' : scopeName}]`,
+      summary: `Workflow Milestone Removed: [${msToDelete.name}] from [${scopeName === 'GLOBAL' ? 'Global Baseline' : scopeName}]`,
       diffs: [
-        { field: 'Deleted Milestone', from: msToDelete?.name || id, to: 'Deleted' }
+        { field: 'Deleted Milestone', from: msToDelete.name, to: 'Deleted (0 child items)' }
       ]
     };
     setChangeLogs([newLog, ...changeLogs]);
@@ -5178,6 +5224,14 @@ export default function App() {
                                 </div>
                               </div>
 
+                              {/* Deletion Safeguard Notice */}
+                              <div className="p-2.5 rounded-lg bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 text-[11px] text-blue-800 dark:text-blue-300 flex items-center space-x-2">
+                                <Lock className="w-4 h-4 text-amber-500 shrink-0" />
+                                <span>
+                                  <strong>Child Assignment Safeguard:</strong> Milestones with active child jobs or lot schedules in a location cannot be deleted. They can be renamed or disabled (bypassed) globally or at individual plant locations to preserve historical integrity.
+                                </span>
+                              </div>
+
                               {/* Milestone Pipeline Cards List */}
                               <div className="space-y-2.5">
                                 {currentMilestones.map((ms, idx) => {
@@ -5192,6 +5246,7 @@ export default function App() {
                                     cyan: { badge: 'bg-cyan-100 text-cyan-800 dark:bg-cyan-950 dark:text-cyan-300 border-cyan-300', border: 'border-cyan-200 dark:border-cyan-900' },
                                   };
                                   const theme = colorClasses[ms.color] || colorClasses.blue;
+                                  const assignedCount = getMilestoneAssignedItemsCount(ms.id, ms.shortCode, ms.name, selectedLeadTimeScope);
 
                                   return (
                                     <div
@@ -5244,6 +5299,22 @@ export default function App() {
                                                 Inactive (Bypassed)
                                               </span>
                                             )}
+                                            {assignedCount > 0 ? (
+                                              <span
+                                                className="text-[9px] px-1.5 py-0.5 rounded font-bold bg-slate-200/80 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 flex items-center space-x-1"
+                                                title={`${assignedCount} active child job(s) assigned in ${selectedLeadTimeScope === 'GLOBAL' ? 'all plants' : selectedLeadTimeScope}. Protected from deletion.`}
+                                              >
+                                                <Lock className="w-2.5 h-2.5 text-amber-500" />
+                                                <span>{assignedCount} Assigned Jobs</span>
+                                              </span>
+                                            ) : (
+                                              <span
+                                                className="text-[9px] px-1.5 py-0.5 rounded font-bold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800"
+                                                title="0 child jobs attached. Safe to delete."
+                                              >
+                                                0 Jobs (Safe to Delete)
+                                              </span>
+                                            )}
                                           </div>
                                           <p className="text-[11px] text-slate-500">
                                             {ms.description}
@@ -5271,7 +5342,7 @@ export default function App() {
                                             type="button"
                                             onClick={() => handleToggleMilestoneEnabled(selectedLeadTimeScope, ms.id)}
                                             className="p-1.5 text-slate-400 hover:text-blue-600 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 cursor-pointer"
-                                            title={ms.enabled ? 'Deactivate milestone' : 'Activate milestone'}
+                                            title={ms.enabled ? 'Deactivate / Bypass milestone' : 'Activate milestone'}
                                           >
                                             {ms.enabled ? <Eye className="w-4 h-4 text-emerald-600" /> : <EyeOff className="w-4 h-4 text-slate-400" />}
                                           </button>
@@ -5280,19 +5351,30 @@ export default function App() {
                                             type="button"
                                             onClick={() => handleOpenEditMilestone(ms)}
                                             className="p-1.5 text-slate-400 hover:text-blue-600 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 cursor-pointer"
-                                            title="Edit milestone name, code, or color"
+                                            title="Rename milestone or edit settings"
                                           >
                                             <Edit3 className="w-4 h-4" />
                                           </button>
 
-                                          <button
-                                            type="button"
-                                            onClick={() => handleDeleteMilestone(selectedLeadTimeScope, ms.id)}
-                                            className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/40 cursor-pointer"
-                                            title="Delete milestone from workflow"
-                                          >
-                                            <Trash2 className="w-4 h-4" />
-                                          </button>
+                                          {assignedCount > 0 ? (
+                                            <button
+                                              type="button"
+                                              onClick={() => handleDeleteMilestone(selectedLeadTimeScope, ms.id)}
+                                              className="p-1.5 text-slate-400 hover:text-amber-600 rounded-lg hover:bg-amber-50 dark:hover:bg-amber-950/40 cursor-pointer"
+                                              title={`Cannot delete: ${assignedCount} active child job(s) assigned in this location. You can rename or disable this milestone instead.`}
+                                            >
+                                              <Lock className="w-4 h-4 text-amber-500" />
+                                            </button>
+                                          ) : (
+                                            <button
+                                              type="button"
+                                              onClick={() => handleDeleteMilestone(selectedLeadTimeScope, ms.id)}
+                                              className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/40 cursor-pointer"
+                                              title="Delete milestone from workflow (0 child items attached)"
+                                            >
+                                              <Trash2 className="w-4 h-4" />
+                                            </button>
+                                          )}
                                         </div>
                                       </div>
                                     </div>
