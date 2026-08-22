@@ -1007,6 +1007,8 @@ export default function App() {
   const [inviteRole, setInviteRole] = useState('EXTERNAL_FIELD_INSTALLER');
   const [inviteSelectedRegions, setInviteSelectedRegions] = useState<string[]>(['GLOBAL']);
   const [inviteSentSuccess, setInviteSentSuccess] = useState(false);
+  // Plant Admin Regional Authorization Territory (e.g. Phoenix Metro Only vs Phoenix + Tucson)
+  const [plantAdminAllowedRegions, setPlantAdminAllowedRegions] = useState<string[]>(['Phoenix Metro (PHX)']);
 
   // 14-Day Calendar Control State
   const [centerDate, setCenterDate] = useState<string>(new Date().toISOString().split('T')[0]);
@@ -1395,6 +1397,17 @@ export default function App() {
       if (!regionName || u.scopedRegions.includes('GLOBAL') || u.scopedRegions.includes('Global (All Regions)')) return true;
       return u.scopedRegions.some(r => r.toLowerCase().includes(regionName.toLowerCase()) || regionName.toLowerCase().includes(r.toLowerCase()));
     });
+  };
+
+  // Helper to check if current logged user has Global or Subscriber Admin rights
+  const isSubscriberOrGlobalAdmin = activeUserRole === 'SUBSCRIBER_ADMIN' || activeUserRole === 'SYSTEM_ADMIN';
+
+  // Get available plant regions for current user to assign
+  const getPlantAdminAccessibleRegions = (): string[] => {
+    if (isSubscriberOrGlobalAdmin) {
+      return ['GLOBAL', 'Location 1', 'Phoenix Metro (PHX)', 'Tucson East (TUC)', 'Denver North (DEN)', 'Tampa Plant (TPA)'];
+    }
+    return plantAdminAllowedRegions;
   };
 
   const isDark = theme === 'dark';
@@ -2046,6 +2059,18 @@ export default function App() {
     e.preventDefault();
     if (!inviteEmail) return;
 
+    let finalRegions = inviteSelectedRegions;
+    if (!isSubscriberOrGlobalAdmin) {
+      // Plant admin can strictly ONLY assign regions to which they have access
+      const allowed = plantAdminAllowedRegions;
+      finalRegions = inviteSelectedRegions.filter(r => allowed.includes(r));
+      if (finalRegions.length === 0) {
+        finalRegions = [allowed[0]];
+      }
+    } else if (finalRegions.length === 0) {
+      finalRegions = ['GLOBAL'];
+    }
+
     const newUser: AppUser = {
       id: `u_${Date.now()}`,
       fullName: inviteFullName.trim() || inviteEmail.split('@')[0],
@@ -2053,7 +2078,7 @@ export default function App() {
       phone: invitePhone.trim() || '(555) 000-0000',
       role: inviteRole as any,
       companyName: inviteCompany.trim(),
-      scopedRegions: inviteSelectedRegions.length > 0 ? inviteSelectedRegions : ['GLOBAL'],
+      scopedRegions: finalRegions,
       status: 'ACTIVE',
       createdAt: new Date().toLocaleDateString(),
     };
@@ -2063,7 +2088,7 @@ export default function App() {
     const newLog: ChangeLogEntry = {
       id: String(Date.now()),
       timestamp: new Date().toLocaleString(),
-      changedBy: `${activeUserRole === 'SUBSCRIBER_ADMIN' ? 'Admin' : 'Office User'} (${activeUserRole})`,
+      changedBy: `${isSubscriberOrGlobalAdmin ? 'Admin' : 'Plant Admin'} (${activeUserRole})`,
       summary: `User Account Created: [${getInstallerDisplayName(newUser)}] (${newUser.role})`,
       diffs: [
         { field: 'User Name / Company', from: 'None', to: getInstallerDisplayName(newUser) },
@@ -2079,7 +2104,7 @@ export default function App() {
       setInviteFullName('');
       setInviteCompany('');
       setInvitePhone('');
-      setInviteSelectedRegions(['GLOBAL']);
+      setInviteSelectedRegions(isSubscriberOrGlobalAdmin ? ['GLOBAL'] : plantAdminAllowedRegions);
     }, 3000);
   };
 
@@ -6050,237 +6075,337 @@ export default function App() {
                       </div>
 
                       {/* SUB-MENU 1: EXTERNAL CREWS & INSTALLERS (Accessible to Plant Admins and Subscriber/Global Admins) */}
-                      {usersSubSection === 'External Crews & Installers' && (
-                        <div className="space-y-6">
-                          <div className="p-4 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-lg flex items-center justify-between">
-                            <div>
-                              <strong className="block text-sm text-emerald-900 dark:text-emerald-200 flex items-center space-x-1.5">
-                                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                                <span>Plant Admin & Subscriber Admin Authorization</span>
-                              </strong>
-                              <span className="text-xs text-slate-500">
-                                Plant Admins (Office Schedulers) and Subscriber Admins have full access to create, invite, and scope external crew leads and installers for their assigned plant locations.
-                              </span>
-                            </div>
-                            <span className="px-3 py-1 bg-emerald-200 text-emerald-900 font-bold rounded text-xs">
-                              Plant Admin Access
-                            </span>
-                          </div>
+                      {usersSubSection === 'External Crews & Installers' && (() => {
+                        const accessibleRegions = getPlantAdminAccessibleRegions();
+                        const isSinglePlantAdmin = !isSubscriberOrGlobalAdmin && plantAdminAllowedRegions.length === 1;
+                        const isMultiPlantAdmin = !isSubscriberOrGlobalAdmin && plantAdminAllowedRegions.length > 1;
 
-                          {inviteSentSuccess && (
-                            <div className="p-4 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-lg text-xs flex items-center space-x-2 font-semibold">
-                              <CheckCircle2 className="w-5 h-5 text-emerald-600" />
-                              <span>External installer / crew lead created & emailed setup invite sent successfully!</span>
-                            </div>
-                          )}
+                        const visibleExternalUsers = systemUsersList.filter(u => {
+                          if (!u.role.startsWith('EXTERNAL_')) return false;
+                          if (isSubscriberOrGlobalAdmin) return true;
+                          if (u.scopedRegions.includes('GLOBAL') || u.scopedRegions.includes('Global (All Regions)')) return true;
+                          return u.scopedRegions.some(r => plantAdminAllowedRegions.some(allowed => r.toLowerCase().includes(allowed.toLowerCase()) || allowed.toLowerCase().includes(r.toLowerCase())));
+                        });
 
-                          {/* External User Creation Form */}
-                          <form onSubmit={handleSendExternalInvite} className="p-6 border rounded-xl bg-slate-50 dark:bg-slate-950 space-y-4 shadow-xs">
-                            <h4 className="font-bold text-sm flex items-center space-x-2 text-blue-600 dark:text-blue-400">
-                              <UserPlus className="w-4 h-4" />
-                              <span>Create & Invite External Crew Lead or Installer Account</span>
-                            </h4>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-                              <div>
-                                <label className="block font-bold mb-1">Installer / Crew Contact Full Name *</label>
-                                <input
-                                  type="text"
-                                  required
-                                  placeholder="e.g. Marco Rodriguez, Dave Patterson"
-                                  value={inviteFullName}
-                                  onChange={(e) => setInviteFullName(e.target.value)}
-                                  className="w-full p-2.5 border rounded-lg text-slate-900 dark:bg-slate-900 dark:text-slate-100 font-bold"
-                                />
-                              </div>
-
-                              <div>
-                                <label className="block font-bold mb-1">Email Address *</label>
-                                <input
-                                  type="email"
-                                  required
-                                  placeholder="installer.crew@contractor.com"
-                                  value={inviteEmail}
-                                  onChange={(e) => setInviteEmail(e.target.value)}
-                                  className="w-full p-2.5 border rounded-lg text-slate-900 dark:bg-slate-900 dark:text-slate-100 font-semibold"
-                                />
-                              </div>
-
-                              <div>
-                                <label className="block font-bold mb-1">Phone Number</label>
-                                <input
-                                  type="text"
-                                  placeholder="(813) 555-0144"
-                                  value={invitePhone}
-                                  onChange={(e) => setInvitePhone(e.target.value)}
-                                  className="w-full p-2.5 border rounded-lg text-slate-900 dark:bg-slate-900 dark:text-slate-100"
-                                />
-                              </div>
-
-                              <div>
-                                <label className="block font-bold mb-1">Assigned External Role *</label>
-                                <select
-                                  value={inviteRole}
-                                  onChange={(e) => setInviteRole(e.target.value)}
-                                  className="w-full p-2.5 border rounded-lg font-bold text-slate-900 dark:bg-slate-900 dark:text-slate-100"
-                                >
-                                  <option value="EXTERNAL_FIELD_INSTALLER">EXTERNAL_FIELD_INSTALLER (Field Crew / Subcontractor)</option>
-                                  <option value="EXTERNAL_CREW_ADMIN">EXTERNAL_CREW_ADMIN (External Crew Lead / Dispatcher)</option>
-                                  <option value="EXTERNAL_BUILDER_SUPER">EXTERNAL_BUILDER_SUPER (Site Superintendent)</option>
-                                  <option value="EXTERNAL_SUBCONTRACTOR">EXTERNAL_SUBCONTRACTOR (Trades / Subcontractor)</option>
-                                </select>
-                              </div>
-
-                              {/* Company Name (For Installers / Contractors) */}
-                              <div className="md:col-span-2 p-3 bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg space-y-1.5">
-                                <label className="block font-bold text-blue-900 dark:text-blue-300">
-                                  Company Name <span className="font-normal text-slate-500">(Optional for Subcontractors & Installers)</span>
-                                </label>
-                                <input
-                                  type="text"
-                                  placeholder="e.g. Apex Granite Pro LLC, Titan Stone Installations (Leave blank for independent 1099 installer)"
-                                  value={inviteCompany}
-                                  onChange={(e) => setInviteCompany(e.target.value)}
-                                  className="w-full p-2.5 border rounded-lg font-bold text-slate-900 dark:bg-slate-900 dark:text-slate-100 bg-white"
-                                />
-                                <p className="text-[11px] text-blue-800 dark:text-blue-300 font-medium">
-                                  💡 <strong>Display Rule:</strong> When assigning crews or installers on jobs, the system displays the <strong>Company Name</strong> if provided; if no company name is entered, it displays the installer's <strong>Full Name</strong>.
+                        return (
+                          <div className="space-y-6">
+                            {/* Plant Admin Territory Authorization Banner */}
+                            <div className="p-4 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-lg flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
+                              <div className="space-y-1">
+                                <strong className="block text-sm text-emerald-900 dark:text-emerald-200 flex items-center space-x-1.5">
+                                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                                  <span>
+                                    {isSubscriberOrGlobalAdmin
+                                      ? 'Global & Subscriber Administrator Clearance (All Plants Accessible)'
+                                      : isSinglePlantAdmin
+                                      ? `Single-Plant Admin Access Scope: ${plantAdminAllowedRegions[0]}`
+                                      : `Multi-Plant Admin Access Scope: ${plantAdminAllowedRegions.join(' & ')}`}
+                                  </span>
+                                </strong>
+                                <p className="text-xs text-slate-600 dark:text-slate-400">
+                                  {isSubscriberOrGlobalAdmin
+                                    ? 'You have unrestricted access to create, invite, and scope external crews across all plant locations and globally.'
+                                    : isSinglePlantAdmin
+                                    ? `As a single-plant admin, you are strictly restricted to creating and managing external installers for ${plantAdminAllowedRegions[0]}.`
+                                    : `As a multi-plant admin, you are authorized to assign external installers to any of your permitted locations (${plantAdminAllowedRegions.join(', ')}).`}
                                 </p>
                               </div>
 
-                              {/* Operating Region Scoping */}
-                              <div className="md:col-span-2 space-y-1.5">
-                                <label className="block font-bold">
-                                  Assigned Operating Region(s) / Plant Location Scope *
-                                </label>
-                                <div className="flex flex-wrap gap-2">
-                                  {['GLOBAL', 'Phoenix Metro (PHX)', 'Tucson East (TUC)', 'Denver North (DEN)', 'Tampa Plant (TPA)', 'Location 1'].map((reg) => {
-                                    const isSelected = inviteSelectedRegions.includes(reg);
-                                    return (
-                                      <button
-                                        key={reg}
-                                        type="button"
-                                        onClick={() => {
-                                          if (reg === 'GLOBAL') {
-                                            setInviteSelectedRegions(['GLOBAL']);
-                                          } else {
-                                            const withoutGlobal = inviteSelectedRegions.filter(r => r !== 'GLOBAL');
-                                            if (isSelected) {
-                                              const remaining = withoutGlobal.filter(r => r !== reg);
-                                              setInviteSelectedRegions(remaining.length > 0 ? remaining : ['GLOBAL']);
+                              {/* Plant Admin Territory Simulation Toggle (For testing single-plant vs multi-plant) */}
+                              {!isSubscriberOrGlobalAdmin && (
+                                <div className="bg-white dark:bg-slate-900 p-2 rounded-lg border border-emerald-300 dark:border-emerald-800 space-y-1 text-[11px] shrink-0">
+                                  <span className="font-bold text-slate-500 block text-[10px] uppercase">Simulate Territory Access:</span>
+                                  <div className="flex gap-1.5">
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setPlantAdminAllowedRegions(['Phoenix Metro (PHX)']);
+                                        setInviteSelectedRegions(['Phoenix Metro (PHX)']);
+                                      }}
+                                      className={`px-2 py-1 rounded text-[10px] font-bold cursor-pointer transition-all ${
+                                        plantAdminAllowedRegions.length === 1 && plantAdminAllowedRegions[0].includes('Phoenix')
+                                          ? 'bg-emerald-600 text-white shadow-xs'
+                                          : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300'
+                                      }`}
+                                    >
+                                      Phoenix Only (1 Plant)
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setPlantAdminAllowedRegions(['Phoenix Metro (PHX)', 'Tucson East (TUC)']);
+                                        setInviteSelectedRegions(['Phoenix Metro (PHX)']);
+                                      }}
+                                      className={`px-2 py-1 rounded text-[10px] font-bold cursor-pointer transition-all ${
+                                        plantAdminAllowedRegions.length === 2
+                                          ? 'bg-emerald-600 text-white shadow-xs'
+                                          : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300'
+                                      }`}
+                                    >
+                                      Phoenix + Tucson (2 Plants)
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setPlantAdminAllowedRegions(['Tampa Plant (TPA)']);
+                                        setInviteSelectedRegions(['Tampa Plant (TPA)']);
+                                      }}
+                                      className={`px-2 py-1 rounded text-[10px] font-bold cursor-pointer transition-all ${
+                                        plantAdminAllowedRegions.length === 1 && plantAdminAllowedRegions[0].includes('Tampa')
+                                          ? 'bg-emerald-600 text-white shadow-xs'
+                                          : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300'
+                                      }`}
+                                    >
+                                      Tampa Only (1 Plant)
+                                    </button>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+
+                            {inviteSentSuccess && (
+                              <div className="p-4 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-lg text-xs flex items-center space-x-2 font-semibold">
+                                <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                                <span>External installer / crew lead created & emailed setup invite sent successfully!</span>
+                              </div>
+                            )}
+
+                            {/* External User Creation Form */}
+                            <form onSubmit={handleSendExternalInvite} className="p-6 border rounded-xl bg-slate-50 dark:bg-slate-950 space-y-4 shadow-xs">
+                              <h4 className="font-bold text-sm flex items-center space-x-2 text-blue-600 dark:text-blue-400">
+                                <UserPlus className="w-4 h-4" />
+                                <span>Create & Invite External Crew Lead or Installer Account</span>
+                              </h4>
+
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                                <div>
+                                  <label className="block font-bold mb-1">Installer / Crew Contact Full Name *</label>
+                                  <input
+                                    type="text"
+                                    required
+                                    placeholder="e.g. Marco Rodriguez, Dave Patterson"
+                                    value={inviteFullName}
+                                    onChange={(e) => setInviteFullName(e.target.value)}
+                                    className="w-full p-2.5 border rounded-lg text-slate-900 dark:bg-slate-900 dark:text-slate-100 font-bold"
+                                  />
+                                </div>
+
+                                <div>
+                                  <label className="block font-bold mb-1">Email Address *</label>
+                                  <input
+                                    type="email"
+                                    required
+                                    placeholder="installer.crew@contractor.com"
+                                    value={inviteEmail}
+                                    onChange={(e) => setInviteEmail(e.target.value)}
+                                    className="w-full p-2.5 border rounded-lg text-slate-900 dark:bg-slate-900 dark:text-slate-100 font-semibold"
+                                  />
+                                </div>
+
+                                <div>
+                                  <label className="block font-bold mb-1">Phone Number</label>
+                                  <input
+                                    type="text"
+                                    placeholder="(813) 555-0144"
+                                    value={invitePhone}
+                                    onChange={(e) => setInvitePhone(e.target.value)}
+                                    className="w-full p-2.5 border rounded-lg text-slate-900 dark:bg-slate-900 dark:text-slate-100"
+                                  />
+                                </div>
+
+                                <div>
+                                  <label className="block font-bold mb-1">Assigned External Role *</label>
+                                  <select
+                                    value={inviteRole}
+                                    onChange={(e) => setInviteRole(e.target.value)}
+                                    className="w-full p-2.5 border rounded-lg font-bold text-slate-900 dark:bg-slate-900 dark:text-slate-100"
+                                  >
+                                    <option value="EXTERNAL_FIELD_INSTALLER">EXTERNAL_FIELD_INSTALLER (Field Crew / Subcontractor)</option>
+                                    <option value="EXTERNAL_CREW_ADMIN">EXTERNAL_CREW_ADMIN (External Crew Lead / Dispatcher)</option>
+                                    <option value="EXTERNAL_BUILDER_SUPER">EXTERNAL_BUILDER_SUPER (Site Superintendent)</option>
+                                    <option value="EXTERNAL_SUBCONTRACTOR">EXTERNAL_SUBCONTRACTOR (Trades / Subcontractor)</option>
+                                  </select>
+                                </div>
+
+                                {/* Company Name (For Installers / Contractors) */}
+                                <div className="md:col-span-2 p-3 bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg space-y-1.5">
+                                  <label className="block font-bold text-blue-900 dark:text-blue-300">
+                                    Company Name <span className="font-normal text-slate-500">(Optional for Subcontractors & Installers)</span>
+                                  </label>
+                                  <input
+                                    type="text"
+                                    placeholder="e.g. Apex Granite Pro LLC, Titan Stone Installations (Leave blank for independent 1099 installer)"
+                                    value={inviteCompany}
+                                    onChange={(e) => setInviteCompany(e.target.value)}
+                                    className="w-full p-2.5 border rounded-lg font-bold text-slate-900 dark:bg-slate-900 dark:text-slate-100 bg-white"
+                                  />
+                                  <p className="text-[11px] text-blue-800 dark:text-blue-300 font-medium">
+                                    💡 <strong>Display Rule:</strong> When assigning crews or installers on jobs, the system displays the <strong>Company Name</strong> if provided; if no company name is entered, it displays the installer's <strong>Full Name</strong>.
+                                  </p>
+                                </div>
+
+                                {/* Operating Region Scoping (Strictly limited by Plant Admin authorization) */}
+                                <div className="md:col-span-2 space-y-1.5">
+                                  <div className="flex items-center justify-between">
+                                    <label className="block font-bold">
+                                      Assigned Operating Plant Location Scope *
+                                    </label>
+                                    {!isSubscriberOrGlobalAdmin && (
+                                      <span className="text-[10px] text-emerald-700 dark:text-emerald-300 font-bold bg-emerald-100 dark:bg-emerald-950 px-2 py-0.5 rounded">
+                                        🔒 Scoped to Authorized Plants ({accessibleRegions.length})
+                                      </span>
+                                    )}
+                                  </div>
+
+                                  <div className="flex flex-wrap gap-2">
+                                    {accessibleRegions.map((reg) => {
+                                      const isSelected = inviteSelectedRegions.includes(reg);
+                                      return (
+                                        <button
+                                          key={reg}
+                                          type="button"
+                                          onClick={() => {
+                                            if (reg === 'GLOBAL') {
+                                              setInviteSelectedRegions(['GLOBAL']);
                                             } else {
-                                              setInviteSelectedRegions([...withoutGlobal, reg]);
+                                              const withoutGlobal = inviteSelectedRegions.filter(r => r !== 'GLOBAL');
+                                              if (isSelected) {
+                                                const remaining = withoutGlobal.filter(r => r !== reg);
+                                                // Prevent unselecting all for single-plant admin
+                                                setInviteSelectedRegions(remaining.length > 0 ? remaining : [accessibleRegions[0]]);
+                                              } else {
+                                                setInviteSelectedRegions([...withoutGlobal, reg]);
+                                              }
                                             }
-                                          }
-                                        }}
-                                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                                          isSelected
-                                            ? 'bg-blue-600 text-white shadow-xs'
-                                            : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border hover:bg-slate-100 dark:hover:bg-slate-800'
-                                        }`}
-                                      >
-                                        {reg === 'GLOBAL' ? '🌐 Global (All Regions)' : reg}
-                                      </button>
+                                          }}
+                                          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center space-x-1 ${
+                                            isSelected
+                                              ? 'bg-blue-600 text-white shadow-xs'
+                                              : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border hover:bg-slate-100 dark:hover:bg-slate-800'
+                                          }`}
+                                        >
+                                          <span>{reg === 'GLOBAL' ? '🌐 Global (All Regions)' : reg}</span>
+                                          {isSinglePlantAdmin && isSelected && (
+                                            <span className="text-[9px] bg-white/20 px-1 rounded ml-1">Fixed</span>
+                                          )}
+                                        </button>
+                                      );
+                                    })}
+                                  </div>
+
+                                  <span className="text-[11px] text-slate-500 block">
+                                    {isSinglePlantAdmin
+                                      ? `🔒 Fixed Scope: As a Plant Admin for ${plantAdminAllowedRegions[0]}, installers created by you will strictly be assigned to this plant.`
+                                      : isMultiPlantAdmin
+                                      ? `Select one or more plants from your authorized territory (${plantAdminAllowedRegions.join(', ')}).`
+                                      : 'Installers will strictly only appear in schedule & task assignment dropdowns for jobs matching their scoped regions.'}
+                                  </span>
+                                </div>
+                              </div>
+
+                              <div className="flex justify-end pt-2">
+                                <button
+                                  type="submit"
+                                  className="bg-blue-600 text-white font-bold px-6 py-2.5 rounded-lg text-xs cursor-pointer hover:bg-blue-500 shadow-md flex items-center space-x-1.5"
+                                >
+                                  <UserPlus className="w-4 h-4" />
+                                  <span>Create & Invite External Account</span>
+                                </button>
+                              </div>
+                            </form>
+
+                            {/* List of Active External Users & Installers (Filtered by Plant Admin Territory) */}
+                            <div className="space-y-3">
+                              <div className="flex items-center justify-between">
+                                <h4 className="font-bold text-xs uppercase tracking-wider text-slate-500">
+                                  Active & Invited External Accounts ({visibleExternalUsers.length})
+                                </h4>
+                                {!isSubscriberOrGlobalAdmin && (
+                                  <span className="text-[11px] text-slate-500 font-semibold">
+                                    Filtered to your plant territory: <strong className="text-emerald-600">{plantAdminAllowedRegions.join(', ')}</strong>
+                                  </span>
+                                )}
+                              </div>
+
+                              {visibleExternalUsers.length === 0 ? (
+                                <div className="p-6 bg-slate-50 dark:bg-slate-900 border rounded-xl text-center text-slate-500 text-xs">
+                                  No external installers found for your plant territory ({plantAdminAllowedRegions.join(', ')}). Use the form above to add an external installer.
+                                </div>
+                              ) : (
+                                <div className="divide-y rounded-xl border bg-white dark:bg-slate-900 overflow-hidden text-xs">
+                                  {visibleExternalUsers.map((u) => {
+                                    const displayName = getInstallerDisplayName(u);
+                                    return (
+                                      <div key={u.id} className="p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 hover:bg-slate-50 dark:hover:bg-slate-950/50 transition-colors">
+                                        <div className="space-y-1">
+                                          <div className="flex items-center space-x-2 flex-wrap gap-y-1">
+                                            <strong className="text-sm text-slate-900 dark:text-slate-100">
+                                              {displayName}
+                                            </strong>
+                                            {u.companyName && (
+                                              <span className="text-[11px] text-slate-500">
+                                                (Contact: {u.fullName})
+                                              </span>
+                                            )}
+                                            <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300">
+                                              {u.role}
+                                            </span>
+                                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                                              u.status === 'ACTIVE'
+                                                ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
+                                                : 'bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
+                                            }`}>
+                                              {u.status}
+                                            </span>
+                                          </div>
+
+                                          <div className="flex items-center space-x-4 text-slate-500 text-[11px]">
+                                            <span>Email: <strong>{u.email}</strong></span>
+                                            {u.phone && <span>Phone: <strong>{u.phone}</strong></span>}
+                                          </div>
+
+                                          <div className="flex items-center space-x-1 text-[11px] pt-0.5">
+                                            <span className="text-slate-400">Scoped Regions:</span>
+                                            <div className="flex flex-wrap gap-1">
+                                              {u.scopedRegions.map(reg => (
+                                                <span key={reg} className="px-1.5 py-0.2 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold text-[10px]">
+                                                  {reg}
+                                                </span>
+                                              ))}
+                                            </div>
+                                          </div>
+                                        </div>
+
+                                        <div className="flex items-center space-x-2 w-full md:w-auto justify-end">
+                                          <button
+                                            type="button"
+                                            onClick={() => handleToggleUserStatus(u.id)}
+                                            className={`px-3 py-1.5 rounded-lg text-xs font-bold cursor-pointer transition-colors ${
+                                              u.status === 'ACTIVE'
+                                                ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
+                                                : 'bg-emerald-600 hover:bg-emerald-500 text-white'
+                                            }`}
+                                          >
+                                            {u.status === 'ACTIVE' ? 'Deactivate' : 'Activate'}
+                                          </button>
+                                          <button
+                                            type="button"
+                                            onClick={() => handleDeleteUser(u.id)}
+                                            className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/40 cursor-pointer"
+                                            title="Delete user account"
+                                          >
+                                            <Trash2 className="w-4 h-4" />
+                                          </button>
+                                        </div>
+                                      </div>
                                     );
                                   })}
                                 </div>
-                                <span className="text-[11px] text-slate-500 block">
-                                  Installers will strictly only appear in schedule & task assignment dropdowns for jobs matching their scoped regions.
-                                </span>
-                              </div>
-                            </div>
-
-                            <div className="flex justify-end pt-2">
-                              <button
-                                type="submit"
-                                className="bg-blue-600 text-white font-bold px-6 py-2.5 rounded-lg text-xs cursor-pointer hover:bg-blue-500 shadow-md flex items-center space-x-1.5"
-                              >
-                                <UserPlus className="w-4 h-4" />
-                                <span>Create & Invite External Account</span>
-                              </button>
-                            </div>
-                          </form>
-
-                          {/* List of Active External Users & Installers */}
-                          <div className="space-y-3">
-                            <h4 className="font-bold text-xs uppercase tracking-wider text-slate-500">
-                              Active & Invited External Accounts ({systemUsersList.filter(u => u.role.startsWith('EXTERNAL_')).length})
-                            </h4>
-
-                            <div className="divide-y rounded-xl border bg-white dark:bg-slate-900 overflow-hidden text-xs">
-                              {systemUsersList
-                                .filter(u => u.role.startsWith('EXTERNAL_'))
-                                .map((u) => {
-                                  const displayName = getInstallerDisplayName(u);
-                                  return (
-                                    <div key={u.id} className="p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 hover:bg-slate-50 dark:hover:bg-slate-950/50 transition-colors">
-                                      <div className="space-y-1">
-                                        <div className="flex items-center space-x-2 flex-wrap gap-y-1">
-                                          <strong className="text-sm text-slate-900 dark:text-slate-100">
-                                            {displayName}
-                                          </strong>
-                                          {u.companyName && (
-                                            <span className="text-[11px] text-slate-500">
-                                              (Contact: {u.fullName})
-                                            </span>
-                                          )}
-                                          <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300">
-                                            {u.role}
-                                          </span>
-                                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                                            u.status === 'ACTIVE'
-                                              ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
-                                              : 'bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
-                                          }`}>
-                                            {u.status}
-                                          </span>
-                                        </div>
-
-                                        <div className="flex items-center space-x-4 text-slate-500 text-[11px]">
-                                          <span>Email: <strong>{u.email}</strong></span>
-                                          {u.phone && <span>Phone: <strong>{u.phone}</strong></span>}
-                                        </div>
-
-                                        <div className="flex items-center space-x-1 text-[11px] pt-0.5">
-                                          <span className="text-slate-400">Scoped Regions:</span>
-                                          <div className="flex flex-wrap gap-1">
-                                            {u.scopedRegions.map(reg => (
-                                              <span key={reg} className="px-1.5 py-0.2 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold text-[10px]">
-                                                {reg}
-                                              </span>
-                                            ))}
-                                          </div>
-                                        </div>
-                                      </div>
-
-                                      <div className="flex items-center space-x-2 w-full md:w-auto justify-end">
-                                        <button
-                                          type="button"
-                                          onClick={() => handleToggleUserStatus(u.id)}
-                                          className={`px-3 py-1.5 rounded-lg text-xs font-bold cursor-pointer transition-colors ${
-                                            u.status === 'ACTIVE'
-                                              ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
-                                              : 'bg-emerald-600 hover:bg-emerald-500 text-white'
-                                          }`}
-                                        >
-                                          {u.status === 'ACTIVE' ? 'Deactivate' : 'Activate'}
-                                        </button>
-                                        <button
-                                          type="button"
-                                          onClick={() => handleDeleteUser(u.id)}
-                                          className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/40 cursor-pointer"
-                                          title="Delete user account"
-                                        >
-                                          <Trash2 className="w-4 h-4" />
-                                        </button>
-                                      </div>
-                                    </div>
-                                  );
-                                })}
+                              )}
                             </div>
                           </div>
-                        </div>
-                      )}
+                        );
+                      })()}
 
                       {/* SUB-MENU 2: INTERNAL USERS (Strictly Restricted to Global Administrator & Subscriber-Level Admin) */}
                       {usersSubSection === 'Internal Users' && (
