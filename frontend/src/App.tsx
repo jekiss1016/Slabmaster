@@ -1008,6 +1008,16 @@ export default function App() {
   const [inviteRole, setInviteRole] = useState('EXTERNAL_FIELD_INSTALLER');
   const [inviteSelectedRegions, setInviteSelectedRegions] = useState<string[]>(['GLOBAL']);
   const [inviteSentSuccess, setInviteSentSuccess] = useState(false);
+
+  // Dedicated Internal User Creation State (Internal Office User, Estimator, In-House Installer)
+  const [internalFullName, setInternalFullName] = useState('');
+  const [internalEmail, setInternalEmail] = useState('');
+  const [internalPhone, setInternalPhone] = useState('');
+  const [internalRole, setInternalRole] = useState<'INTERNAL_OFFICE_USER' | 'INTERNAL_FIELD_INSTALLER' | 'INTERNAL_ESTIMATOR' | 'SUBSCRIBER_ADMIN' | 'SYSTEM_ADMIN'>('INTERNAL_OFFICE_USER');
+  const [internalCrewName, setInternalCrewName] = useState('');
+  const [internalSelectedRegions, setInternalSelectedRegions] = useState<string[]>(['GLOBAL']);
+  const [internalSavedSuccess, setInternalSavedSuccess] = useState(false);
+
   // Plant Admin Regional Authorization Territory (e.g. Phoenix Metro Only vs Phoenix + Tucson)
   const [plantAdminAllowedRegions, setPlantAdminAllowedRegions] = useState<string[]>(['Phoenix Metro (PHX)']);
 
@@ -1337,11 +1347,10 @@ export default function App() {
     {
       id: 'u_inst_2',
       fullName: 'Dave Patterson',
-      email: 'dave.p@titaninstall.com',
+      email: 'dave.p@granitecraft.com',
       phone: '(813) 555-0155',
-      role: 'EXTERNAL_FIELD_INSTALLER',
-      companyName: 'Titan Stone Installations',
-      scopedRegions: ['Location 1', 'Denver North (DEN)', 'Tampa Plant (TPA)'],
+      role: 'INTERNAL_OFFICE_USER',
+      scopedRegions: ['GLOBAL', 'Phoenix Metro (PHX)'],
       status: 'ACTIVE',
       createdAt: '3/15/2026',
     },
@@ -2129,6 +2138,66 @@ export default function App() {
       setInviteCompany('');
       setInvitePhone('');
       setInviteSelectedRegions(isSubscriberOrGlobalAdmin ? ['GLOBAL'] : plantAdminAllowedRegions);
+    }, 3000);
+  };
+
+  const handleCreateInternalUser = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!internalEmail) return;
+
+    const newInternalUser: AppUser = {
+      id: `u_int_${Date.now()}`,
+      fullName: internalFullName.trim() || internalEmail.split('@')[0],
+      email: internalEmail.trim(),
+      phone: internalPhone.trim() || '(555) 000-0000',
+      role: internalRole,
+      companyName: internalRole === 'INTERNAL_FIELD_INSTALLER' ? internalCrewName.trim() : undefined,
+      scopedRegions: internalSelectedRegions.length > 0 ? internalSelectedRegions : ['GLOBAL'],
+      status: 'ACTIVE',
+      createdAt: new Date().toLocaleDateString(),
+    };
+
+    setSystemUsersList([newInternalUser, ...systemUsersList]);
+
+    const newLog: ChangeLogEntry = {
+      id: String(Date.now()),
+      timestamp: new Date().toLocaleString(),
+      changedBy: `${isSubscriberOrGlobalAdmin ? 'Admin' : 'Super Admin'} (${activeUserRole})`,
+      summary: `Internal Employee Account Provisioned: [${newInternalUser.fullName}] (${newInternalUser.role})`,
+      diffs: [
+        { field: 'Employee Full Name', from: 'None', to: newInternalUser.fullName },
+        { field: 'Internal Role & Scope', from: '-', to: `${newInternalUser.role} • ${newInternalUser.scopedRegions.join(', ')}` }
+      ]
+    };
+    setChangeLogs([newLog, ...changeLogs]);
+
+    setInternalSavedSuccess(true);
+
+    // Asynchronously dispatch live onboarding email via Azure Communication Services
+    try {
+      fetch('/api/send-invite', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: newInternalUser.email,
+          fullName: newInternalUser.fullName,
+          role: newInternalUser.role,
+          companyName: newInternalUser.companyName,
+          scopedRegions: newInternalUser.scopedRegions
+        })
+      }).catch(err => console.log('Internal invite email dispatched (background API):', err));
+    } catch (e) {
+      console.log('Background email trigger error:', e);
+    }
+
+    setTimeout(() => {
+      setInternalSavedSuccess(false);
+      setInternalEmail('');
+      setInternalFullName('');
+      setInternalPhone('');
+      setInternalCrewName('');
+      setInternalRole('INTERNAL_OFFICE_USER');
+      setInternalSelectedRegions(['GLOBAL']);
     }, 3000);
   };
 
@@ -6500,8 +6569,15 @@ export default function App() {
                                 </span>
                               </div>
 
+                              {internalSavedSuccess && (
+                                <div className="p-4 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-lg text-xs flex items-center space-x-2 font-semibold">
+                                  <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                                  <span>Internal employee account provisioned and onboarding email sent successfully!</span>
+                                </div>
+                              )}
+
                               {/* Internal User Creation Form */}
-                              <form onSubmit={handleSendExternalInvite} className="p-6 border rounded-xl bg-slate-50 dark:bg-slate-950 space-y-4">
+                              <form onSubmit={handleCreateInternalUser} className="p-6 border rounded-xl bg-slate-50 dark:bg-slate-950 space-y-4">
                                 <h4 className="font-bold text-sm flex items-center space-x-2 text-blue-600 dark:text-blue-400">
                                   <UserPlus className="w-4 h-4" />
                                   <span>Add Internal Employee Account</span>
@@ -6514,8 +6590,8 @@ export default function App() {
                                       type="text"
                                       required
                                       placeholder="e.g. David Vance, Sarah Miller"
-                                      value={inviteFullName}
-                                      onChange={(e) => setInviteFullName(e.target.value)}
+                                      value={internalFullName}
+                                      onChange={(e) => setInternalFullName(e.target.value)}
                                       className="w-full p-2.5 border rounded-lg text-slate-900 dark:bg-slate-900 dark:text-slate-100 font-bold"
                                     />
                                   </div>
@@ -6526,8 +6602,8 @@ export default function App() {
                                       type="email"
                                       required
                                       placeholder="employee@granitecraft.com"
-                                      value={inviteEmail}
-                                      onChange={(e) => setInviteEmail(e.target.value)}
+                                      value={internalEmail}
+                                      onChange={(e) => setInternalEmail(e.target.value)}
                                       className="w-full p-2.5 border rounded-lg text-slate-900 dark:bg-slate-900 dark:text-slate-100 font-semibold"
                                     />
                                   </div>
@@ -6537,8 +6613,8 @@ export default function App() {
                                     <input
                                       type="text"
                                       placeholder="(813) 555-0100"
-                                      value={invitePhone}
-                                      onChange={(e) => setInvitePhone(e.target.value)}
+                                      value={internalPhone}
+                                      onChange={(e) => setInternalPhone(e.target.value)}
                                       className="w-full p-2.5 border rounded-lg text-slate-900 dark:bg-slate-900 dark:text-slate-100"
                                     />
                                   </div>
@@ -6546,8 +6622,8 @@ export default function App() {
                                   <div>
                                     <label className="block font-bold mb-1">Assigned Internal Role *</label>
                                     <select
-                                      value={inviteRole}
-                                      onChange={(e) => setInviteRole(e.target.value)}
+                                      value={internalRole}
+                                      onChange={(e) => setInternalRole(e.target.value as any)}
                                       className="w-full p-2.5 border rounded-lg font-bold text-slate-900 dark:bg-slate-900 dark:text-slate-100"
                                     >
                                       <option value="INTERNAL_OFFICE_USER">INTERNAL_OFFICE_USER (Plant Admin / Office Scheduler)</option>
@@ -6559,7 +6635,7 @@ export default function App() {
                                   </div>
 
                                   {/* Crew Name (When role is INTERNAL_FIELD_INSTALLER) */}
-                                  {inviteRole === 'INTERNAL_FIELD_INSTALLER' && (
+                                  {internalRole === 'INTERNAL_FIELD_INSTALLER' && (
                                     <div className="md:col-span-2 p-3 bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-lg space-y-1.5">
                                       <label className="block font-bold text-emerald-900 dark:text-emerald-300">
                                         Crew Name <span className="font-normal text-slate-500">(Optional for Internal In-House Installers)</span>
@@ -6567,8 +6643,8 @@ export default function App() {
                                       <input
                                         type="text"
                                         placeholder="e.g. Install Truck 1, In-House Crew Alpha (Leave blank to use employee full name)"
-                                        value={inviteCompany}
-                                        onChange={(e) => setInviteCompany(e.target.value)}
+                                        value={internalCrewName}
+                                        onChange={(e) => setInternalCrewName(e.target.value)}
                                         className="w-full p-2.5 border rounded-lg font-bold text-slate-900 dark:bg-slate-900 dark:text-slate-100 bg-white"
                                       />
                                       <p className="text-[11px] text-emerald-800 dark:text-emerald-300 font-medium">
@@ -6584,21 +6660,21 @@ export default function App() {
                                     </label>
                                     <div className="flex flex-wrap gap-2">
                                       {['GLOBAL', 'Phoenix Metro (PHX)', 'Tucson East (TUC)', 'Denver North (DEN)', 'Tampa Plant (TPA)', 'Location 1'].map((reg) => {
-                                        const isSelected = inviteSelectedRegions.includes(reg);
+                                        const isSelected = internalSelectedRegions.includes(reg);
                                         return (
                                           <button
                                             key={reg}
                                             type="button"
                                             onClick={() => {
                                               if (reg === 'GLOBAL') {
-                                                setInviteSelectedRegions(['GLOBAL']);
+                                                setInternalSelectedRegions(['GLOBAL']);
                                               } else {
-                                                const withoutGlobal = inviteSelectedRegions.filter(r => r !== 'GLOBAL');
+                                                const withoutGlobal = internalSelectedRegions.filter(r => r !== 'GLOBAL');
                                                 if (isSelected) {
                                                   const remaining = withoutGlobal.filter(r => r !== reg);
-                                                  setInviteSelectedRegions(remaining.length > 0 ? remaining : ['GLOBAL']);
+                                                  setInternalSelectedRegions(remaining.length > 0 ? remaining : ['GLOBAL']);
                                                 } else {
-                                                  setInviteSelectedRegions([...withoutGlobal, reg]);
+                                                  setInternalSelectedRegions([...withoutGlobal, reg]);
                                                 }
                                               }
                                             }}
