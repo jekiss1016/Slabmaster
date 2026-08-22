@@ -1025,6 +1025,16 @@ export default function App() {
   const [internalSelectedRegions, setInternalSelectedRegions] = useState<string[]>(['GLOBAL']);
   const [internalSavedSuccess, setInternalSavedSuccess] = useState(false);
 
+  // User Profile Editing State (Full Admin Edit Capabilities)
+  const [editingUser, setEditingUser] = useState<AppUser | null>(null);
+  const [editFullName, setEditFullName] = useState('');
+  const [editEmail, setEditEmail] = useState('');
+  const [editPhone, setEditPhone] = useState('');
+  const [editRole, setEditRole] = useState<AppUser['role']>('INTERNAL_OFFICE_USER');
+  const [editCompanyName, setEditCompanyName] = useState('');
+  const [editScopedRegions, setEditScopedRegions] = useState<string[]>(['GLOBAL']);
+  const [editStatus, setEditStatus] = useState<AppUser['status']>('ACTIVE');
+
   // Plant Admin Regional Authorization Territory (e.g. Phoenix Metro Only vs Phoenix + Tucson)
   const [plantAdminAllowedRegions, setPlantAdminAllowedRegions] = useState<string[]>(['Phoenix Metro (PHX)']);
 
@@ -1354,7 +1364,7 @@ export default function App() {
     {
       id: 'u_inst_2',
       fullName: 'Dave Patterson',
-      email: 'dave.p@granitecraft.com',
+      email: 'installer.test@mybidbook2026gmail.onmicrosoft.com',
       phone: '(813) 555-0155',
       role: 'INTERNAL_OFFICE_USER',
       scopedRegions: ['GLOBAL', 'Phoenix Metro (PHX)'],
@@ -2249,6 +2259,51 @@ export default function App() {
       setInternalRole('INTERNAL_OFFICE_USER');
       setInternalSelectedRegions(['GLOBAL']);
     }, 3000);
+  };
+
+  const handleStartEditUser = (user: AppUser) => {
+    setEditingUser(user);
+    setEditFullName(user.fullName);
+    setEditEmail(user.email);
+    setEditPhone(user.phone || '');
+    setEditRole(user.role);
+    setEditCompanyName(user.companyName || '');
+    setEditScopedRegions(user.scopedRegions || ['GLOBAL']);
+    setEditStatus(user.status);
+  };
+
+  const handleSaveEditUser = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingUser) return;
+
+    const updatedUser: AppUser = {
+      ...editingUser,
+      fullName: editFullName.trim(),
+      email: editEmail.trim(),
+      phone: editPhone.trim(),
+      role: editRole,
+      companyName: editCompanyName.trim() || undefined,
+      scopedRegions: editScopedRegions.length > 0 ? editScopedRegions : ['GLOBAL'],
+      status: editStatus,
+    };
+
+    setSystemUsersList(systemUsersList.map(u => u.id === editingUser.id ? updatedUser : u));
+
+    const newLog: ChangeLogEntry = {
+      id: String(Date.now()),
+      timestamp: new Date().toLocaleString(),
+      changedBy: `${isSubscriberOrGlobalAdmin ? 'Admin' : 'Super Admin'} (${activeUserRole})`,
+      summary: `User Profile Updated: [${updatedUser.fullName}] (${updatedUser.email})`,
+      diffs: [
+        { field: 'User Full Name', from: editingUser.fullName, to: updatedUser.fullName },
+        { field: 'Email Address', from: editingUser.email, to: updatedUser.email },
+        { field: 'Role & Scope', from: `${editingUser.role} • ${editingUser.scopedRegions.join(', ')}`, to: `${updatedUser.role} • ${updatedUser.scopedRegions.join(', ')}` },
+        { field: 'Account Status', from: editingUser.status, to: updatedUser.status },
+      ]
+    };
+    setChangeLogs([newLog, ...changeLogs]);
+
+    setEditingUser(null);
   };
 
   const handleToggleUserStatus = (userId: string) => {
@@ -6652,6 +6707,14 @@ export default function App() {
                                         <div className="flex items-center space-x-2 w-full md:w-auto justify-end">
                                           <button
                                             type="button"
+                                            onClick={() => handleStartEditUser(u)}
+                                            className="p-1.5 text-slate-500 hover:text-blue-600 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-950/40 cursor-pointer transition-colors"
+                                            title="Edit user profile & permissions"
+                                          >
+                                            <Edit3 className="w-4 h-4" />
+                                          </button>
+                                          <button
+                                            type="button"
                                             onClick={() => handleToggleUserStatus(u.id)}
                                             className={`px-3 py-1.5 rounded-lg text-xs font-bold cursor-pointer transition-colors ${
                                               u.status === 'ACTIVE'
@@ -6913,6 +6976,14 @@ export default function App() {
                                         </div>
 
                                         <div className="flex items-center space-x-2">
+                                          <button
+                                            type="button"
+                                            onClick={() => handleStartEditUser(u)}
+                                            className="p-1.5 text-slate-500 hover:text-blue-600 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-950/40 cursor-pointer transition-colors"
+                                            title="Edit user profile & permissions"
+                                          >
+                                            <Edit3 className="w-4 h-4" />
+                                          </button>
                                           <button
                                             type="button"
                                             onClick={() => handleToggleUserStatus(u.id)}
@@ -7254,6 +7325,165 @@ export default function App() {
                               </div>
                             </div>
                           )}
+                        </div>
+                      )}
+
+                      {/* Edit User Modal Dialog */}
+                      {editingUser && (
+                        <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+                          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 w-full max-w-lg overflow-hidden text-xs">
+                            <div className="px-6 py-4 border-b bg-slate-50 dark:bg-slate-950 flex items-center justify-between">
+                              <div className="flex items-center space-x-2">
+                                <Edit3 className="w-5 h-5 text-blue-600" />
+                                <h3 className="font-bold text-sm text-slate-900 dark:text-slate-100">Edit User Account & Permissions</h3>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => setEditingUser(null)}
+                                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded-lg cursor-pointer"
+                              >
+                                <X className="w-5 h-5" />
+                              </button>
+                            </div>
+
+                            <form onSubmit={handleSaveEditUser} className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
+                              <div>
+                                <label className="block font-bold mb-1">Full Name *</label>
+                                <input
+                                  type="text"
+                                  required
+                                  value={editFullName}
+                                  onChange={(e) => setEditFullName(e.target.value)}
+                                  className="w-full p-2.5 border rounded-lg text-slate-900 dark:bg-slate-800 dark:text-slate-100 font-bold"
+                                />
+                              </div>
+
+                              <div>
+                                <label className="block font-bold mb-1">Email Address (Must match Microsoft Entra ID for SSO) *</label>
+                                <input
+                                  type="email"
+                                  required
+                                  value={editEmail}
+                                  onChange={(e) => setEditEmail(e.target.value)}
+                                  className="w-full p-2.5 border rounded-lg text-slate-900 dark:bg-slate-800 dark:text-slate-100 font-semibold"
+                                />
+                                <span className="text-[10px] text-slate-500 mt-0.5 block">
+                                  💡 Microsoft SSO strictly authenticates this email address.
+                                </span>
+                              </div>
+
+                              <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                  <label className="block font-bold mb-1">Phone Number</label>
+                                  <input
+                                    type="text"
+                                    value={editPhone}
+                                    onChange={(e) => setEditPhone(e.target.value)}
+                                    className="w-full p-2.5 border rounded-lg text-slate-900 dark:bg-slate-800 dark:text-slate-100"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block font-bold mb-1">Account Status</label>
+                                  <select
+                                    value={editStatus}
+                                    onChange={(e) => setEditStatus(e.target.value as any)}
+                                    className="w-full p-2.5 border rounded-lg font-bold text-slate-900 dark:bg-slate-800 dark:text-slate-100"
+                                  >
+                                    <option value="ACTIVE">ACTIVE</option>
+                                    <option value="INACTIVE">INACTIVE (Deactivated)</option>
+                                  </select>
+                                </div>
+                              </div>
+
+                              <div>
+                                <label className="block font-bold mb-1">Assigned System Role *</label>
+                                <select
+                                  value={editRole}
+                                  onChange={(e) => setEditRole(e.target.value as any)}
+                                  className="w-full p-2.5 border rounded-lg font-bold text-slate-900 dark:bg-slate-800 dark:text-slate-100"
+                                >
+                                  <optgroup label="Internal Organization Roles">
+                                    <option value="INTERNAL_OFFICE_USER">INTERNAL_OFFICE_USER (Plant Admin / Office Scheduler)</option>
+                                    <option value="INTERNAL_FIELD_INSTALLER">INTERNAL_FIELD_INSTALLER (In-House Field Installer)</option>
+                                    <option value="INTERNAL_ESTIMATOR">INTERNAL_ESTIMATOR (Estimator / Drafter)</option>
+                                    <option value="SUBSCRIBER_ADMIN">SUBSCRIBER_ADMIN (Subscriber Tenant Admin)</option>
+                                    <option value="SYSTEM_ADMIN">SYSTEM_ADMIN (Global System Administrator)</option>
+                                  </optgroup>
+                                  <optgroup label="External Contractor Roles">
+                                    <option value="EXTERNAL_FIELD_INSTALLER">EXTERNAL_FIELD_INSTALLER (Subcontractor / 1099 Installer)</option>
+                                    <option value="EXTERNAL_CREW_ADMIN">EXTERNAL_CREW_ADMIN (External Crew Lead / Dispatcher)</option>
+                                    <option value="EXTERNAL_BUILDER_SUPER">EXTERNAL_BUILDER_SUPER (Site Superintendent)</option>
+                                    <option value="EXTERNAL_SUBCONTRACTOR">EXTERNAL_SUBCONTRACTOR (Trades / Subcontractor)</option>
+                                  </optgroup>
+                                </select>
+                              </div>
+
+                              <div>
+                                <label className="block font-bold mb-1">
+                                  {editRole === 'INTERNAL_FIELD_INSTALLER' ? 'Crew Name (In-House Crew)' : 'Company Name (External Contractor / Crew)'}
+                                </label>
+                                <input
+                                  type="text"
+                                  placeholder="e.g. Install Truck 1 or Titan Stone Installations"
+                                  value={editCompanyName}
+                                  onChange={(e) => setEditCompanyName(e.target.value)}
+                                  className="w-full p-2.5 border rounded-lg text-slate-900 dark:bg-slate-800 dark:text-slate-100"
+                                />
+                              </div>
+
+                              <div className="space-y-1.5">
+                                <label className="block font-bold">Assigned Plant Scope / Operating Regions *</label>
+                                <div className="flex flex-wrap gap-2">
+                                  {['GLOBAL', 'Phoenix Metro (PHX)', 'Tucson East (TUC)', 'Denver North (DEN)', 'Tampa Plant (TPA)', 'Location 1'].map((reg) => {
+                                    const isSelected = editScopedRegions.includes(reg);
+                                    return (
+                                      <button
+                                        key={reg}
+                                        type="button"
+                                        onClick={() => {
+                                          if (reg === 'GLOBAL') {
+                                            setEditScopedRegions(['GLOBAL']);
+                                          } else {
+                                            const withoutGlobal = editScopedRegions.filter(r => r !== 'GLOBAL');
+                                            if (isSelected) {
+                                              const remaining = withoutGlobal.filter(r => r !== reg);
+                                              setEditScopedRegions(remaining.length > 0 ? remaining : ['GLOBAL']);
+                                            } else {
+                                              setEditScopedRegions([...withoutGlobal, reg]);
+                                            }
+                                          }
+                                        }}
+                                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                                          isSelected
+                                            ? 'bg-blue-600 text-white shadow-xs'
+                                            : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 border hover:bg-slate-100 dark:hover:bg-slate-700'
+                                        }`}
+                                      >
+                                        {reg === 'GLOBAL' ? '🌐 Global (All Regions)' : reg}
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+
+                              <div className="flex items-center justify-end space-x-2 pt-4 border-t">
+                                <button
+                                  type="button"
+                                  onClick={() => setEditingUser(null)}
+                                  className="px-4 py-2 border rounded-lg font-bold text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+                                >
+                                  Cancel
+                                </button>
+                                <button
+                                  type="submit"
+                                  className="px-6 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg shadow-md cursor-pointer flex items-center space-x-1.5"
+                                >
+                                  <Save className="w-4 h-4" />
+                                  <span>Save Changes</span>
+                                </button>
+                              </div>
+                            </form>
+                          </div>
                         </div>
                       )}
                     </div>
