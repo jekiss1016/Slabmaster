@@ -64,7 +64,11 @@ import {
   Archive,
   ArchiveRestore,
   AlertTriangle,
-  Truck
+  Truck,
+  ArrowUp,
+  ArrowDown,
+  EyeOff,
+  Sparkles,
 } from 'lucide-react';
 
 export const US_STATES = [
@@ -1136,6 +1140,57 @@ export default function App() {
     return globalLeadTimes;
   };
 
+  // Dynamic Milestone Definition Interface
+  interface CustomMilestone {
+    id: string;             // unique id
+    name: string;           // Display Name e.g. "Laser Template", "CAD Drafting", "SlabSmith Layout"
+    shortCode: string;      // Short code e.g. "TEMP", "CAD", "CUT", "FAB", "INST", "QA"
+    description: string;    // Purpose / description
+    color: string;          // Color theme: 'blue' | 'purple' | 'indigo' | 'emerald' | 'teal' | 'amber' | 'rose' | 'cyan'
+    leadTimeDays: number;   // Duration in working days to transition to the subsequent milestone
+    enabled: boolean;       // Active/Inactive toggle
+  }
+
+  const defaultShopMilestones: CustomMilestone[] = [
+    { id: 'ms_template', name: 'Laser Template', shortCode: 'TEMP', description: 'Digital laser templating & site measurement', color: 'blue', leadTimeDays: 1, enabled: true },
+    { id: 'ms_cad', name: 'Shop CAD / Programming', shortCode: 'CAD', description: 'CAD drawing preparation & CAM toolpathing', color: 'purple', leadTimeDays: 1, enabled: true },
+    { id: 'ms_cut', name: 'Bridge Saw & CNC Cutting', shortCode: 'CUT', description: 'Waterjet/saw cutting & machine queue release', color: 'indigo', leadTimeDays: 2, enabled: true },
+    { id: 'ms_fab', name: 'Shop Fabrication & Polish', shortCode: 'FAB', description: 'Edge profiling, sink cutouts & miter assembly', color: 'emerald', leadTimeDays: 2, enabled: true },
+    { id: 'ms_install', name: 'Field Installation', shortCode: 'INST', description: 'A-frame transit, site delivery & stone install', color: 'teal', leadTimeDays: 1, enabled: true },
+    { id: 'ms_signoff', name: '100% Quality Sign-Off', shortCode: 'QA', description: 'Superintendent inspection & quality acceptance', color: 'amber', leadTimeDays: 0, enabled: true },
+  ];
+
+  const [globalMilestones, setGlobalMilestones] = useState<CustomMilestone[]>(defaultShopMilestones);
+  const [locationMilestoneOverrides, setLocationMilestoneOverrides] = useState<Record<string, { isOverridden: boolean; milestones: CustomMilestone[] }>>({
+    'Location 3 (Denver Hub)': {
+      isOverridden: true,
+      milestones: [
+        { id: 'ms_template', name: 'Laser Template', shortCode: 'TEMP', description: 'Digital laser templating & site measurement', color: 'blue', leadTimeDays: 1, enabled: true },
+        { id: 'ms_cad', name: 'Shop CAD / Programming', shortCode: 'CAD', description: 'CAD drawing preparation & CAM toolpathing', color: 'purple', leadTimeDays: 2, enabled: true },
+        { id: 'ms_cut', name: 'Bridge Saw & CNC Cutting', shortCode: 'CUT', description: 'Waterjet/saw cutting & machine queue release', color: 'indigo', leadTimeDays: 3, enabled: true },
+        { id: 'ms_fab', name: 'Shop Fabrication & Polish', shortCode: 'FAB', description: 'Edge profiling, sink cutouts & miter assembly', color: 'emerald', leadTimeDays: 3, enabled: true },
+        { id: 'ms_install', name: 'Field Installation', shortCode: 'INST', description: 'A-frame transit, site delivery & stone install', color: 'teal', leadTimeDays: 1, enabled: true },
+        { id: 'ms_signoff', name: '100% Quality Sign-Off', shortCode: 'QA', description: 'Superintendent inspection & quality acceptance', color: 'amber', leadTimeDays: 0, enabled: true },
+      ]
+    }
+  });
+
+  // State for Add / Edit Milestone Modal
+  const [isAddingMilestone, setIsAddingMilestone] = useState(false);
+  const [editingMilestoneId, setEditingMilestoneId] = useState<string | null>(null);
+  const [newMilestoneName, setNewMilestoneName] = useState('');
+  const [newMilestoneCode, setNewMilestoneCode] = useState('');
+  const [newMilestoneDesc, setNewMilestoneDesc] = useState('');
+  const [newMilestoneColor, setNewMilestoneColor] = useState('blue');
+  const [newMilestoneLeadTime, setNewMilestoneLeadTime] = useState(1);
+
+  const getEffectiveMilestones = (scopeName: string): CustomMilestone[] => {
+    if (scopeName !== 'GLOBAL' && locationMilestoneOverrides[scopeName]?.isOverridden) {
+      return locationMilestoneOverrides[scopeName].milestones;
+    }
+    return globalMilestones;
+  };
+
   // Global Milestone Terminology & Custom Names State
   interface GlobalMilestoneNames {
     templateName: string;
@@ -1931,6 +1986,192 @@ export default function App() {
         ]
       };
       setChangeLogs([newLog, ...changeLogs]);
+    }
+  };
+
+  // Dynamic Milestone Management Handlers
+  const handleOpenAddMilestone = () => {
+    setEditingMilestoneId(null);
+    setNewMilestoneName('');
+    setNewMilestoneCode('');
+    setNewMilestoneDesc('');
+    setNewMilestoneColor('blue');
+    setNewMilestoneLeadTime(1);
+    setIsAddingMilestone(true);
+  };
+
+  const handleOpenEditMilestone = (ms: CustomMilestone) => {
+    setEditingMilestoneId(ms.id);
+    setNewMilestoneName(ms.name);
+    setNewMilestoneCode(ms.shortCode);
+    setNewMilestoneDesc(ms.description);
+    setNewMilestoneColor(ms.color);
+    setNewMilestoneLeadTime(ms.leadTimeDays);
+    setIsAddingMilestone(true);
+  };
+
+  const handleSaveCustomMilestone = (e: React.FormEvent, scopeName: string) => {
+    e.preventDefault();
+    if (!newMilestoneName.trim()) return;
+
+    const shortCode = newMilestoneCode.trim().toUpperCase() || newMilestoneName.slice(0, 4).toUpperCase();
+    const currentList = getEffectiveMilestones(scopeName);
+
+    if (editingMilestoneId) {
+      const updatedList = currentList.map(m => m.id === editingMilestoneId ? {
+        ...m,
+        name: newMilestoneName.trim(),
+        shortCode,
+        description: newMilestoneDesc.trim(),
+        color: newMilestoneColor,
+        leadTimeDays: newMilestoneLeadTime,
+      } : m);
+
+      if (scopeName === 'GLOBAL') {
+        setGlobalMilestones(updatedList);
+      } else {
+        setLocationMilestoneOverrides({
+          ...locationMilestoneOverrides,
+          [scopeName]: { isOverridden: true, milestones: updatedList }
+        });
+      }
+
+      const newLog: ChangeLogEntry = {
+        id: String(Date.now()),
+        timestamp: new Date().toLocaleString(),
+        changedBy: `${activeUserRole === 'SUBSCRIBER_ADMIN' ? 'Admin' : 'Scheduler'} (${activeUserRole})`,
+        summary: `Workflow Milestone Updated: [${newMilestoneName}] in [${scopeName === 'GLOBAL' ? 'Global Baseline' : scopeName}]`,
+        diffs: [
+          { field: 'Milestone Name', from: '-', to: newMilestoneName },
+          { field: 'Lead Time (Days)', from: '-', to: String(newMilestoneLeadTime) }
+        ]
+      };
+      setChangeLogs([newLog, ...changeLogs]);
+    } else {
+      const newMs: CustomMilestone = {
+        id: `ms_${Date.now()}`,
+        name: newMilestoneName.trim(),
+        shortCode,
+        description: newMilestoneDesc.trim() || 'Custom production workflow stage',
+        color: newMilestoneColor,
+        leadTimeDays: newMilestoneLeadTime,
+        enabled: true,
+      };
+
+      const updatedList = [...currentList, newMs];
+
+      if (scopeName === 'GLOBAL') {
+        setGlobalMilestones(updatedList);
+      } else {
+        setLocationMilestoneOverrides({
+          ...locationMilestoneOverrides,
+          [scopeName]: { isOverridden: true, milestones: updatedList }
+        });
+      }
+
+      const newLog: ChangeLogEntry = {
+        id: String(Date.now()),
+        timestamp: new Date().toLocaleString(),
+        changedBy: `${activeUserRole === 'SUBSCRIBER_ADMIN' ? 'Admin' : 'Scheduler'} (${activeUserRole})`,
+        summary: `New Workflow Milestone Added: [${newMs.name}] to [${scopeName === 'GLOBAL' ? 'Global Baseline' : scopeName}]`,
+        diffs: [
+          { field: 'Milestone Added', from: 'None', to: `${newMs.name} (${newMs.shortCode})` },
+          { field: 'Lead Time (Days)', from: '-', to: String(newMs.leadTimeDays) }
+        ]
+      };
+      setChangeLogs([newLog, ...changeLogs]);
+    }
+
+    setIsAddingMilestone(false);
+    setEditingMilestoneId(null);
+    setLeadTimesSavedSuccess(true);
+    setTimeout(() => setLeadTimesSavedSuccess(false), 3000);
+  };
+
+  const handleDeleteMilestone = (scopeName: string, id: string) => {
+    const currentList = getEffectiveMilestones(scopeName);
+    if (currentList.length <= 1) {
+      alert('A workflow must have at least one active milestone.');
+      return;
+    }
+    const msToDelete = currentList.find(m => m.id === id);
+    const updatedList = currentList.filter(m => m.id !== id);
+
+    if (scopeName === 'GLOBAL') {
+      setGlobalMilestones(updatedList);
+    } else {
+      setLocationMilestoneOverrides({
+        ...locationMilestoneOverrides,
+        [scopeName]: { isOverridden: true, milestones: updatedList }
+      });
+    }
+
+    const newLog: ChangeLogEntry = {
+      id: String(Date.now()),
+      timestamp: new Date().toLocaleString(),
+      changedBy: `${activeUserRole === 'SUBSCRIBER_ADMIN' ? 'Admin' : 'Scheduler'} (${activeUserRole})`,
+      summary: `Workflow Milestone Removed: [${msToDelete?.name || id}] from [${scopeName === 'GLOBAL' ? 'Global Baseline' : scopeName}]`,
+      diffs: [
+        { field: 'Deleted Milestone', from: msToDelete?.name || id, to: 'Deleted' }
+      ]
+    };
+    setChangeLogs([newLog, ...changeLogs]);
+  };
+
+  const handleMoveMilestone = (scopeName: string, index: number, direction: 'up' | 'down') => {
+    const currentList = [...getEffectiveMilestones(scopeName)];
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= currentList.length) return;
+
+    const temp = currentList[index];
+    currentList[index] = currentList[targetIndex];
+    currentList[targetIndex] = temp;
+
+    if (scopeName === 'GLOBAL') {
+      setGlobalMilestones(currentList);
+    } else {
+      setLocationMilestoneOverrides({
+        ...locationMilestoneOverrides,
+        [scopeName]: { isOverridden: true, milestones: currentList }
+      });
+    }
+  };
+
+  const handleToggleMilestoneEnabled = (scopeName: string, id: string) => {
+    const currentList = getEffectiveMilestones(scopeName);
+    const updatedList = currentList.map(m => m.id === id ? { ...m, enabled: !m.enabled } : m);
+
+    if (scopeName === 'GLOBAL') {
+      setGlobalMilestones(updatedList);
+    } else {
+      setLocationMilestoneOverrides({
+        ...locationMilestoneOverrides,
+        [scopeName]: { isOverridden: true, milestones: updatedList }
+      });
+    }
+  };
+
+  const handleUpdateMilestoneLeadTime = (scopeName: string, id: string, days: number) => {
+    const currentList = getEffectiveMilestones(scopeName);
+    const updatedList = currentList.map(m => m.id === id ? { ...m, leadTimeDays: Math.max(0, days) } : m);
+
+    if (scopeName === 'GLOBAL') {
+      setGlobalMilestones(updatedList);
+    } else {
+      setLocationMilestoneOverrides({
+        ...locationMilestoneOverrides,
+        [scopeName]: { isOverridden: true, milestones: updatedList }
+      });
+    }
+  };
+
+  const handleResetMilestonesToDefault = (scopeName: string) => {
+    if (scopeName === 'GLOBAL') {
+      setGlobalMilestones(defaultShopMilestones);
+    } else {
+      const updated = { ...locationMilestoneOverrides };
+      delete updated[scopeName];
+      setLocationMilestoneOverrides(updated);
     }
   };
 
@@ -4860,6 +5101,10 @@ export default function App() {
                           ? globalLeadTimes
                           : (locationLeadTimeOverrides[selectedLeadTimeScope] || globalLeadTimes);
 
+                        const currentMilestones = getEffectiveMilestones(selectedLeadTimeScope);
+                        const activeMilestones = currentMilestones.filter(m => m.enabled);
+                        const totalDays = activeMilestones.reduce((acc, m) => acc + (m.leadTimeDays || 0), 0);
+
                         const updateCurrentSettings = (key: keyof LeadTimeSettings, val: any) => {
                           if (selectedLeadTimeScope === 'GLOBAL') {
                             setGlobalLeadTimes({ ...globalLeadTimes, [key]: val });
@@ -4881,12 +5126,11 @@ export default function App() {
                             id: String(Date.now()),
                             timestamp: new Date().toLocaleString(),
                             changedBy: `${activeUserRole === 'SUBSCRIBER_ADMIN' ? 'Admin' : 'Scheduler'} (${activeUserRole})`,
-                            summary: `Auto-Schedule Lead Times Updated for [${selectedLeadTimeScope === 'GLOBAL' ? 'Global Baseline' : selectedLeadTimeScope}]`,
+                            summary: `Auto-Schedule & Workflow Settings Saved for [${selectedLeadTimeScope === 'GLOBAL' ? 'Global Baseline' : selectedLeadTimeScope}]`,
                             diffs: [
-                              { field: 'Template ➔ CAD (Days)', from: '-', to: String(currentSettings.templateToCadDays) },
-                              { field: 'CAD ➔ Saw/CNC (Days)', from: '-', to: String(currentSettings.cadToCutDays) },
-                              { field: 'Saw/CNC ➔ Fabrication (Days)', from: '-', to: String(currentSettings.cutToFabDays) },
-                              { field: 'Fabrication ➔ Install (Days)', from: '-', to: String(currentSettings.fabToInstallDays) },
+                              { field: 'Milestone Count', from: '-', to: `${currentMilestones.length} Stages` },
+                              { field: 'Total Standard Lead Time', from: '-', to: `${totalDays} Working Days` },
+                              { field: 'Buffer Days', from: '-', to: String(currentSettings.targetDeadlineBufferDays) },
                             ]
                           };
                           setChangeLogs([newLog, ...changeLogs]);
@@ -4894,211 +5138,225 @@ export default function App() {
                           setTimeout(() => setLeadTimesSavedSuccess(false), 3000);
                         };
 
-                        const totalDays = currentSettings.templateToCadDays + currentSettings.cadToCutDays + currentSettings.cutToFabDays + currentSettings.fabToInstallDays;
+                        let runningDays = 0;
 
                         return (
                           <form onSubmit={handleSaveForm} className="space-y-6">
-                            {/* SECTION 1: GLOBAL MILESTONE TERMINOLOGY */}
+                            {/* SECTION 1: CUSTOM SHOP MILESTONES WORKFLOW */}
                             <div className="p-5 rounded-xl border space-y-4 shadow-sm bg-white dark:bg-slate-900">
-                              <div className="flex items-center justify-between border-b pb-2">
+                              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b pb-3">
                                 <div>
-                                  <h4 className="font-bold text-sm text-slate-800 dark:text-slate-200 flex items-center space-x-2">
-                                    <Tag className="w-4 h-4 text-blue-600" />
-                                    <span>1. Global Milestone Names & Custom Terminology</span>
-                                  </h4>
+                                  <div className="flex items-center space-x-2">
+                                    <Layers className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                                    <h4 className="font-bold text-sm text-slate-800 dark:text-slate-200">
+                                      1. Production Milestone Workflow & Sequence ({currentMilestones.length} Stages)
+                                    </h4>
+                                  </div>
                                   <p className="text-[11px] text-slate-500 mt-0.5">
-                                    Customize standard milestone names globally across table columns, calendar badges, date editors, and production queues.
+                                    Add, rename, reorder, or delete milestones to match the exact fabrication and installation flow of your shop.
                                   </p>
                                 </div>
-                                <button
-                                  type="button"
-                                  onClick={() => setGlobalMilestoneNames(defaultGlobalMilestoneNames)}
-                                  className="text-[10px] text-blue-600 hover:underline font-bold cursor-pointer"
-                                >
-                                  ↺ Reset Milestone Names to Default
-                                </button>
+
+                                <div className="flex items-center space-x-2">
+                                  <button
+                                    type="button"
+                                    onClick={handleOpenAddMilestone}
+                                    className="bg-blue-600 hover:bg-blue-500 text-white font-bold px-3 py-1.5 rounded-lg text-xs flex items-center space-x-1.5 shadow-xs cursor-pointer transition-all"
+                                  >
+                                    <Plus className="w-3.5 h-3.5" />
+                                    <span>Add Milestone</span>
+                                  </button>
+
+                                  <button
+                                    type="button"
+                                    onClick={() => handleResetMilestonesToDefault(selectedLeadTimeScope)}
+                                    className="text-[11px] text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 font-bold px-2 py-1 cursor-pointer border rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-all"
+                                    title="Reset to default standard milestones"
+                                  >
+                                    ↺ Reset Pipeline
+                                  </button>
+                                </div>
                               </div>
 
-                              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                <div className="space-y-1">
-                                  <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300">
-                                    Milestone 1 (Template / Measure) Name
-                                  </label>
-                                  <input
-                                    type="text"
-                                    value={globalMilestoneNames.templateName}
-                                    onChange={(e) => setGlobalMilestoneNames({ ...globalMilestoneNames, templateName: e.target.value })}
-                                    className="w-full p-2 border rounded font-bold text-blue-700 dark:text-blue-300 dark:bg-slate-950 dark:border-slate-800"
-                                  />
-                                </div>
+                              {/* Milestone Pipeline Cards List */}
+                              <div className="space-y-2.5">
+                                {currentMilestones.map((ms, idx) => {
+                                  const colorClasses: Record<string, { badge: string; border: string }> = {
+                                    blue: { badge: 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300 border-blue-300', border: 'border-blue-200 dark:border-blue-900' },
+                                    purple: { badge: 'bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300 border-purple-300', border: 'border-purple-200 dark:border-purple-900' },
+                                    indigo: { badge: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-950 dark:text-indigo-300 border-indigo-300', border: 'border-indigo-200 dark:border-indigo-900' },
+                                    emerald: { badge: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border-emerald-300', border: 'border-emerald-200 dark:border-emerald-900' },
+                                    teal: { badge: 'bg-teal-100 text-teal-800 dark:bg-teal-950 dark:text-teal-300 border-teal-300', border: 'border-teal-200 dark:border-teal-900' },
+                                    amber: { badge: 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border-amber-300', border: 'border-amber-200 dark:border-amber-900' },
+                                    rose: { badge: 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 border-rose-300', border: 'border-rose-200 dark:border-rose-900' },
+                                    cyan: { badge: 'bg-cyan-100 text-cyan-800 dark:bg-cyan-950 dark:text-cyan-300 border-cyan-300', border: 'border-cyan-200 dark:border-cyan-900' },
+                                  };
+                                  const theme = colorClasses[ms.color] || colorClasses.blue;
 
-                                <div className="space-y-1">
-                                  <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300">
-                                    Milestone 2 (CAD / Drafting) Name
-                                  </label>
-                                  <input
-                                    type="text"
-                                    value={globalMilestoneNames.cadName}
-                                    onChange={(e) => setGlobalMilestoneNames({ ...globalMilestoneNames, cadName: e.target.value })}
-                                    className="w-full p-2 border rounded font-bold text-purple-700 dark:text-purple-300 dark:bg-slate-950 dark:border-slate-800"
-                                  />
-                                </div>
+                                  return (
+                                    <div
+                                      key={ms.id}
+                                      className={`p-3.5 rounded-xl border flex flex-col md:flex-row items-start md:items-center justify-between gap-3 transition-all ${
+                                        !ms.enabled
+                                          ? 'bg-slate-100/60 dark:bg-slate-950/40 border-slate-300 opacity-60'
+                                          : 'bg-slate-50/80 dark:bg-slate-950/80 hover:shadow-xs'
+                                      } ${theme.border}`}
+                                    >
+                                      {/* Left: Reorder Controls, Step Number & Milestone Info */}
+                                      <div className="flex items-center space-x-3">
+                                        <div className="flex flex-col space-y-1">
+                                          <button
+                                            type="button"
+                                            disabled={idx === 0}
+                                            onClick={() => handleMoveMilestone(selectedLeadTimeScope, idx, 'up')}
+                                            className={`p-1 rounded text-slate-400 hover:text-blue-600 hover:bg-slate-200 dark:hover:bg-slate-800 cursor-pointer ${idx === 0 ? 'opacity-30 cursor-not-allowed' : ''}`}
+                                            title="Move Stage Earlier in Workflow"
+                                          >
+                                            <ArrowUp className="w-3.5 h-3.5" />
+                                          </button>
+                                          <button
+                                            type="button"
+                                            disabled={idx === currentMilestones.length - 1}
+                                            onClick={() => handleMoveMilestone(selectedLeadTimeScope, idx, 'down')}
+                                            className={`p-1 rounded text-slate-400 hover:text-blue-600 hover:bg-slate-200 dark:hover:bg-slate-800 cursor-pointer ${idx === currentMilestones.length - 1 ? 'opacity-30 cursor-not-allowed' : ''}`}
+                                            title="Move Stage Later in Workflow"
+                                          >
+                                            <ArrowDown className="w-3.5 h-3.5" />
+                                          </button>
+                                        </div>
 
-                                <div className="space-y-1">
-                                  <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300">
-                                    Milestone 3 (Cutting / CNC) Name
-                                  </label>
-                                  <input
-                                    type="text"
-                                    value={globalMilestoneNames.cutName}
-                                    onChange={(e) => setGlobalMilestoneNames({ ...globalMilestoneNames, cutName: e.target.value })}
-                                    className="w-full p-2 border rounded font-bold text-indigo-700 dark:text-indigo-300 dark:bg-slate-950 dark:border-slate-800"
-                                  />
-                                </div>
+                                        <div className="text-center min-w-[50px]">
+                                          <span className="text-[10px] font-black uppercase text-slate-400 block">Stage</span>
+                                          <span className="font-extrabold text-xs text-slate-700 dark:text-slate-300">#{idx + 1}</span>
+                                        </div>
 
-                                <div className="space-y-1">
-                                  <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300">
-                                    Milestone 4 (Shop Fabrication / Polish) Name
-                                  </label>
-                                  <input
-                                    type="text"
-                                    value={globalMilestoneNames.fabName}
-                                    onChange={(e) => setGlobalMilestoneNames({ ...globalMilestoneNames, fabName: e.target.value })}
-                                    className="w-full p-2 border rounded font-bold text-emerald-700 dark:text-emerald-300 dark:bg-slate-950 dark:border-slate-800"
-                                  />
-                                </div>
+                                        <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase border tracking-wider shrink-0 ${theme.badge}`}>
+                                          {ms.shortCode}
+                                        </span>
 
-                                <div className="space-y-1">
-                                  <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300">
-                                    Milestone 5 (Field Installation) Name
-                                  </label>
-                                  <input
-                                    type="text"
-                                    value={globalMilestoneNames.installName}
-                                    onChange={(e) => setGlobalMilestoneNames({ ...globalMilestoneNames, installName: e.target.value })}
-                                    className="w-full p-2 border rounded font-bold text-emerald-700 dark:text-emerald-300 dark:bg-slate-950 dark:border-slate-800"
-                                  />
-                                </div>
+                                        <div className="space-y-0.5">
+                                          <div className="flex items-center space-x-2">
+                                            <strong className="text-xs font-bold text-slate-900 dark:text-slate-100">
+                                              {ms.name}
+                                            </strong>
+                                            {!ms.enabled && (
+                                              <span className="text-[9px] px-1.5 py-0.2 rounded bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 font-semibold">
+                                                Inactive (Bypassed)
+                                              </span>
+                                            )}
+                                          </div>
+                                          <p className="text-[11px] text-slate-500">
+                                            {ms.description}
+                                          </p>
+                                        </div>
+                                      </div>
 
-                                <div className="space-y-1">
-                                  <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300">
-                                    Milestone 6 (Sign-off / QA) Name
-                                  </label>
-                                  <input
-                                    type="text"
-                                    value={globalMilestoneNames.signoffName}
-                                    onChange={(e) => setGlobalMilestoneNames({ ...globalMilestoneNames, signoffName: e.target.value })}
-                                    className="w-full p-2 border rounded font-bold text-amber-700 dark:text-amber-300 dark:bg-slate-950 dark:border-slate-800"
-                                  />
-                                </div>
+                                      {/* Right: Lead Time Duration Input & Actions */}
+                                      <div className="flex items-center space-x-3 w-full md:w-auto justify-between md:justify-end">
+                                        <div className="flex items-center space-x-1.5 bg-white dark:bg-slate-900 p-1.5 rounded-lg border border-slate-200 dark:border-slate-800 shadow-xs">
+                                          <span className="text-[10px] font-bold text-slate-400 pl-1">Lead Time:</span>
+                                          <input
+                                            type="number"
+                                            min="0"
+                                            max="30"
+                                            value={ms.leadTimeDays}
+                                            onChange={(e) => handleUpdateMilestoneLeadTime(selectedLeadTimeScope, ms.id, parseInt(e.target.value) || 0)}
+                                            className="w-12 p-1 border rounded text-center font-black text-xs text-slate-900 dark:bg-slate-950 dark:text-slate-100"
+                                          />
+                                          <span className="text-[10px] text-slate-500 font-medium pr-1">work day(s)</span>
+                                        </div>
+
+                                        <div className="flex items-center space-x-1">
+                                          <button
+                                            type="button"
+                                            onClick={() => handleToggleMilestoneEnabled(selectedLeadTimeScope, ms.id)}
+                                            className="p-1.5 text-slate-400 hover:text-blue-600 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 cursor-pointer"
+                                            title={ms.enabled ? 'Deactivate milestone' : 'Activate milestone'}
+                                          >
+                                            {ms.enabled ? <Eye className="w-4 h-4 text-emerald-600" /> : <EyeOff className="w-4 h-4 text-slate-400" />}
+                                          </button>
+
+                                          <button
+                                            type="button"
+                                            onClick={() => handleOpenEditMilestone(ms)}
+                                            className="p-1.5 text-slate-400 hover:text-blue-600 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 cursor-pointer"
+                                            title="Edit milestone name, code, or color"
+                                          >
+                                            <Edit3 className="w-4 h-4" />
+                                          </button>
+
+                                          <button
+                                            type="button"
+                                            onClick={() => handleDeleteMilestone(selectedLeadTimeScope, ms.id)}
+                                            className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/40 cursor-pointer"
+                                            title="Delete milestone from workflow"
+                                          >
+                                            <Trash2 className="w-4 h-4" />
+                                          </button>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
                               </div>
                             </div>
 
-                            {/* SECTION 2: MILESTONE DURATION OFFSETS */}
-                            <div className="p-5 rounded-xl border space-y-4 shadow-sm bg-white dark:bg-slate-900">
+                            {/* SECTION 2: LIVE DYNAMIC PRODUCTION TIMELINE */}
+                            <div className="p-5 rounded-xl border bg-slate-50 dark:bg-slate-950 space-y-3">
                               <div className="flex items-center justify-between border-b pb-2">
                                 <h4 className="font-bold text-sm text-slate-800 dark:text-slate-200 flex items-center space-x-2">
-                                  <span>2. Milestone Duration & Date Offsets (Working Days)</span>
+                                  <Sparkles className="w-4 h-4 text-purple-600" />
+                                  <span>2. Visual Workflow Pipeline & Cumulative Schedule Timeline</span>
                                 </h4>
-                                <span className="text-xs font-bold px-2.5 py-1 rounded bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300">
-                                  Standard Total Lead Time: ~{totalDays} Working Days
+                                <span className="text-xs font-bold px-2.5 py-1 rounded bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300">
+                                  Standard Pipeline Total: ~{totalDays} Working Days
                                 </span>
                               </div>
 
-                              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                <div className="p-3 border rounded-lg bg-slate-50 dark:bg-slate-950 space-y-1">
-                                  <label className="block font-bold text-slate-700 dark:text-slate-300">
-                                    {globalMilestoneNames.templateName} ➔ {globalMilestoneNames.cadName}
-                                  </label>
-                                  <div className="flex items-center space-x-2">
-                                    <input
-                                      type="number"
-                                      min="0"
-                                      max="30"
-                                      value={currentSettings.templateToCadDays}
-                                      onChange={(e) => updateCurrentSettings('templateToCadDays', parseInt(e.target.value) || 0)}
-                                      className="w-20 p-2 border rounded font-black text-center text-slate-900 dark:bg-slate-900 dark:text-slate-100"
-                                    />
-                                    <span className="text-slate-500 font-medium">working day(s)</span>
-                                  </div>
-                                  <span className="text-[10px] text-slate-400 block">CAD drawings prepared after template upload.</span>
-                                </div>
+                              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3 text-center">
+                                {activeMilestones.map((ms, i) => {
+                                  const dayLabel = i === 0 ? 'Day 0 (Start)' : `+${runningDays}d`;
+                                  runningDays += ms.leadTimeDays;
 
-                                <div className="p-3 border rounded-lg bg-slate-50 dark:bg-slate-950 space-y-1">
-                                  <label className="block font-bold text-slate-700 dark:text-slate-300">
-                                    {globalMilestoneNames.cadName} ➔ {globalMilestoneNames.cutName}
-                                  </label>
-                                  <div className="flex items-center space-x-2">
-                                    <input
-                                      type="number"
-                                      min="0"
-                                      max="30"
-                                      value={currentSettings.cadToCutDays}
-                                      onChange={(e) => updateCurrentSettings('cadToCutDays', parseInt(e.target.value) || 0)}
-                                      className="w-20 p-2 border rounded font-black text-center text-slate-900 dark:bg-slate-900 dark:text-slate-100"
-                                    />
-                                    <span className="text-slate-500 font-medium">working day(s)</span>
-                                  </div>
-                                  <span className="text-[10px] text-slate-400 block">Machine queue release buffer.</span>
-                                </div>
+                                  const colorClasses: Record<string, string> = {
+                                    blue: 'text-blue-600 dark:text-blue-400',
+                                    purple: 'text-purple-600 dark:text-purple-400',
+                                    indigo: 'text-indigo-600 dark:text-indigo-400',
+                                    emerald: 'text-emerald-600 dark:text-emerald-400',
+                                    teal: 'text-teal-600 dark:text-teal-400',
+                                    amber: 'text-amber-600 dark:text-amber-400',
+                                    rose: 'text-rose-600 dark:text-rose-400',
+                                    cyan: 'text-cyan-600 dark:text-cyan-400',
+                                  };
+                                  const textClass = colorClasses[ms.color] || colorClasses.blue;
 
-                                <div className="p-3 border rounded-lg bg-slate-50 dark:bg-slate-950 space-y-1">
-                                  <label className="block font-bold text-slate-700 dark:text-slate-300">
-                                    {globalMilestoneNames.cutName} ➔ {globalMilestoneNames.fabName}
-                                  </label>
-                                  <div className="flex items-center space-x-2">
-                                    <input
-                                      type="number"
-                                      min="0"
-                                      max="30"
-                                      value={currentSettings.cutToFabDays}
-                                      onChange={(e) => updateCurrentSettings('cutToFabDays', parseInt(e.target.value) || 0)}
-                                      className="w-20 p-2 border rounded font-black text-center text-slate-900 dark:bg-slate-900 dark:text-slate-100"
-                                    />
-                                    <span className="text-slate-500 font-medium">working day(s)</span>
-                                  </div>
-                                  <span className="text-[10px] text-slate-400 block">Edge profiling, sink cutouts & miter seams.</span>
-                                </div>
+                                  return (
+                                    <div key={ms.id} className="p-3 bg-white dark:bg-slate-900 rounded-lg border shadow-xs flex flex-col justify-between">
+                                      <div>
+                                        <span className="text-[10px] font-bold text-slate-400 uppercase block">Stage {i + 1}</span>
+                                        <strong className={`text-xs block mt-1 ${textClass}`}>{ms.name}</strong>
+                                      </div>
+                                      <div className="pt-2">
+                                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 block">
+                                          {dayLabel}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
 
-                                <div className="p-3 border rounded-lg bg-slate-50 dark:bg-slate-950 space-y-1">
-                                  <label className="block font-bold text-slate-700 dark:text-slate-300">
-                                    {globalMilestoneNames.fabName} ➔ {globalMilestoneNames.installName}
-                                  </label>
-                                  <div className="flex items-center space-x-2">
-                                    <input
-                                      type="number"
-                                      min="0"
-                                      max="30"
-                                      value={currentSettings.fabToInstallDays}
-                                      onChange={(e) => updateCurrentSettings('fabToInstallDays', parseInt(e.target.value) || 0)}
-                                      className="w-20 p-2 border rounded font-black text-center text-slate-900 dark:bg-slate-900 dark:text-slate-100"
-                                    />
-                                    <span className="text-slate-500 font-medium">working day(s)</span>
-                                  </div>
-                                  <span className="text-[10px] text-slate-400 block">Staging, A-frame truck loading & transit.</span>
-                                </div>
+                            {/* SECTION 3: CALCULATED LOGIC & DEADLINE BUFFER */}
+                            <div className="p-5 rounded-xl border bg-white dark:bg-slate-900 space-y-4">
+                              <h4 className="font-bold text-sm text-slate-800 dark:text-slate-200 border-b pb-2">
+                                3. Calculated Logic, Buffers & Auto-Cascading Rules
+                              </h4>
 
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="p-3 border rounded-lg bg-slate-50 dark:bg-slate-950 space-y-1">
                                   <label className="block font-bold text-slate-700 dark:text-slate-300">
-                                    {globalMilestoneNames.installName} ➔ {globalMilestoneNames.signoffName}
-                                  </label>
-                                  <div className="flex items-center space-x-2">
-                                    <input
-                                      type="number"
-                                      min="0"
-                                      max="30"
-                                      value={currentSettings.installToSignoffDays}
-                                      onChange={(e) => updateCurrentSettings('installToSignoffDays', parseInt(e.target.value) || 0)}
-                                      className="w-20 p-2 border rounded font-black text-center text-slate-900 dark:bg-slate-900 dark:text-slate-100"
-                                    />
-                                    <span className="text-slate-500 font-medium">working day(s)</span>
-                                  </div>
-                                  <span className="text-[10px] text-slate-400 block">Site inspection & customer form sign-off.</span>
-                                </div>
-
-                                <div className="p-3 border rounded-lg bg-slate-50 dark:bg-slate-950 space-y-1">
-                                  <label className="block font-bold text-slate-700 dark:text-slate-300">
-                                    Target Deadline Safety Buffer
+                                    Target Deadline Safety Buffer Days
                                   </label>
                                   <div className="flex items-center space-x-2">
                                     <input
@@ -5111,85 +5369,44 @@ export default function App() {
                                     />
                                     <span className="text-slate-500 font-medium">working day(s)</span>
                                   </div>
-                                  <span className="text-[10px] text-slate-400 block">Buffer before late deadline alert triggers.</span>
+                                  <span className="text-[10px] text-slate-400 block">Safety buffer before a late install alert is flagged.</span>
                                 </div>
-                              </div>
-                            </div>
 
-                            {/* Sequence Flow Timeline */}
-                            <div className="p-5 rounded-xl border bg-slate-50 dark:bg-slate-950 space-y-3">
-                              <h4 className="font-bold text-sm text-slate-800 dark:text-slate-200">
-                                3. Visual Production Pipeline Flow
-                              </h4>
-                              <div className="grid grid-cols-2 md:grid-cols-5 gap-3 text-center">
-                                <div className="p-3 bg-white dark:bg-slate-900 rounded-lg border shadow-xs">
-                                  <span className="text-[10px] font-bold text-slate-400 uppercase block">Step 1</span>
-                                  <strong className="text-blue-600 dark:text-blue-400 text-xs block mt-1">{globalMilestoneNames.templateName}</strong>
-                                  <span className="text-[10px] text-slate-500">Day 0 (Start)</span>
-                                </div>
-                                <div className="p-3 bg-white dark:bg-slate-900 rounded-lg border shadow-xs">
-                                  <span className="text-[10px] font-bold text-slate-400 uppercase block">Step 2</span>
-                                  <strong className="text-purple-600 dark:text-purple-400 text-xs block mt-1">{globalMilestoneNames.cadName} & {globalMilestoneNames.cutName}</strong>
-                                  <span className="text-[10px] text-slate-500">+{currentSettings.templateToCadDays + currentSettings.cadToCutDays}d</span>
-                                </div>
-                                <div className="p-3 bg-white dark:bg-slate-900 rounded-lg border shadow-xs">
-                                  <span className="text-[10px] font-bold text-slate-400 uppercase block">Step 3</span>
-                                  <strong className="text-indigo-600 dark:text-indigo-400 text-xs block mt-1">{globalMilestoneNames.fabName}</strong>
-                                  <span className="text-[10px] text-slate-500">+{currentSettings.cutToFabDays}d</span>
-                                </div>
-                                <div className="p-3 bg-white dark:bg-slate-900 rounded-lg border shadow-xs">
-                                  <span className="text-[10px] font-bold text-slate-400 uppercase block">Step 4</span>
-                                  <strong className="text-emerald-600 dark:text-emerald-400 text-xs block mt-1">{globalMilestoneNames.installName}</strong>
-                                  <span className="text-[10px] text-slate-500">+{currentSettings.fabToInstallDays}d</span>
-                                </div>
-                                <div className="p-3 bg-white dark:bg-slate-900 rounded-lg border shadow-xs">
-                                  <span className="text-[10px] font-bold text-slate-400 uppercase block">Step 5</span>
-                                  <strong className="text-amber-600 dark:text-amber-400 text-xs block mt-1">{globalMilestoneNames.signoffName}</strong>
-                                  <span className="text-[10px] text-slate-500">+{currentSettings.installToSignoffDays}d</span>
-                                </div>
-                              </div>
-                            </div>
+                                <div className="p-3 border rounded-lg bg-slate-50 dark:bg-slate-950 space-y-3">
+                                  <label className="flex items-start space-x-3 cursor-pointer">
+                                    <input
+                                      type="checkbox"
+                                      checked={currentSettings.autoCascadeDependencies}
+                                      onChange={(e) => updateCurrentSettings('autoCascadeDependencies', e.target.checked)}
+                                      className="mt-0.5 rounded text-blue-600 cursor-pointer"
+                                    />
+                                    <div>
+                                      <strong className="text-slate-800 dark:text-slate-200 block text-xs">
+                                        Enable Auto-Cascade Downstream Milestone Dependencies
+                                      </strong>
+                                      <span className="text-slate-500 text-[10px]">
+                                        Shifting an upstream date automatically calculates subsequent milestone shifts.
+                                      </span>
+                                    </div>
+                                  </label>
 
-                            {/* Calculated Logic Rules */}
-                            <div className="p-5 rounded-xl border bg-white dark:bg-slate-900 space-y-4">
-                              <h4 className="font-bold text-sm text-slate-800 dark:text-slate-200 border-b pb-2">
-                                3. Calculated Logic & Auto-Cascading Rules
-                              </h4>
-
-                              <div className="space-y-3">
-                                <label className="flex items-start space-x-3 cursor-pointer">
-                                  <input
-                                    type="checkbox"
-                                    checked={currentSettings.autoCascadeDependencies}
-                                    onChange={(e) => updateCurrentSettings('autoCascadeDependencies', e.target.checked)}
-                                    className="mt-0.5 rounded text-blue-600 cursor-pointer"
-                                  />
-                                  <div>
-                                    <strong className="text-slate-800 dark:text-slate-200 block">
-                                      Enable Auto-Cascade Downstream Dependencies
-                                    </strong>
-                                    <span className="text-slate-500 text-[11px]">
-                                      When enabled, shifting a Laser Template or Fabrication milestone date automatically calculates downstream shifts and prompts dispatch with the Dependency Shift Plan modal.
-                                    </span>
-                                  </div>
-                                </label>
-
-                                <label className="flex items-start space-x-3 cursor-pointer">
-                                  <input
-                                    type="checkbox"
-                                    checked={currentSettings.allowWeekendOverflow}
-                                    onChange={(e) => updateCurrentSettings('allowWeekendOverflow', e.target.checked)}
-                                    className="mt-0.5 rounded text-blue-600 cursor-pointer"
-                                  />
-                                  <div>
-                                    <strong className="text-slate-800 dark:text-slate-200 block">
-                                      Allow Weekend / Non-Working Day Overflow in Calculations
-                                    </strong>
-                                    <span className="text-slate-500 text-[11px]">
-                                      When disabled (recommended), calculations strictly skip non-working Saturdays, Sundays, and regional holidays.
-                                    </span>
-                                  </div>
-                                </label>
+                                  <label className="flex items-start space-x-3 cursor-pointer">
+                                    <input
+                                      type="checkbox"
+                                      checked={currentSettings.allowWeekendOverflow}
+                                      onChange={(e) => updateCurrentSettings('allowWeekendOverflow', e.target.checked)}
+                                      className="mt-0.5 rounded text-blue-600 cursor-pointer"
+                                    />
+                                    <div>
+                                      <strong className="text-slate-800 dark:text-slate-200 block text-xs">
+                                        Allow Weekend / Non-Working Day Overflow in Calculations
+                                      </strong>
+                                      <span className="text-slate-500 text-[10px]">
+                                        When disabled, milestones strictly advance across active working days only.
+                                      </span>
+                                    </div>
+                                  </label>
+                                </div>
                               </div>
                             </div>
 
@@ -6953,6 +7170,121 @@ export default function App() {
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* 4. ADD / EDIT CUSTOM WORKFLOW MILESTONE MODAL */}
+      {isAddingMilestone && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 z-50 overflow-y-auto">
+          <div className={`max-w-lg w-full p-6 rounded-xl border shadow-2xl ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-300'}`}>
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
+              <h3 className="font-bold text-base flex items-center space-x-2 text-blue-600 dark:text-blue-400">
+                <Layers className="w-5 h-5" />
+                <span>{editingMilestoneId ? 'Edit Workflow Milestone' : 'Add Custom Workflow Milestone'}</span>
+              </h3>
+              <button
+                onClick={() => { setIsAddingMilestone(false); setEditingMilestoneId(null); }}
+                className="text-slate-400 hover:text-slate-600 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={(e) => handleSaveCustomMilestone(e, selectedLeadTimeScope)} className="mt-4 space-y-4 text-xs">
+              <div className="p-3 bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 rounded-lg text-blue-800 dark:text-blue-300 text-[11px]">
+                Target Scope: <strong>{selectedLeadTimeScope === 'GLOBAL' ? 'Global Baseline (All Locations)' : selectedLeadTimeScope}</strong>. Milestone will be added to this workflow sequence.
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="sm:col-span-2">
+                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Milestone Name *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. SlabSmith Digital Layout, CNC Saw Cutting, Dry Fit"
+                    value={newMilestoneName}
+                    onChange={(e) => setNewMilestoneName(e.target.value)}
+                    className="w-full p-2.5 border rounded-lg font-bold text-slate-900 dark:bg-slate-950 dark:text-slate-100"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Short Code *</label>
+                  <input
+                    type="text"
+                    required
+                    maxLength={6}
+                    placeholder="e.g. LAYOUT"
+                    value={newMilestoneCode}
+                    onChange={(e) => setNewMilestoneCode(e.target.value.toUpperCase())}
+                    className="w-full p-2.5 border rounded-lg font-mono font-black text-center text-slate-900 dark:bg-slate-950 dark:text-slate-100"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Phase Description / Purpose</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Customer slab vein matching & photo pre-approval"
+                  value={newMilestoneDesc}
+                  onChange={(e) => setNewMilestoneDesc(e.target.value)}
+                  className="w-full p-2.5 border rounded-lg text-slate-900 dark:bg-slate-950 dark:text-slate-100"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    Transition Lead Time (Working Days)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="30"
+                    value={newMilestoneLeadTime}
+                    onChange={(e) => setNewMilestoneLeadTime(parseInt(e.target.value) || 0)}
+                    className="w-full p-2.5 border rounded-lg font-black text-slate-900 dark:bg-slate-950 dark:text-slate-100"
+                  />
+                  <span className="text-[10px] text-slate-400 mt-0.5 block">Working days to transition to the next milestone</span>
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Badge Color Theme</label>
+                  <select
+                    value={newMilestoneColor}
+                    onChange={(e) => setNewMilestoneColor(e.target.value)}
+                    className="w-full p-2.5 border rounded-lg font-bold text-slate-900 dark:bg-slate-950 dark:text-slate-100"
+                  >
+                    <option value="blue">🔵 Blue Theme</option>
+                    <option value="purple">🟣 Purple Theme</option>
+                    <option value="indigo">🔮 Indigo Theme</option>
+                    <option value="emerald">🟢 Emerald Green Theme</option>
+                    <option value="teal">🌊 Teal Theme</option>
+                    <option value="amber">🟠 Amber Orange Theme</option>
+                    <option value="rose">🔴 Rose Red Theme</option>
+                    <option value="cyan">🩵 Cyan Theme</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="pt-4 flex justify-end space-x-2 border-t border-slate-200 dark:border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => { setIsAddingMilestone(false); setEditingMilestoneId(null); }}
+                  className="px-4 py-2 border rounded-lg font-bold cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="bg-blue-600 hover:bg-blue-500 text-white font-bold px-6 py-2 rounded-lg shadow-md cursor-pointer"
+                >
+                  {editingMilestoneId ? 'Update Milestone' : 'Add Milestone to Workflow'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
