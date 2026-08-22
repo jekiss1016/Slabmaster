@@ -316,6 +316,7 @@ export default function App() {
   const [editJobNotes, setEditJobNotes] = useState('');
   const [editStreetAddress, setEditStreetAddress] = useState('');
   const [editCityStateZip, setEditCityStateZip] = useState('');
+  const [editAssignedCrew, setEditAssignedCrew] = useState('Not Assigned');
 
   // Form Accordions State
   const [openForms, setOpenForms] = useState({
@@ -992,14 +993,19 @@ export default function App() {
   const [newJobCategory, setNewJobCategory] = useState<'INITIAL_INSTALL' | 'ADD_ON' | 'REWORK_WARRANTY'>('INITIAL_INSTALL');
   const [newActivityName, setNewActivityName] = useState('Stone Quality Walk');
   const [newActivityPhase, setNewActivityPhase] = useState('STONE');
+  const [newActivityAssignee, setNewActivityAssignee] = useState('Not Assigned');
 
   // Self-Service Entra ID Auth Config State
   const [authProvider, setAuthProvider] = useState<'EMAIL_PASSWORD' | 'ENTRA_ID' | 'HYBRID'>('HYBRID');
   const [entraTenantId, setEntraTenantId] = useState('72f988bf-86f1-41af-91ab-2d7cd011db47');
   const [entraClientId, setEntraClientId] = useState('11111111-2222-3333-4444-555555555555');
   const [savedSuccess, setSavedSuccess] = useState(false);
+  const [inviteFullName, setInviteFullName] = useState('');
   const [inviteEmail, setInviteEmail] = useState('');
-  const [inviteRole, setInviteRole] = useState('EXTERNAL_CREW_ADMIN');
+  const [inviteCompany, setInviteCompany] = useState('');
+  const [invitePhone, setInvitePhone] = useState('');
+  const [inviteRole, setInviteRole] = useState('EXTERNAL_FIELD_INSTALLER');
+  const [inviteSelectedRegions, setInviteSelectedRegions] = useState<string[]>(['GLOBAL']);
   const [inviteSentSuccess, setInviteSentSuccess] = useState(false);
 
   // 14-Day Calendar Control State
@@ -1252,6 +1258,117 @@ export default function App() {
   const [newActTypeRole, setNewActTypeRole] = useState('Install Crew');
   const [newActTypeColor, setNewActTypeColor] = useState('blue');
   const [newActTypeDesc, setNewActTypeDesc] = useState('');
+
+  // User Management & Installer Accounts Interface
+  interface AppUser {
+    id: string;
+    fullName: string;
+    email: string;
+    phone?: string;
+    role: 'SUBSCRIBER_ADMIN' | 'INTERNAL_OFFICE_USER' | 'INTERNAL_ESTIMATOR' | 'EXTERNAL_CREW_ADMIN' | 'EXTERNAL_FIELD_INSTALLER' | 'EXTERNAL_SUBCONTRACTOR' | 'SYSTEM_ADMIN';
+    companyName?: string;
+    scopedRegions: string[];
+    status: 'ACTIVE' | 'INVITED' | 'INACTIVE';
+    createdAt?: string;
+  }
+
+  const defaultSystemUsers: AppUser[] = [
+    {
+      id: 'u_admin',
+      fullName: 'Robert Sterling',
+      email: 'admin@granitecraft.com',
+      phone: '(813) 555-0101',
+      role: 'SUBSCRIBER_ADMIN',
+      scopedRegions: ['GLOBAL'],
+      status: 'ACTIVE',
+      createdAt: '1/15/2026',
+    },
+    {
+      id: 'u_scheduler',
+      fullName: 'Sarah Miller',
+      email: 'sarah.m@granitecraft.com',
+      phone: '(813) 555-0102',
+      role: 'INTERNAL_OFFICE_USER',
+      scopedRegions: ['GLOBAL'],
+      status: 'ACTIVE',
+      createdAt: '2/01/2026',
+    },
+    {
+      id: 'u_inst_1',
+      fullName: 'Marco Rodriguez',
+      email: 'marco@apexstoneinstall.com',
+      phone: '(813) 555-0144',
+      role: 'EXTERNAL_FIELD_INSTALLER',
+      companyName: 'Apex Granite Pro LLC',
+      scopedRegions: ['Location 1', 'Phoenix Metro (PHX)', 'Tampa Plant (TPA)'],
+      status: 'ACTIVE',
+      createdAt: '3/10/2026',
+    },
+    {
+      id: 'u_inst_2',
+      fullName: 'Dave Patterson',
+      email: 'dave.p@titaninstall.com',
+      phone: '(813) 555-0155',
+      role: 'EXTERNAL_FIELD_INSTALLER',
+      companyName: 'Titan Stone Installations',
+      scopedRegions: ['Location 1', 'Denver North (DEN)', 'Tampa Plant (TPA)'],
+      status: 'ACTIVE',
+      createdAt: '3/15/2026',
+    },
+    {
+      id: 'u_inst_3',
+      fullName: 'Carlos Sanchez',
+      email: 'carlos.sanchez@gmail.com',
+      phone: '(813) 555-0166',
+      role: 'EXTERNAL_FIELD_INSTALLER',
+      companyName: '', // Independent 1099 -> displays "Carlos Sanchez"
+      scopedRegions: ['Location 1', 'Tucson East (TUC)', 'Phoenix Metro (PHX)'],
+      status: 'ACTIVE',
+      createdAt: '4/01/2026',
+    },
+    {
+      id: 'u_inst_4',
+      fullName: 'Alex Higgins',
+      email: 'alex@precisiontops.com',
+      phone: '(813) 555-0177',
+      role: 'EXTERNAL_FIELD_INSTALLER',
+      companyName: 'Precision Tops & Tile',
+      scopedRegions: ['Denver North (DEN)', 'Tampa Plant (TPA)'],
+      status: 'ACTIVE',
+      createdAt: '4/12/2026',
+    },
+    {
+      id: 'u_inst_5',
+      fullName: 'James Cooper',
+      email: 'jcooper@cooperstone.com',
+      phone: '(813) 555-0188',
+      role: 'EXTERNAL_FIELD_INSTALLER',
+      companyName: '', // No company name -> displays "James Cooper"
+      scopedRegions: ['Location 1', 'Phoenix Metro (PHX)'],
+      status: 'ACTIVE',
+      createdAt: '5/02/2026',
+    },
+  ];
+
+  const [systemUsersList, setSystemUsersList] = useState<AppUser[]>(defaultSystemUsers);
+
+  // Installer Display Name: Company Name if provided, otherwise Full Name
+  const getInstallerDisplayName = (user: AppUser): string => {
+    if (user.companyName && user.companyName.trim()) {
+      return user.companyName.trim();
+    }
+    return user.fullName.trim() || user.email;
+  };
+
+  // Get available installers strictly scoped to the specified region
+  const getAvailableInstallersForRegion = (regionName?: string): AppUser[] => {
+    return systemUsersList.filter(u => {
+      if (u.role !== 'EXTERNAL_FIELD_INSTALLER') return false;
+      if (u.status === 'INACTIVE') return false;
+      if (!regionName || u.scopedRegions.includes('GLOBAL') || u.scopedRegions.includes('Global (All Regions)')) return true;
+      return u.scopedRegions.some(r => r.toLowerCase().includes(regionName.toLowerCase()) || regionName.toLowerCase().includes(r.toLowerCase()));
+    });
+  };
 
   const isDark = theme === 'dark';
 
@@ -1668,6 +1785,7 @@ export default function App() {
     setEditJobNotes(job.jobNotes || '');
     setEditStreetAddress(job.streetAddress || '');
     setEditCityStateZip(job.cityStateZip || '');
+    setEditAssignedCrew(job.assignedCrew || 'Not Assigned');
     setIsEditingJobInfo(true);
   };
 
@@ -1687,6 +1805,7 @@ export default function App() {
       jobNotes: editJobNotes,
       streetAddress: editStreetAddress,
       cityStateZip: editCityStateZip,
+      assignedCrew: editAssignedCrew,
     };
 
     setSelectedJob(updatedJob);
@@ -1699,6 +1818,7 @@ export default function App() {
       summary: `Job Details & Metadata Updated for ${updatedJob.jobName}`,
       diffs: [
         { field: 'Job Name', from: selectedJob.jobName, to: editJobName },
+        { field: 'Assigned Crew / Installer', from: selectedJob.assignedCrew || 'Not Assigned', to: editAssignedCrew },
         { field: 'Target Install Date', from: selectedJob.targetInstallDate || 'None', to: editTargetInstallDate || 'None' },
         { field: 'Field Superintendent', from: selectedJob.fieldSuper || 'None', to: editFieldSuper || 'None' },
         { field: 'Street Address', from: selectedJob.streetAddress, to: editStreetAddress },
@@ -1706,6 +1826,30 @@ export default function App() {
     };
     setChangeLogs([newLog, ...changeLogs]);
     setIsEditingJobInfo(false);
+  };
+
+  const handleUpdateActivityAssignee = (jobId: string, activityId: string, assignee: string) => {
+    const targetJob = jobsData.find(j => j.id === jobId);
+    if (!targetJob) return;
+
+    const updatedActivities = targetJob.activities.map(a => a.id === activityId ? { ...a, assignedTo: assignee } : a);
+    const updatedJob = { ...targetJob, activities: updatedActivities };
+
+    if (selectedJob && selectedJob.id === jobId) {
+      setSelectedJob(updatedJob);
+    }
+    setJobsData(jobsData.map(j => j.id === jobId ? updatedJob : j));
+
+    const newLog: ChangeLogEntry = {
+      id: String(Date.now()),
+      timestamp: new Date().toLocaleString(),
+      changedBy: `${activeUserRole === 'SUBSCRIBER_ADMIN' ? 'Admin' : 'Scheduler'} (${activeUserRole})`,
+      summary: `Activity Assignee Updated: [${assignee}] on Job ${targetJob.jobName}`,
+      diffs: [
+        { field: 'Assignee', from: targetJob.activities.find(a => a.id === activityId)?.assignedTo || 'Not Assigned', to: assignee }
+      ]
+    };
+    setChangeLogs([newLog, ...changeLogs]);
   };
 
   // Activity Completion & Form Validation Guardrail
@@ -1874,11 +2018,74 @@ export default function App() {
   const handleSendExternalInvite = (e: React.FormEvent) => {
     e.preventDefault();
     if (!inviteEmail) return;
+
+    const newUser: AppUser = {
+      id: `u_${Date.now()}`,
+      fullName: inviteFullName.trim() || inviteEmail.split('@')[0],
+      email: inviteEmail.trim(),
+      phone: invitePhone.trim() || '(555) 000-0000',
+      role: inviteRole as any,
+      companyName: inviteCompany.trim(),
+      scopedRegions: inviteSelectedRegions.length > 0 ? inviteSelectedRegions : ['GLOBAL'],
+      status: 'ACTIVE',
+      createdAt: new Date().toLocaleDateString(),
+    };
+
+    setSystemUsersList([newUser, ...systemUsersList]);
+
+    const newLog: ChangeLogEntry = {
+      id: String(Date.now()),
+      timestamp: new Date().toLocaleString(),
+      changedBy: `${activeUserRole === 'SUBSCRIBER_ADMIN' ? 'Admin' : 'Office User'} (${activeUserRole})`,
+      summary: `User Account Created: [${getInstallerDisplayName(newUser)}] (${newUser.role})`,
+      diffs: [
+        { field: 'User Name / Company', from: 'None', to: getInstallerDisplayName(newUser) },
+        { field: 'Role & Scope', from: '-', to: `${newUser.role} • ${newUser.scopedRegions.join(', ')}` }
+      ]
+    };
+    setChangeLogs([newLog, ...changeLogs]);
+
     setInviteSentSuccess(true);
     setTimeout(() => {
       setInviteSentSuccess(false);
       setInviteEmail('');
+      setInviteFullName('');
+      setInviteCompany('');
+      setInvitePhone('');
+      setInviteSelectedRegions(['GLOBAL']);
     }, 3000);
+  };
+
+  const handleToggleUserStatus = (userId: string) => {
+    const user = systemUsersList.find(u => u.id === userId);
+    if (!user) return;
+    const nextStatus = user.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
+    setSystemUsersList(systemUsersList.map(u => u.id === userId ? { ...u, status: nextStatus } : u));
+    
+    const newLog: ChangeLogEntry = {
+      id: String(Date.now()),
+      timestamp: new Date().toLocaleString(),
+      changedBy: `${activeUserRole === 'SUBSCRIBER_ADMIN' ? 'Admin' : 'Office User'} (${activeUserRole})`,
+      summary: `User Status Updated: [${getInstallerDisplayName(user)}] ➔ ${nextStatus}`,
+      diffs: [{ field: 'Status', from: user.status, to: nextStatus }]
+    };
+    setChangeLogs([newLog, ...changeLogs]);
+  };
+
+  const handleDeleteUser = (userId: string) => {
+    const user = systemUsersList.find(u => u.id === userId);
+    if (!user) return;
+    if (confirm(`Are you sure you want to remove user account "${getInstallerDisplayName(user)}"?`)) {
+      setSystemUsersList(systemUsersList.filter(u => u.id !== userId));
+      const newLog: ChangeLogEntry = {
+        id: String(Date.now()),
+        timestamp: new Date().toLocaleString(),
+        changedBy: `${activeUserRole === 'SUBSCRIBER_ADMIN' ? 'Admin' : 'Office User'} (${activeUserRole})`,
+        summary: `User Account Removed: [${getInstallerDisplayName(user)}]`,
+        diffs: [{ field: 'User Removed', from: user.email, to: 'Deleted' }]
+      };
+      setChangeLogs([newLog, ...changeLogs]);
+    }
   };
 
   const handleSaveFormPacket = (e: React.FormEvent) => {
@@ -2687,6 +2894,7 @@ export default function App() {
       } else {
         setNewActivityName('');
       }
+      setNewActivityAssignee('Not Assigned');
       setActiveModal('create');
     } else if (activeNav === 'settings' && settingsCategory === 'users') {
       setUsersSubSection('External Users');
@@ -2810,7 +3018,7 @@ export default function App() {
         startDate: 'No Date',
         schedTime: '9:00am',
         duration: actDuration,
-        assignedTo: actRole,
+        assignedTo: newActivityAssignee || 'Not Assigned',
         notes: `Created from active Activity Catalog [${activeCatalogItem?.shortCode || 'ACT'}]`
       };
       const updated = {
@@ -3732,6 +3940,10 @@ export default function App() {
                       <div><span className="text-slate-400 font-semibold block">Builder Phase:</span> <span>{selectedJob.builderPhase || 'PHASE ONE'}</span></div>
                       <div><span className="text-slate-400 font-semibold block">Field Super:</span> <span>{selectedJob.fieldSuper || 'Mark Stevens'}</span></div>
                       <div><span className="text-slate-400 font-semibold block">Designer:</span> <span>{selectedJob.designer || 'Elena Rostova'}</span></div>
+                      <div>
+                        <span className="text-slate-400 font-semibold block">Primary Installer / Crew:</span>
+                        <strong className="text-emerald-600 dark:text-emerald-400 font-bold">{selectedJob.assignedCrew || 'Not Assigned'}</strong>
+                      </div>
                     </div>
 
                     {selectedJob.jobNotes && (
@@ -3817,7 +4029,7 @@ export default function App() {
                         <th className="p-3 font-bold border-r border-white/20">Status</th>
                         <th className="p-3 font-bold border-r border-white/20 text-center">Start Date</th>
                         <th className="p-3 font-bold border-r border-white/20 text-center">Sched Time</th>
-                        <th className="p-3 font-bold border-r border-white/20">Assigned To</th>
+                        <th className="p-3 font-bold border-r border-white/20">Assigned Crew / Installer</th>
                         <th className="p-3 font-bold text-center">Action</th>
                       </tr>
                     </thead>
@@ -3855,7 +4067,38 @@ export default function App() {
                             </td>
                             <td className="p-3 text-center font-medium">{act.startDate}</td>
                             <td className="p-3 text-center text-slate-500">{act.schedTime || '--'}</td>
-                            <td className="p-3 text-slate-700 dark:text-slate-300 font-semibold">{act.assignedTo || 'Unassigned'}</td>
+                            <td className="p-3">
+                              {activeUserRole !== 'EXTERNAL_FIELD_INSTALLER' && activeUserRole !== 'EXTERNAL_SUBCONTRACTOR' ? (
+                                <select
+                                  value={act.assignedTo || 'Not Assigned'}
+                                  onChange={(e) => handleUpdateActivityAssignee(selectedJob.id, act.id, e.target.value)}
+                                  className={`p-1.5 border rounded-lg text-xs font-semibold cursor-pointer transition-colors ${
+                                    act.assignedTo && act.assignedTo !== 'Not Assigned'
+                                      ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700 font-bold'
+                                      : 'bg-white dark:bg-slate-900 text-slate-500 border-slate-300 dark:border-slate-700'
+                                  }`}
+                                  title="Assign installer or crew for this job activity"
+                                >
+                                  <option value="Not Assigned">Not Assigned</option>
+                                  {getAvailableInstallersForRegion(selectedJob.regionName).map((installer) => {
+                                    const dName = getInstallerDisplayName(installer);
+                                    return (
+                                      <option key={installer.id} value={dName}>
+                                        {dName}
+                                      </option>
+                                    );
+                                  })}
+                                  {/* If legacy assignee is present and not matching any current installer */}
+                                  {act.assignedTo && act.assignedTo !== 'Not Assigned' && !getAvailableInstallersForRegion(selectedJob.regionName).some(i => getInstallerDisplayName(i) === act.assignedTo) && (
+                                    <option value={act.assignedTo}>{act.assignedTo} (Legacy)</option>
+                                  )}
+                                </select>
+                              ) : (
+                                <span className="font-semibold text-slate-700 dark:text-slate-300">
+                                  {act.assignedTo || 'Not Assigned'}
+                                </span>
+                              )}
+                            </td>
                             <td className="p-3 text-center">
                               {act.status !== 'Complete' ? (
                                 <button
@@ -5765,7 +6008,7 @@ export default function App() {
                           <div className="p-4 bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800 rounded-lg flex items-center justify-between">
                             <div>
                               <strong className="block text-sm text-purple-900 dark:text-purple-200">External Category User Security Rule</strong>
-                              <span className="text-xs text-slate-500">External user invites can strictly only be initiated by Internal Office Users.</span>
+                              <span className="text-xs text-slate-500">External installer & contractor invites can strictly only be initiated by Internal Office Users or Admins.</span>
                             </div>
                             <span className="px-3 py-1 bg-purple-200 text-purple-900 font-bold rounded text-xs">Strict Office Control</span>
                           </div>
@@ -5773,57 +6016,212 @@ export default function App() {
                           {inviteSentSuccess && (
                             <div className="p-4 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-lg text-xs flex items-center space-x-2 font-semibold">
                               <CheckCircle2 className="w-5 h-5 text-emerald-600" />
-                              <span>Emailed invite sent to external user with temporary setup link!</span>
+                              <span>User account created & invite sent with regional access permissions!</span>
                             </div>
                           )}
 
                           <form onSubmit={handleSendExternalInvite} className="p-6 border rounded-xl bg-slate-50 dark:bg-slate-950 space-y-4">
-                            <h4 className="font-bold text-sm flex items-center space-x-2 text-blue-600">
+                            <h4 className="font-bold text-sm flex items-center space-x-2 text-blue-600 dark:text-blue-400">
                               <UserPlus className="w-4 h-4" />
-                              <span>Send Emailed Invite to External User</span>
+                              <span>Create & Invite External Installer / Contractor Account</span>
                             </h4>
-                            <div className="grid grid-cols-2 gap-4 text-xs">
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
                               <div>
-                                <label className="block font-bold mb-1">User Email Address</label>
+                                <label className="block font-bold mb-1">Installer / Contact Full Name *</label>
+                                <input
+                                  type="text"
+                                  required
+                                  placeholder="e.g. Marco Rodriguez, Dave Patterson"
+                                  value={inviteFullName}
+                                  onChange={(e) => setInviteFullName(e.target.value)}
+                                  className="w-full p-2.5 border rounded-lg text-slate-900 dark:bg-slate-900 dark:text-slate-100 font-bold"
+                                />
+                              </div>
+
+                              <div>
+                                <label className="block font-bold mb-1">User Email Address *</label>
                                 <input
                                   type="email"
                                   required
                                   placeholder="installer.crew@contractor.com"
                                   value={inviteEmail}
                                   onChange={(e) => setInviteEmail(e.target.value)}
-                                  className="w-full p-2.5 border rounded text-slate-900 dark:bg-slate-900 dark:text-slate-100 font-semibold"
+                                  className="w-full p-2.5 border rounded-lg text-slate-900 dark:bg-slate-900 dark:text-slate-100 font-semibold"
                                 />
                               </div>
 
                               <div>
-                                <label className="block font-bold mb-1">Assigned External Role</label>
+                                <label className="block font-bold mb-1">Phone Number</label>
+                                <input
+                                  type="text"
+                                  placeholder="(555) 000-0000"
+                                  value={invitePhone}
+                                  onChange={(e) => setInvitePhone(e.target.value)}
+                                  className="w-full p-2.5 border rounded-lg text-slate-900 dark:bg-slate-900 dark:text-slate-100"
+                                />
+                              </div>
+
+                              <div>
+                                <label className="block font-bold mb-1">Assigned External Role *</label>
                                 <select
                                   value={inviteRole}
                                   onChange={(e) => setInviteRole(e.target.value)}
-                                  className="w-full p-2.5 border rounded font-semibold text-slate-900 dark:bg-slate-900 dark:text-slate-100"
+                                  className="w-full p-2.5 border rounded-lg font-bold text-slate-900 dark:bg-slate-900 dark:text-slate-100"
                                 >
-                                  <option value="EXTERNAL_CREW_ADMIN">EXTERNAL_CREW_ADMIN</option>
-                                  <option value="EXTERNAL_FIELD_INSTALLER">EXTERNAL_FIELD_INSTALLER</option>
-                                  <option value="EXTERNAL_BUILDER_SUPER">EXTERNAL_BUILDER_SUPER</option>
-                                  <option value="EXTERNAL_SUBCONTRACTOR">EXTERNAL_SUBCONTRACTOR</option>
+                                  <option value="EXTERNAL_FIELD_INSTALLER">EXTERNAL_FIELD_INSTALLER (Field Crew / Subcontractor)</option>
+                                  <option value="EXTERNAL_CREW_ADMIN">EXTERNAL_CREW_ADMIN (Crew Lead / Dispatcher)</option>
+                                  <option value="EXTERNAL_BUILDER_SUPER">EXTERNAL_BUILDER_SUPER (Site Superintendent)</option>
+                                  <option value="EXTERNAL_SUBCONTRACTOR">EXTERNAL_SUBCONTRACTOR (Trades / Plumbing)</option>
                                 </select>
+                              </div>
+
+                              {/* Company Name (For Installers / Subcontractors) */}
+                              <div className="md:col-span-2 p-3 bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg space-y-1.5">
+                                <label className="block font-bold text-blue-900 dark:text-blue-300">
+                                  Company Name <span className="font-normal text-slate-500">(Optional for Installers / Contractors)</span>
+                                </label>
+                                <input
+                                  type="text"
+                                  placeholder="e.g. Apex Granite Pro LLC, Titan Stone Installations (Leave blank for independent 1099)"
+                                  value={inviteCompany}
+                                  onChange={(e) => setInviteCompany(e.target.value)}
+                                  className="w-full p-2.5 border rounded-lg font-bold text-slate-900 dark:bg-slate-900 dark:text-slate-100 bg-white"
+                                />
+                                <p className="text-[11px] text-blue-800 dark:text-blue-300 font-medium">
+                                  💡 <strong>Display Rule:</strong> When assigning crews or installers on jobs, the system displays the <strong>Company Name</strong> if provided; if no company name is entered, it displays the installer's <strong>Full Name</strong>.
+                                </p>
+                              </div>
+
+                              {/* Region Scoping Multi-Select */}
+                              <div className="md:col-span-2 space-y-1.5">
+                                <label className="block font-bold">
+                                  Assigned Operating Region(s) / Plant Scope *
+                                </label>
+                                <div className="flex flex-wrap gap-2">
+                                  {['GLOBAL', 'Phoenix Metro (PHX)', 'Tucson East (TUC)', 'Denver North (DEN)', 'Tampa Plant (TPA)', 'Location 1'].map((reg) => {
+                                    const isSelected = inviteSelectedRegions.includes(reg);
+                                    return (
+                                      <button
+                                        key={reg}
+                                        type="button"
+                                        onClick={() => {
+                                          if (reg === 'GLOBAL') {
+                                            setInviteSelectedRegions(['GLOBAL']);
+                                          } else {
+                                            const withoutGlobal = inviteSelectedRegions.filter(r => r !== 'GLOBAL');
+                                            if (isSelected) {
+                                              const remaining = withoutGlobal.filter(r => r !== reg);
+                                              setInviteSelectedRegions(remaining.length > 0 ? remaining : ['GLOBAL']);
+                                            } else {
+                                              setInviteSelectedRegions([...withoutGlobal, reg]);
+                                            }
+                                          }
+                                        }}
+                                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                                          isSelected
+                                            ? 'bg-blue-600 text-white shadow-xs'
+                                            : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border hover:bg-slate-100 dark:hover:bg-slate-800'
+                                        }`}
+                                      >
+                                        {reg === 'GLOBAL' ? '🌐 Global (All Regions)' : reg}
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                                <span className="text-[11px] text-slate-500 block">
+                                  Installers will strictly only appear in schedule & task assignment dropdowns for jobs matching their scoped regions.
+                                </span>
                               </div>
                             </div>
 
                             <div className="flex justify-end pt-2">
-                              <button type="submit" className="bg-blue-600 text-white font-bold px-6 py-2.5 rounded-lg text-xs cursor-pointer hover:bg-blue-500 shadow-md">
-                                Send Emailed Invite
+                              <button
+                                type="submit"
+                                className="bg-blue-600 text-white font-bold px-6 py-2.5 rounded-lg text-xs cursor-pointer hover:bg-blue-500 shadow-md flex items-center space-x-1.5"
+                              >
+                                <UserPlus className="w-4 h-4" />
+                                <span>Create & Invite User Account</span>
                               </button>
                             </div>
                           </form>
 
-                          <div className="divide-y text-xs">
-                            <div className="py-3 flex items-center justify-between">
-                              <div>
-                                <strong className="text-sm">crew.lead@subcontractor.com</strong>
-                                <span className="block text-slate-500 mt-0.5">EXTERNAL_CREW_ADMIN • Scoped to Phoenix Region</span>
-                              </div>
-                              <span className="px-3 py-1 bg-purple-100 text-purple-800 rounded font-bold">Invited by Admin</span>
+                          {/* List of Active External Users & Installers */}
+                          <div className="space-y-3">
+                            <h4 className="font-bold text-xs uppercase tracking-wider text-slate-500">
+                              Active & Invited External Accounts ({systemUsersList.filter(u => u.role.startsWith('EXTERNAL_')).length})
+                            </h4>
+
+                            <div className="divide-y rounded-xl border bg-white dark:bg-slate-900 overflow-hidden text-xs">
+                              {systemUsersList
+                                .filter(u => u.role.startsWith('EXTERNAL_'))
+                                .map((u) => {
+                                  const displayName = getInstallerDisplayName(u);
+                                  return (
+                                    <div key={u.id} className="p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 hover:bg-slate-50 dark:hover:bg-slate-950/50 transition-colors">
+                                      <div className="space-y-1">
+                                        <div className="flex items-center space-x-2 flex-wrap gap-y-1">
+                                          <strong className="text-sm text-slate-900 dark:text-slate-100">
+                                            {displayName}
+                                          </strong>
+                                          {u.companyName && (
+                                            <span className="text-[11px] text-slate-500">
+                                              (Contact: {u.fullName})
+                                            </span>
+                                          )}
+                                          <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300">
+                                            {u.role}
+                                          </span>
+                                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                                            u.status === 'ACTIVE'
+                                              ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
+                                              : 'bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
+                                          }`}>
+                                            {u.status}
+                                          </span>
+                                        </div>
+
+                                        <div className="flex items-center space-x-4 text-slate-500 text-[11px]">
+                                          <span>Email: <strong>{u.email}</strong></span>
+                                          {u.phone && <span>Phone: <strong>{u.phone}</strong></span>}
+                                        </div>
+
+                                        <div className="flex items-center space-x-1 text-[11px] pt-0.5">
+                                          <span className="text-slate-400">Scoped Regions:</span>
+                                          <div className="flex flex-wrap gap-1">
+                                            {u.scopedRegions.map(reg => (
+                                              <span key={reg} className="px-1.5 py-0.2 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold text-[10px]">
+                                                {reg}
+                                              </span>
+                                            ))}
+                                          </div>
+                                        </div>
+                                      </div>
+
+                                      <div className="flex items-center space-x-2 w-full md:w-auto justify-end">
+                                        <button
+                                          type="button"
+                                          onClick={() => handleToggleUserStatus(u.id)}
+                                          className={`px-3 py-1.5 rounded-lg text-xs font-bold cursor-pointer transition-colors ${
+                                            u.status === 'ACTIVE'
+                                              ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
+                                              : 'bg-emerald-600 hover:bg-emerald-500 text-white'
+                                          }`}
+                                        >
+                                          {u.status === 'ACTIVE' ? 'Deactivate' : 'Activate'}
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={() => handleDeleteUser(u.id)}
+                                          className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/40 cursor-pointer"
+                                          title="Delete user account"
+                                        >
+                                          <Trash2 className="w-4 h-4" />
+                                        </button>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
                             </div>
                           </div>
                         </div>
@@ -5861,13 +6259,37 @@ export default function App() {
                       )}
 
                       {usersSubSection === 'Users' && (
-                        <div className="divide-y text-xs">
-                          <div className="py-3 flex items-center justify-between">
-                            <div>
-                              <strong className="text-sm">admin@granitecraft.com</strong>
-                              <span className="block text-slate-500 mt-0.5">SUBSCRIBER_ADMIN • Regions: All (PHX, TUC, DEN)</span>
-                            </div>
-                            <span className="px-3 py-1 bg-emerald-100 text-emerald-800 font-bold rounded">Active SSO</span>
+                        <div className="space-y-4 text-xs">
+                          <div className="divide-y rounded-xl border bg-white dark:bg-slate-900 overflow-hidden">
+                            {systemUsersList.map((u) => {
+                              const displayName = getInstallerDisplayName(u);
+                              return (
+                                <div key={u.id} className="p-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-950/50 transition-colors">
+                                  <div className="space-y-1">
+                                    <div className="flex items-center space-x-2">
+                                      <strong className="text-sm text-slate-900 dark:text-slate-100">{displayName}</strong>
+                                      {u.companyName && <span className="text-[11px] text-slate-400">({u.fullName})</span>}
+                                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                                        u.role.startsWith('EXTERNAL_')
+                                          ? 'bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300 font-mono'
+                                          : 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300 font-mono'
+                                      }`}>
+                                        {u.role}
+                                      </span>
+                                    </div>
+                                    <div className="flex items-center space-x-4 text-slate-500 text-[11px]">
+                                      <span>Email: <strong>{u.email}</strong></span>
+                                      <span>Regions: <strong>{u.scopedRegions.join(', ')}</strong></span>
+                                    </div>
+                                  </div>
+                                  <span className={`px-3 py-1 font-bold rounded text-xs ${
+                                    u.status === 'ACTIVE' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-slate-100 text-slate-600'
+                                  }`}>
+                                    {u.status}
+                                  </span>
+                                </div>
+                              );
+                            })}
                           </div>
                         </div>
                       )}
@@ -7028,6 +7450,30 @@ export default function App() {
                 </div>
 
                 <div>
+                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    Primary Assigned Installer / Crew
+                  </label>
+                  <select
+                    value={editAssignedCrew}
+                    onChange={(e) => setEditAssignedCrew(e.target.value)}
+                    className="w-full p-2 border rounded font-bold text-slate-900 dark:bg-slate-950 dark:text-slate-100"
+                  >
+                    <option value="Not Assigned">Not Assigned</option>
+                    {getAvailableInstallersForRegion(selectedJob.regionName).map((inst) => {
+                      const dName = getInstallerDisplayName(inst);
+                      return (
+                        <option key={inst.id} value={dName}>
+                          {dName} {inst.companyName ? `(${inst.fullName})` : ''}
+                        </option>
+                      );
+                    })}
+                    {editAssignedCrew && editAssignedCrew !== 'Not Assigned' && !getAvailableInstallersForRegion(selectedJob.regionName).some(i => getInstallerDisplayName(i) === editAssignedCrew) && (
+                      <option value={editAssignedCrew}>{editAssignedCrew} (Legacy)</option>
+                    )}
+                  </select>
+                </div>
+
+                <div className="md:col-span-2">
                   <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Physical Street Address</label>
                   <input
                     type="text"
@@ -7477,6 +7923,30 @@ export default function App() {
                         </div>
                       );
                     })()}
+
+                    <div>
+                      <label className="block font-bold mb-1">
+                        Assigned Installer / Crew <span className="text-slate-400 font-normal">(Default: Not Assigned)</span>
+                      </label>
+                      <select
+                        value={newActivityAssignee}
+                        onChange={(e) => setNewActivityAssignee(e.target.value)}
+                        className="w-full p-2.5 border rounded-lg font-bold text-slate-900 dark:bg-slate-950 dark:text-slate-100 dark:border-slate-800"
+                      >
+                        <option value="Not Assigned">Not Assigned</option>
+                        {getAvailableInstallersForRegion(selectedJob?.regionName).map((inst) => {
+                          const dName = getInstallerDisplayName(inst);
+                          return (
+                            <option key={inst.id} value={dName}>
+                              {dName} {inst.companyName ? `(${inst.fullName})` : ''}
+                            </option>
+                          );
+                        })}
+                      </select>
+                      <span className="text-[10px] text-slate-400 mt-1 block">
+                        Displays Company Name if provided, otherwise Full Name. Scoped strictly to installers active in {selectedJob?.regionName || 'this region'}.
+                      </span>
+                    </div>
                   </div>
                 </>
               )}
