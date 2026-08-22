@@ -1310,6 +1310,26 @@ export default function App() {
 
   const defaultSystemUsers: AppUser[] = [
     {
+      id: 'u_global_admin',
+      fullName: 'Global System Administrator',
+      email: 'mybidbook2026_gmail.com#ext#@mybidbook2026gmail.onmicrosoft.com',
+      phone: '(813) 555-0100',
+      role: 'SYSTEM_ADMIN',
+      scopedRegions: ['GLOBAL', 'Location 1', 'Phoenix Metro (PHX)', 'Tucson East (TUC)', 'Denver North (DEN)', 'Tampa Plant (TPA)'],
+      status: 'ACTIVE',
+      createdAt: '1/01/2026',
+    },
+    {
+      id: 'u_global_admin_alias',
+      fullName: 'Global System Administrator',
+      email: 'mybidbook2026@gmail.com',
+      phone: '(813) 555-0100',
+      role: 'SYSTEM_ADMIN',
+      scopedRegions: ['GLOBAL', 'Location 1', 'Phoenix Metro (PHX)', 'Tucson East (TUC)', 'Denver North (DEN)', 'Tampa Plant (TPA)'],
+      status: 'ACTIVE',
+      createdAt: '1/01/2026',
+    },
+    {
       id: 'u_admin',
       fullName: 'Robert Sterling',
       email: 'admin@granitecraft.com',
@@ -1431,6 +1451,9 @@ export default function App() {
       return u.scopedRegions.some(r => r.toLowerCase().includes(regionName.toLowerCase()) || regionName.toLowerCase().includes(r.toLowerCase()));
     });
   };
+
+  // Helper to check if current logged user is Global System Administrator (Super Admin)
+  const isGlobalSuperAdmin = isDemoBypass || authenticatedUserActualRole === 'SYSTEM_ADMIN';
 
   // Helper to check if current logged user has Global or Subscriber Admin rights
   const isActualAdmin = isDemoBypass || authenticatedUserActualRole === 'SUBSCRIBER_ADMIN' || authenticatedUserActualRole === 'SYSTEM_ADMIN';
@@ -3528,8 +3551,8 @@ export default function App() {
 
           {/* Right Utilities (Super Admin Role Simulator, Theme & Region) */}
           <div className="flex items-center space-x-3 text-xs">
-            {/* Global Admin Role Simulator / Impersonation Tool (Strictly restricted to Global & Subscriber Admins) */}
-            {isActualAdmin && (
+            {/* Global Admin Role Simulator / Impersonation Tool (Strictly restricted to Global Administrator / SYSTEM_ADMIN) */}
+            {isGlobalSuperAdmin && (
               <div className="flex items-center space-x-1.5 bg-white/10 px-2.5 py-1.5 rounded-md border border-white/20 shadow-xs">
                 <span title="Super Admin Impersonation: In production, role switching is strictly restricted to Global Administrators (Super Admins). All standard users are locked to their login role.">
                   <Shield className="w-3.5 h-3.5 text-amber-300" />
