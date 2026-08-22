@@ -998,8 +998,8 @@ export default function App() {
 
   // Self-Service Entra ID Auth Config State
   const [authProvider, setAuthProvider] = useState<'EMAIL_PASSWORD' | 'ENTRA_ID' | 'HYBRID'>('HYBRID');
-  const [entraTenantId, setEntraTenantId] = useState('72f988bf-86f1-41af-91ab-2d7cd011db47');
-  const [entraClientId, setEntraClientId] = useState('11111111-2222-3333-4444-555555555555');
+  const [entraTenantId, setEntraTenantId] = useState('13155f95-7b25-4c20-9939-a8bb2d166da5');
+  const [entraClientId, setEntraClientId] = useState('dfbcab23-4dbc-4bd2-a35b-edc5b71b8b37');
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [inviteFullName, setInviteFullName] = useState('');
   const [inviteEmail, setInviteEmail] = useState('');
