@@ -3233,16 +3233,18 @@ export default function App() {
             </div>
           </div>
 
-          {/* Right Utilities (Role Switcher, Theme & Region) */}
+          {/* Right Utilities (Super Admin Role Simulator, Theme & Region) */}
           <div className="flex items-center space-x-3 text-xs">
-            {/* Active Role Simulator */}
+            {/* Global Admin Role Simulator / Impersonation Tool */}
             <div className="flex items-center space-x-1.5 bg-white/10 px-2.5 py-1.5 rounded-md border border-white/20 shadow-xs">
-              <Shield className="w-3.5 h-3.5 text-blue-200" />
+              <span title="Super Admin Impersonation: In production, role switching is strictly restricted to Global Administrators (Super Admins). All standard users are locked to their login role.">
+                <Shield className="w-3.5 h-3.5 text-amber-300" />
+              </span>
               <select
                 value={activeUserRole}
                 onChange={(e) => setActiveUserRole(e.target.value as any)}
                 className="bg-transparent text-[11px] font-bold text-white focus:outline-none cursor-pointer"
-                title="Simulate Role (RBAC)"
+                title="Super Admin Impersonation Mode: Test UI across roles (Global Admin Only)"
               >
                 <option value="SYSTEM_ADMIN" className="text-slate-900">🛡️ Global Administrator (Super Admin)</option>
                 <option value="SUBSCRIBER_ADMIN" className="text-slate-900">👑 Subscriber-Level Admin</option>
@@ -3253,6 +3255,16 @@ export default function App() {
                 <option value="EXTERNAL_FIELD_INSTALLER" className="text-slate-900">🚐 External Field Crew (Apex Crew A)</option>
                 <option value="EXTERNAL_SUBCONTRACTOR" className="text-slate-900">🛠️ Subcontractor</option>
               </select>
+              {activeUserRole !== 'SYSTEM_ADMIN' && activeUserRole !== 'SUBSCRIBER_ADMIN' && (
+                <button
+                  type="button"
+                  onClick={() => setActiveUserRole('SYSTEM_ADMIN')}
+                  className="px-1.5 py-0.5 bg-amber-400 text-slate-950 hover:bg-amber-300 rounded text-[9px] font-black cursor-pointer ml-1 transition-all"
+                  title="Return to Global Administrator clearance"
+                >
+                  Exit Preview
+                </button>
+              )}
             </div>
 
             <button
