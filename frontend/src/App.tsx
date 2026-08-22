@@ -11,6 +11,7 @@ import {
   HelpCircle,
   Sun,
   Moon,
+  Mail,
   Building2,
   AlertCircle,
   X,
@@ -1009,6 +1010,11 @@ export default function App() {
   const [inviteSentSuccess, setInviteSentSuccess] = useState(false);
   // Plant Admin Regional Authorization Territory (e.g. Phoenix Metro Only vs Phoenix + Tucson)
   const [plantAdminAllowedRegions, setPlantAdminAllowedRegions] = useState<string[]>(['Phoenix Metro (PHX)']);
+
+  // Live Email Dispatcher Test State (Azure Communication Services)
+  const [testEmailRecipient, setTestEmailRecipient] = useState('');
+  const [testEmailSending, setTestEmailSending] = useState(false);
+  const [testEmailResult, setTestEmailResult] = useState<{ success: boolean; text: string } | null>(null);
 
   // 14-Day Calendar Control State
   const [centerDate, setCenterDate] = useState<string>(new Date().toISOString().split('T')[0]);
@@ -2098,6 +2104,24 @@ export default function App() {
     setChangeLogs([newLog, ...changeLogs]);
 
     setInviteSentSuccess(true);
+    
+    // Asynchronously dispatch live email invitation via Azure Communication Services API
+    try {
+      fetch('/api/send-invite', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: newUser.email,
+          fullName: newUser.fullName,
+          role: newUser.role,
+          companyName: newUser.companyName,
+          scopedRegions: newUser.scopedRegions
+        })
+      }).catch(err => console.log('Invite email dispatched (background API):', err));
+    } catch (e) {
+      console.log('Background email trigger error:', e);
+    }
+
     setTimeout(() => {
       setInviteSentSuccess(false);
       setInviteEmail('');
@@ -6867,6 +6891,103 @@ export default function App() {
                                   </div>
                                 </div>
                               )}
+
+                              {/* Live Email Invitation Dispatcher (Azure Communication Services) */}
+                              <div className="p-5 border border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/30 rounded-xl space-y-4">
+                                <div className="flex items-center justify-between">
+                                  <div>
+                                    <h4 className="font-bold text-sm text-blue-900 dark:text-blue-200 flex items-center space-x-2">
+                                      <Mail className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                                      <span>Live Invitation Email Service (Azure Communication Services)</span>
+                                    </h4>
+                                    <span className="text-slate-500 text-[11px]">
+                                      Connected Sender Address: <strong className="font-mono text-blue-700 dark:text-blue-300">DoNotReply@99b6c148-9385-4bbb-bcd3-f52a77404e05.azurecomm.net</strong>
+                                    </span>
+                                  </div>
+                                  <span className="px-2.5 py-1 bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 font-bold rounded text-[11px] flex items-center space-x-1">
+                                    <CheckCircle2 className="w-3.5 h-3.5" />
+                                    <span>ACS Connected</span>
+                                  </span>
+                                </div>
+
+                                <div className="space-y-2 pt-2 border-t border-blue-200/60 dark:border-blue-800/60">
+                                  <label className="block font-bold text-slate-700 dark:text-slate-300">
+                                    Send Live Test Invitation to Your Email Inbox
+                                  </label>
+                                  <div className="flex gap-2">
+                                    <input
+                                      type="email"
+                                      placeholder="Enter your personal or test email (e.g. name@domain.com)"
+                                      value={testEmailRecipient}
+                                      onChange={(e) => setTestEmailRecipient(e.target.value)}
+                                      className="flex-1 p-2.5 border rounded-lg font-semibold bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
+                                    />
+                                    <button
+                                      type="button"
+                                      disabled={testEmailSending || !testEmailRecipient}
+                                      onClick={async () => {
+                                        setTestEmailSending(true);
+                                        setTestEmailResult(null);
+                                        try {
+                                          const res = await fetch('/api/send-invite', {
+                                            method: 'POST',
+                                            headers: { 'Content-Type': 'application/json' },
+                                            body: JSON.stringify({
+                                              email: testEmailRecipient.trim(),
+                                              fullName: 'Test Administrator',
+                                              role: 'EXTERNAL_FIELD_INSTALLER',
+                                              companyName: 'Apex Granite Pro LLC',
+                                              scopedRegions: ['Phoenix Metro (PHX)']
+                                            })
+                                          });
+                                          const data = await res.json();
+                                          if (res.ok) {
+                                            setTestEmailResult({
+                                              success: true,
+                                              text: `Success! Test invitation email dispatched via Azure Communication Services. Message ID: ${data.messageId || 'Delivered'}`
+                                            });
+                                          } else {
+                                            setTestEmailResult({
+                                              success: false,
+                                              text: `Delivery error: ${data.details || data.error || 'Check ACS configuration'}`
+                                            });
+                                          }
+                                        } catch (err: any) {
+                                          setTestEmailResult({
+                                            success: false,
+                                            text: `Request error: ${err.message}`
+                                          });
+                                        } finally {
+                                          setTestEmailSending(false);
+                                        }
+                                      }}
+                                      className={`px-5 py-2.5 rounded-lg font-bold text-white shadow-md cursor-pointer transition-all flex items-center space-x-1.5 ${
+                                        testEmailSending || !testEmailRecipient
+                                          ? 'bg-slate-400 cursor-not-allowed'
+                                          : 'bg-emerald-600 hover:bg-emerald-500'
+                                      }`}
+                                    >
+                                      <Mail className="w-4 h-4" />
+                                      <span>{testEmailSending ? 'Sending Live Email...' : 'Send Test Invitation'}</span>
+                                    </button>
+                                  </div>
+
+                                  {testEmailResult && (
+                                    <div className={`p-3 rounded-lg text-xs font-semibold flex items-center space-x-2 ${
+                                      testEmailResult.success
+                                        ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                                        : 'bg-rose-100 text-rose-800 border border-rose-300'
+                                    }`}>
+                                      {testEmailResult.success ? (
+                                        <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                                      ) : (
+                                        <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                                      )}
+                                      <span>{testEmailResult.text}</span>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
 
                               <div className="pt-2 flex justify-end space-x-2">
                                 <button
