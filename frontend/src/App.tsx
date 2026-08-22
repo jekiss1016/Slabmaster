@@ -1,4 +1,4 @@
-import React, { useState, ChangeEvent } from 'react';
+import React, { useState, useEffect, ChangeEvent } from 'react';
 import {
   Search,
   Eye,
@@ -270,6 +270,13 @@ export default function App() {
   // Active Role Simulator (RBAC)
   const [activeUserRole, setActiveUserRole] = useState<'SUBSCRIBER_ADMIN' | 'INTERNAL_OFFICE_USER' | 'INTERNAL_ESTIMATOR' | 'INTERNAL_FIELD_INSTALLER' | 'EXTERNAL_CREW_ADMIN' | 'EXTERNAL_FIELD_INSTALLER' | 'EXTERNAL_SUBCONTRACTOR' | 'SYSTEM_ADMIN'>('SUBSCRIBER_ADMIN');
   const [activeAssigneeName, setActiveAssigneeName] = useState('Apex Install Crew A');
+
+  // Microsoft Entra ID Authentication & Session Gate
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [authLoading, setAuthLoading] = useState<boolean>(true);
+  const [authenticatedUserEmail, setAuthenticatedUserEmail] = useState<string | null>(null);
+  const [unauthorizedError, setUnauthorizedError] = useState<string | null>(null);
+  const [isDemoBypass, setIsDemoBypass] = useState<boolean>(false);
 
   // Subscriber Custom Branding State
   const [subscriberName, setSubscriberName] = useState('GraniteCraft Fabrication Inc.');
@@ -1424,6 +1431,49 @@ export default function App() {
     }
     return plantAdminAllowedRegions;
   };
+
+  // Microsoft Entra ID Authentication Detector (Azure Static Web Apps /.auth/me)
+  useEffect(() => {
+    async function checkAuthSession() {
+      try {
+        const response = await fetch('/.auth/me');
+        if (response.ok) {
+          const payload = await response.json();
+          if (payload && payload.clientPrincipal) {
+            const userEmail = (payload.clientPrincipal.userDetails || '').toLowerCase();
+            setAuthenticatedUserEmail(userEmail);
+            
+            // Check if user exists in database / systemUsersList
+            const matchedUser = systemUsersList.find(u => u.email.toLowerCase() === userEmail);
+            if (matchedUser) {
+              if (matchedUser.status === 'INACTIVE') {
+                setUnauthorizedError(`Your SlabMaster account (${userEmail}) is currently deactivated. Please contact your Plant Administrator.`);
+                setIsAuthenticated(false);
+              } else {
+                setActiveUserRole(matchedUser.role);
+                setActiveAssigneeName(getInstallerDisplayName(matchedUser));
+                setIsAuthenticated(true);
+                setUnauthorizedError(null);
+              }
+            } else {
+              // User authenticated with Microsoft, but not provisioned in SlabMaster DB
+              setUnauthorizedError(`Microsoft identity verified (${userEmail}), but this account is not provisioned in SlabMaster. Please ask your Global or Plant Administrator to add your account under Users & Roles.`);
+              setIsAuthenticated(false);
+            }
+          } else {
+            // Not authenticated via Azure SWA
+            setIsAuthenticated(false);
+          }
+        }
+      } catch (err) {
+        console.log('Auth check error / Local dev bypass:', err);
+        setIsAuthenticated(false);
+      } finally {
+        setAuthLoading(false);
+      }
+    }
+    checkAuthSession();
+  }, []);
 
   const isDark = theme === 'dark';
 
@@ -3215,6 +3265,98 @@ export default function App() {
     return '+ Create';
   };
 
+  // 1. Loading Screen while verifying Microsoft Entra ID Session
+  if (authLoading) {
+    return (
+      <div className={`min-h-screen flex flex-col items-center justify-center ${isDark ? 'bg-slate-950 text-slate-100' : 'bg-slate-900 text-white'}`}>
+        <div className="flex flex-col items-center space-y-4">
+          <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+          <span className="text-sm font-semibold tracking-wide text-slate-300">Verifying Microsoft Entra ID Authentication...</span>
+        </div>
+      </div>
+    );
+  }
+
+  // 2. Corporate Login Screen (Enforced for Unauthenticated Users)
+  if (!isAuthenticated && !isDemoBypass) {
+    return (
+      <div className={`min-h-screen flex flex-col items-center justify-center p-4 ${isDark ? 'bg-slate-950' : 'bg-slate-900'}`}>
+        <div className="w-full max-w-md bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 p-8 space-y-6">
+          
+          {/* Logo & Platform Header */}
+          <div className="text-center space-y-2">
+            {logoBase64 ? (
+              <img src={logoBase64} alt="Subscriber Logo" className="h-16 mx-auto object-contain" />
+            ) : (
+              <div className="inline-block px-5 py-2.5 bg-blue-600 text-white font-black rounded-xl text-2xl tracking-tight shadow-md">
+                {subscriberName || 'SlabMaster'}
+              </div>
+            )}
+            <h2 className="text-xl font-black tracking-tight text-slate-900 dark:text-slate-100">Enterprise Sign In</h2>
+            <p className="text-xs text-slate-500">Stone Fabrication & Installation Field Dispatch Portal</p>
+          </div>
+
+          {/* Authentication Failure / Unauthorized Error Notice */}
+          {unauthorizedError && (
+            <div className="p-4 bg-rose-50 dark:bg-rose-950/50 border-2 border-rose-300 dark:border-rose-800 rounded-xl space-y-2 text-xs">
+              <div className="flex items-center space-x-2 text-rose-800 dark:text-rose-200 font-bold">
+                <ShieldAlert className="w-4 h-4 text-rose-600 shrink-0" />
+                <span>Access Denied (403)</span>
+              </div>
+              <p className="text-rose-700 dark:text-rose-300 leading-relaxed font-medium">{unauthorizedError}</p>
+              <div className="pt-2 flex justify-end">
+                <a
+                  href="/.auth/logout?post_logout_redirect_uri=/"
+                  className="px-3 py-1.5 bg-rose-600 text-white font-bold rounded-lg text-[11px] hover:bg-rose-500 transition-all cursor-pointer"
+                >
+                  Sign Out of Microsoft
+                </a>
+              </div>
+            </div>
+          )}
+
+          {/* Microsoft Entra ID SSO Sign-In Button */}
+          <div className="space-y-3">
+            <a
+              href="/.auth/login/aad?post_login_redirect_uri=/"
+              className="w-full p-3.5 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl shadow-md flex items-center justify-center space-x-3 transition-all cursor-pointer text-sm"
+            >
+              <svg className="w-5 h-5 fill-current" viewBox="0 0 21 21">
+                <rect x="1" y="1" width="9" height="9" fill="#f25022"/>
+                <rect x="11" y="1" width="9" height="9" fill="#7fba00"/>
+                <rect x="1" y="11" width="9" height="9" fill="#00a4ef"/>
+                <rect x="11" y="11" width="9" height="9" fill="#ffb900"/>
+              </svg>
+              <span>Sign in with Microsoft Entra ID</span>
+            </a>
+
+            <div className="relative flex py-2 items-center">
+              <div className="flex-grow border-t border-slate-200 dark:border-slate-800"></div>
+              <span className="flex-shrink mx-3 text-slate-400 text-[10px] uppercase font-bold tracking-wider">or Development Access</span>
+              <div className="flex-grow border-t border-slate-200 dark:border-slate-800"></div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setIsDemoBypass(true)}
+              className="w-full p-2.5 border border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 transition-all cursor-pointer flex items-center justify-center space-x-2"
+            >
+              <Shield className="w-3.5 h-3.5 text-amber-500" />
+              <span>Enter Simulator / Demo Mode (Dev Bypass)</span>
+            </button>
+          </div>
+
+          <div className="text-center pt-1">
+            <span className="text-[11px] text-slate-400">
+              Protected by Enterprise Single Sign-On (SSO) & Tenant RBAC
+            </span>
+          </div>
+
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={`min-h-screen flex flex-col font-sans transition-colors duration-200 ${isDark ? 'bg-slate-950 text-slate-100' : 'bg-slate-100 text-slate-900'}`}>
       
@@ -3390,6 +3532,32 @@ export default function App() {
                 ))}
               </select>
             </div>
+
+            {/* Authenticated User Status & Sign Out */}
+            {isAuthenticated ? (
+              <div className="flex items-center space-x-2 bg-emerald-500/20 border border-emerald-400/30 px-2.5 py-1.5 rounded-md text-[11px]">
+                <span className="font-bold text-emerald-200 flex items-center space-x-1">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                  <span className="truncate max-w-[130px]">{authenticatedUserEmail}</span>
+                </span>
+                <a
+                  href="/.auth/logout?post_logout_redirect_uri=/"
+                  className="px-2 py-0.5 bg-white/20 hover:bg-white/30 text-white rounded font-bold transition-all cursor-pointer text-[10px]"
+                  title="Sign out of Microsoft Entra ID"
+                >
+                  Sign Out
+                </a>
+              </div>
+            ) : isDemoBypass ? (
+              <button
+                type="button"
+                onClick={() => setIsDemoBypass(false)}
+                className="px-2.5 py-1.5 bg-amber-500/20 border border-amber-400/40 hover:bg-amber-500/30 text-amber-200 rounded-md text-[11px] font-bold transition-all cursor-pointer flex items-center space-x-1"
+                title="Exit Demo Simulation and return to Entra ID Login Screen"
+              >
+                <span>Exit Demo</span>
+              </button>
+            ) : null}
           </div>
         </div>
       </header>
