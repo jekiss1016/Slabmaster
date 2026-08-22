@@ -58,6 +58,7 @@ import {
   Smartphone,
   ShieldAlert,
   UserCheck,
+  Zap,
   Image as ImageIcon,
   Trash2,
   Archive,
@@ -1065,6 +1066,28 @@ export default function App() {
   const [newHolidayRecurring, setNewHolidayRecurring] = useState(true);
   const [holidayAddedSuccess, setHolidayAddedSuccess] = useState(false);
 
+  // One-Off Custom Work Days / Overtime Shifts (MM/DD/YYYY format, customizable per region or global)
+  interface CustomWorkDayItem {
+    id: string;
+    name: string;
+    date: string; // MM/DD/YYYY
+    regionScope: string;
+    notes?: string;
+  }
+
+  const [customWorkDayList, setCustomWorkDayList] = useState<CustomWorkDayItem[]>([
+    { id: 'cwd1', name: 'Saturday Catch-Up Shift', date: '08/29/2026', regionScope: 'Global (All Regions)', notes: 'Weekend overtime fabrication run' },
+    { id: 'cwd2', name: 'Denver Rush Production Day', date: '09/05/2026', regionScope: 'Denver North (DEN)', notes: 'Extra cutting shift for builder surge' },
+    { id: 'cwd3', name: 'Tampa Weekend Install Day', date: '09/12/2026', regionScope: 'Tampa Plant (TPA)', notes: 'Weekend field installation capacity' },
+  ]);
+
+  // Add Custom Working Day Form State
+  const [newWorkDayName, setNewWorkDayName] = useState('');
+  const [newWorkDayDate, setNewWorkDayDate] = useState('');
+  const [newWorkDayRegion, setNewWorkDayRegion] = useState('Global (All Regions)');
+  const [newWorkDayNotes, setNewWorkDayNotes] = useState('');
+  const [workDayAddedSuccess, setWorkDayAddedSuccess] = useState(false);
+
   // Auto-Scheduling & Lead Time Configuration State
   interface LeadTimeSettings {
     templateToCadDays: number;
@@ -1305,18 +1328,30 @@ export default function App() {
     if (isNaN(d.getTime())) return false;
 
     const isoDate = d.toISOString().split('T')[0];
-    // Overtime catch-up day override
-    if (customWorkDays.includes(isoDate)) return true;
-
-    // Check company & regional holidays
     const mm = String(d.getMonth() + 1).padStart(2, '0');
     const dd = String(d.getDate()).padStart(2, '0');
     const yyyy = String(d.getFullYear());
     const formattedMDY = `${mm}/${dd}/${yyyy}`;
+
+    // 1. One-off Extra Work Day / Overtime Catch-up Override (at Global or Region/Plant level)
+    const isCustomWorkDay = customWorkDayList.some(w => {
+      const matchDate = w.date === formattedMDY || w.date === isoDate;
+      if (matchDate) {
+        if (w.regionScope === 'Global (All Regions)') return true;
+        if (regionScopeName && (w.regionScope.includes(regionScopeName) || regionScopeName.includes(w.regionScope))) return true;
+        if (!regionScopeName && (w.regionScope.includes(selectedRegion) || selectedRegion.includes(w.regionScope))) return true;
+      }
+      return false;
+    }) || customWorkDays.includes(isoDate);
+
+    if (isCustomWorkDay) return true;
+
+    // Check company & regional holidays
     const isHoliday = companyHolidays.some(h => {
-      if (h.date === formattedMDY) {
+      if (h.date === formattedMDY || h.date === isoDate) {
         if (h.regionScope === 'Global (All Regions)') return true;
-        if (regionScopeName && h.regionScope.includes(regionScopeName)) return true;
+        if (regionScopeName && (h.regionScope.includes(regionScopeName) || regionScopeName.includes(h.regionScope))) return true;
+        if (!regionScopeName && (h.regionScope.includes(selectedRegion) || selectedRegion.includes(h.regionScope))) return true;
       }
       return false;
     });
@@ -1842,6 +1877,61 @@ export default function App() {
 
   const handleDeleteHoliday = (holidayId: string) => {
     setCompanyHolidays(companyHolidays.filter(h => h.id !== holidayId));
+  };
+
+  const handleAddCustomWorkDay = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newWorkDayName || !newWorkDayDate) return;
+
+    let formattedDate = newWorkDayDate;
+    if (newWorkDayDate.includes('-')) {
+      const [y, m, d] = newWorkDayDate.split('-');
+      formattedDate = `${m}/${d}/${y}`;
+    }
+
+    const newW: CustomWorkDayItem = {
+      id: `cwd_${Date.now()}`,
+      name: newWorkDayName,
+      date: formattedDate,
+      regionScope: newWorkDayRegion,
+      notes: newWorkDayNotes,
+    };
+
+    setCustomWorkDayList([...customWorkDayList, newW]);
+    setNewWorkDayName('');
+    setNewWorkDayDate('');
+    setNewWorkDayNotes('');
+    setWorkDayAddedSuccess(true);
+    setTimeout(() => setWorkDayAddedSuccess(false), 3000);
+
+    const newLog: ChangeLogEntry = {
+      id: String(Date.now()),
+      timestamp: new Date().toLocaleString(),
+      changedBy: `${activeUserRole === 'SUBSCRIBER_ADMIN' ? 'Admin' : 'Scheduler'} (${activeUserRole})`,
+      summary: `One-Off Extra Working Day Added: ${newW.name} on ${newW.date} (${newW.regionScope})`,
+      diffs: [
+        { field: 'Extra Work Day', from: 'None', to: `${newW.name} (${newW.date})` },
+        { field: 'Scope', from: '-', to: newW.regionScope }
+      ]
+    };
+    setChangeLogs([newLog, ...changeLogs]);
+  };
+
+  const handleDeleteCustomWorkDay = (id: string) => {
+    const item = customWorkDayList.find(w => w.id === id);
+    setCustomWorkDayList(customWorkDayList.filter(w => w.id !== id));
+    if (item) {
+      const newLog: ChangeLogEntry = {
+        id: String(Date.now()),
+        timestamp: new Date().toLocaleString(),
+        changedBy: `${activeUserRole === 'SUBSCRIBER_ADMIN' ? 'Admin' : 'Scheduler'} (${activeUserRole})`,
+        summary: `One-Off Extra Working Day Removed: ${item.name} (${item.date})`,
+        diffs: [
+          { field: 'Removed Day', from: `${item.name} (${item.date})`, to: 'Removed' }
+        ]
+      };
+      setChangeLogs([newLog, ...changeLogs]);
+    }
   };
 
   // Region & Operating Facility Handlers with Dedicated Address Breakdown
@@ -3662,7 +3752,8 @@ export default function App() {
                     <div className="grid grid-cols-7 gap-2 text-center font-bold">
                       {week1Days.map((d, i) => {
                         const isWork = isDateWorkingDay(d.dateStr);
-                        const isOvertime = customWorkDays.includes(d.dateStr);
+                        const customDayMatch = customWorkDayList.find(w => w.date === d.formatted || w.date === d.dateStr);
+                        const isOvertime = customWorkDays.includes(d.dateStr) || !!customDayMatch;
                         return (
                           <div
                             key={i}
@@ -3672,14 +3763,18 @@ export default function App() {
                                 : d.isCenter
                                   ? 'bg-blue-600 text-white shadow-md'
                                   : isOvertime
-                                    ? 'bg-amber-100 text-amber-900 border-amber-300 dark:bg-amber-950 dark:text-amber-300'
+                                    ? 'bg-emerald-100 text-emerald-900 border-emerald-300 dark:bg-emerald-950 dark:text-emerald-300'
                                     : 'bg-slate-100 dark:bg-slate-950 border-slate-300 dark:border-slate-800'
                             }`}
                           >
                             <div className="flex items-center justify-center space-x-1">
                               <span>{d.dayName}</span>
                               {!isWork && <Lock className="w-3 h-3 text-slate-400" />}
-                              {isOvertime && <span className="text-[9px] bg-amber-500 text-white px-1 rounded font-black">OT</span>}
+                              {isOvertime && (
+                                <span className="text-[9px] bg-emerald-600 text-white px-1 rounded font-black" title={customDayMatch?.name || 'Extra Working Day'}>
+                                  OT
+                                </span>
+                              )}
                             </div>
                             <div className="text-[10px] opacity-80">{d.formatted}</div>
                           </div>
@@ -3690,7 +3785,8 @@ export default function App() {
                     <div className="grid grid-cols-7 gap-2 mt-2 items-start">
                       {week1Days.map((d, i) => {
                         const isWork = isDateWorkingDay(d.dateStr);
-                        const isOvertime = customWorkDays.includes(d.dateStr);
+                        const customDayMatch = customWorkDayList.find(w => w.date === d.formatted || w.date === d.dateStr);
+                        const isOvertime = customWorkDays.includes(d.dateStr) || !!customDayMatch;
                         const milestones = isWork ? getCalendarMilestonesForDay(d) : [];
                         return (
                           <div
@@ -3799,7 +3895,8 @@ export default function App() {
                     <div className="grid grid-cols-8 gap-2 text-center font-bold">
                       {week2Days.map((d, i) => {
                         const isWork = isDateWorkingDay(d.dateStr);
-                        const isOvertime = customWorkDays.includes(d.dateStr);
+                        const customDayMatch = customWorkDayList.find(w => w.date === d.formatted || w.date === d.dateStr);
+                        const isOvertime = customWorkDays.includes(d.dateStr) || !!customDayMatch;
                         return (
                           <div
                             key={i}
@@ -3809,14 +3906,18 @@ export default function App() {
                                 : d.isCenter
                                   ? 'bg-blue-600 text-white shadow-md'
                                   : isOvertime
-                                    ? 'bg-amber-100 text-amber-900 border-amber-300 dark:bg-amber-950 dark:text-amber-300'
+                                    ? 'bg-emerald-100 text-emerald-900 border-emerald-300 dark:bg-emerald-950 dark:text-emerald-300'
                                     : 'bg-slate-100 dark:bg-slate-950 border-slate-300 dark:border-slate-800'
                             }`}
                           >
                             <div className="flex items-center justify-center space-x-1">
                               <span>{d.dayName}</span>
                               {!isWork && <Lock className="w-3 h-3 text-slate-400" />}
-                              {isOvertime && <span className="text-[9px] bg-amber-500 text-white px-1 rounded font-black">OT</span>}
+                              {isOvertime && (
+                                <span className="text-[9px] bg-emerald-600 text-white px-1 rounded font-black" title={customDayMatch?.name || 'Extra Working Day'}>
+                                  OT
+                                </span>
+                              )}
                             </div>
                             <div className="text-[10px] opacity-80">{d.formatted}</div>
                           </div>
@@ -3827,7 +3928,8 @@ export default function App() {
                     <div className="grid grid-cols-8 gap-2 mt-2 items-start">
                       {week2Days.map((d, i) => {
                         const isWork = isDateWorkingDay(d.dateStr);
-                        const isOvertime = customWorkDays.includes(d.dateStr);
+                        const customDayMatch = customWorkDayList.find(w => w.date === d.formatted || w.date === d.dateStr);
+                        const isOvertime = customWorkDays.includes(d.dateStr) || !!customDayMatch;
                         const milestones = isWork ? getCalendarMilestonesForDay(d) : [];
                         return (
                           <div
@@ -5737,6 +5839,144 @@ export default function App() {
                               </div>
                             </div>
                           ))}
+                        </div>
+                      </div>
+
+                      {/* 4. ONE-OFF CUSTOM WORKING DAYS & OVERTIME SHIFTS */}
+                      <div className={`p-6 rounded-xl border space-y-6 shadow-sm ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-300'}`}>
+                        <div className="flex items-center justify-between border-b pb-3">
+                          <div>
+                            <h4 className="font-bold text-sm text-slate-800 dark:text-slate-200 flex items-center space-x-2">
+                              <Zap className="w-4 h-4 text-emerald-600" />
+                              <span>One-Off Extra Working Days & Overtime Shifts (Plant / Regional Level)</span>
+                            </h4>
+                            <span className="text-slate-500 text-[11px]">
+                              Add individual dates (e.g. Saturday overtime shifts, holiday catch-up days, rush fabrication runs) as active working days. The auto-scheduler will include these dates for milestone lead times.
+                            </span>
+                          </div>
+                        </div>
+
+                        {workDayAddedSuccess && (
+                          <div className="p-3 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-lg text-xs flex items-center space-x-2 font-semibold">
+                            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                            <span>One-off extra working day added successfully!</span>
+                          </div>
+                        )}
+
+                        {/* Add Custom Working Day Inline Form */}
+                        <form onSubmit={handleAddCustomWorkDay} className="p-4 rounded-xl border bg-slate-50 dark:bg-slate-950 space-y-3">
+                          <strong className="block font-bold text-xs text-emerald-600 dark:text-emerald-400">
+                            Add One-Off Working Day / Overtime Shift:
+                          </strong>
+                          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                            <div>
+                              <label className="block text-[11px] font-bold mb-1">Shift / Working Day Name</label>
+                              <input
+                                type="text"
+                                required
+                                placeholder="e.g. Saturday Overtime Shift"
+                                value={newWorkDayName}
+                                onChange={(e) => setNewWorkDayName(e.target.value)}
+                                className="w-full p-2 border rounded font-semibold text-slate-900 dark:bg-slate-900 dark:text-slate-100"
+                              />
+                            </div>
+
+                            <div>
+                              <label className="block text-[11px] font-bold mb-1">Date (MM/DD/YYYY)</label>
+                              <input
+                                type="text"
+                                required
+                                placeholder="MM/DD/YYYY (e.g. 08/29/2026)"
+                                value={newWorkDayDate}
+                                onChange={(e) => setNewWorkDayDate(e.target.value)}
+                                className="w-full p-2 border rounded font-mono font-semibold text-slate-900 dark:bg-slate-900 dark:text-slate-100"
+                              />
+                            </div>
+
+                            <div>
+                              <label className="block text-[11px] font-bold mb-1">Applies To Scope</label>
+                              <select
+                                value={newWorkDayRegion}
+                                onChange={(e) => setNewWorkDayRegion(e.target.value)}
+                                className="w-full p-2 border rounded font-semibold text-slate-900 dark:bg-slate-900 dark:text-slate-100"
+                              >
+                                <option value="Global (All Regions)">Global (All Regions)</option>
+                                {regionsList.map((reg) => (
+                                  <option key={reg.id} value={reg.name}>{reg.name} ({reg.code})</option>
+                                ))}
+                              </select>
+                            </div>
+
+                            <div className="flex items-end">
+                              <button
+                                type="submit"
+                                className="w-full bg-emerald-600 text-white font-bold py-2 px-3 rounded text-xs flex items-center justify-center space-x-1.5 hover:bg-emerald-500 shadow-sm cursor-pointer"
+                              >
+                                <Plus className="w-4 h-4" />
+                                <span>Add Extra Work Day</span>
+                              </button>
+                            </div>
+                          </div>
+
+                          <div>
+                            <label className="block text-[11px] font-bold mb-1">Purpose / Notes (Optional)</label>
+                            <input
+                              type="text"
+                              placeholder="e.g. Surge production backlog catch-up, weekend crew install shift"
+                              value={newWorkDayNotes}
+                              onChange={(e) => setNewWorkDayNotes(e.target.value)}
+                              className="w-full p-2 border rounded text-slate-900 dark:bg-slate-900 dark:text-slate-100"
+                            />
+                          </div>
+                        </form>
+
+                        {/* Custom Work Days Table / List */}
+                        <div className="border rounded-xl overflow-hidden divide-y divide-slate-200 dark:divide-slate-800">
+                          {customWorkDayList.length === 0 ? (
+                            <div className="p-4 text-center text-slate-400 text-xs">
+                              No one-off extra working days configured. Add one above to open a weekend or plant overtime day.
+                            </div>
+                          ) : (
+                            customWorkDayList.map((w) => (
+                              <div key={w.id} className="p-3.5 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-950/50 transition-colors">
+                                <div className="space-y-0.5">
+                                  <div className="flex items-center space-x-2">
+                                    <strong className="text-sm text-slate-800 dark:text-slate-200">{w.name}</strong>
+                                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                                      w.regionScope.includes('Global')
+                                        ? 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300'
+                                        : 'bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300'
+                                    }`}>
+                                      {w.regionScope}
+                                    </span>
+                                    <span className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 text-[10px] font-bold">
+                                      ⚡ Extra Active Working Day
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center space-x-3 text-xs">
+                                    <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                                      Date: {w.date}
+                                    </span>
+                                    {w.notes && (
+                                      <span className="text-slate-500 italic text-[11px]">
+                                        "{w.notes}"
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+
+                                <div className="flex items-center space-x-3">
+                                  <button
+                                    onClick={() => handleDeleteCustomWorkDay(w.id)}
+                                    className="text-slate-400 hover:text-rose-600 p-1 cursor-pointer"
+                                    title="Delete Extra Work Day"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                </div>
+                              </div>
+                            ))
+                          )}
                         </div>
                       </div>
 
