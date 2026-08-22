@@ -275,6 +275,7 @@ export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [authLoading, setAuthLoading] = useState<boolean>(true);
   const [authenticatedUserEmail, setAuthenticatedUserEmail] = useState<string | null>(null);
+  const [authenticatedUserActualRole, setAuthenticatedUserActualRole] = useState<AppUser['role'] | null>(null);
   const [unauthorizedError, setUnauthorizedError] = useState<string | null>(null);
   const [isDemoBypass, setIsDemoBypass] = useState<boolean>(false);
 
@@ -1432,7 +1433,8 @@ export default function App() {
   };
 
   // Helper to check if current logged user has Global or Subscriber Admin rights
-  const isSubscriberOrGlobalAdmin = activeUserRole === 'SUBSCRIBER_ADMIN' || activeUserRole === 'SYSTEM_ADMIN';
+  const isActualAdmin = isDemoBypass || authenticatedUserActualRole === 'SUBSCRIBER_ADMIN' || authenticatedUserActualRole === 'SYSTEM_ADMIN';
+  const isSubscriberOrGlobalAdmin = isActualAdmin && (activeUserRole === 'SUBSCRIBER_ADMIN' || activeUserRole === 'SYSTEM_ADMIN');
 
   // Get available plant regions for current user to assign
   const getPlantAdminAccessibleRegions = (): string[] => {
@@ -1460,6 +1462,7 @@ export default function App() {
                 setUnauthorizedError(`Your SlabMaster account (${userEmail}) is currently deactivated. Please contact your Plant Administrator.`);
                 setIsAuthenticated(false);
               } else {
+                setAuthenticatedUserActualRole(matchedUser.role);
                 setActiveUserRole(matchedUser.role);
                 setActiveAssigneeName(getInstallerDisplayName(matchedUser));
                 setIsAuthenticated(true);
@@ -3525,37 +3528,39 @@ export default function App() {
 
           {/* Right Utilities (Super Admin Role Simulator, Theme & Region) */}
           <div className="flex items-center space-x-3 text-xs">
-            {/* Global Admin Role Simulator / Impersonation Tool */}
-            <div className="flex items-center space-x-1.5 bg-white/10 px-2.5 py-1.5 rounded-md border border-white/20 shadow-xs">
-              <span title="Super Admin Impersonation: In production, role switching is strictly restricted to Global Administrators (Super Admins). All standard users are locked to their login role.">
-                <Shield className="w-3.5 h-3.5 text-amber-300" />
-              </span>
-              <select
-                value={activeUserRole}
-                onChange={(e) => setActiveUserRole(e.target.value as any)}
-                className="bg-transparent text-[11px] font-bold text-white focus:outline-none cursor-pointer"
-                title="Super Admin Impersonation Mode: Test UI across roles (Global Admin Only)"
-              >
-                <option value="SYSTEM_ADMIN" className="text-slate-900">🛡️ Global Administrator (Super Admin)</option>
-                <option value="SUBSCRIBER_ADMIN" className="text-slate-900">👑 Subscriber-Level Admin</option>
-                <option value="INTERNAL_OFFICE_USER" className="text-slate-900">🏢 Plant Admin / Office Dispatcher</option>
-                <option value="INTERNAL_ESTIMATOR" className="text-slate-900">📐 Estimator</option>
-                <option value="INTERNAL_FIELD_INSTALLER" className="text-slate-900">🚐 In-House Installer (Install Truck 1)</option>
-                <option value="EXTERNAL_CREW_ADMIN" className="text-slate-900">📋 External Crew Lead (Dispatcher)</option>
-                <option value="EXTERNAL_FIELD_INSTALLER" className="text-slate-900">🚐 External Field Crew (Apex Crew A)</option>
-                <option value="EXTERNAL_SUBCONTRACTOR" className="text-slate-900">🛠️ Subcontractor</option>
-              </select>
-              {activeUserRole !== 'SYSTEM_ADMIN' && activeUserRole !== 'SUBSCRIBER_ADMIN' && (
-                <button
-                  type="button"
-                  onClick={() => setActiveUserRole('SYSTEM_ADMIN')}
-                  className="px-1.5 py-0.5 bg-amber-400 text-slate-950 hover:bg-amber-300 rounded text-[9px] font-black cursor-pointer ml-1 transition-all"
-                  title="Return to Global Administrator clearance"
+            {/* Global Admin Role Simulator / Impersonation Tool (Strictly restricted to Global & Subscriber Admins) */}
+            {isActualAdmin && (
+              <div className="flex items-center space-x-1.5 bg-white/10 px-2.5 py-1.5 rounded-md border border-white/20 shadow-xs">
+                <span title="Super Admin Impersonation: In production, role switching is strictly restricted to Global Administrators (Super Admins). All standard users are locked to their login role.">
+                  <Shield className="w-3.5 h-3.5 text-amber-300" />
+                </span>
+                <select
+                  value={activeUserRole}
+                  onChange={(e) => setActiveUserRole(e.target.value as any)}
+                  className="bg-transparent text-[11px] font-bold text-white focus:outline-none cursor-pointer"
+                  title="Super Admin Impersonation Mode: Test UI across roles (Global Admin Only)"
                 >
-                  Exit Preview
-                </button>
-              )}
-            </div>
+                  <option value="SYSTEM_ADMIN" className="text-slate-900">🛡️ Global Administrator (Super Admin)</option>
+                  <option value="SUBSCRIBER_ADMIN" className="text-slate-900">👑 Subscriber-Level Admin</option>
+                  <option value="INTERNAL_OFFICE_USER" className="text-slate-900">🏢 Plant Admin / Office Dispatcher</option>
+                  <option value="INTERNAL_ESTIMATOR" className="text-slate-900">📐 Estimator</option>
+                  <option value="INTERNAL_FIELD_INSTALLER" className="text-slate-900">🚐 In-House Installer (Install Truck 1)</option>
+                  <option value="EXTERNAL_CREW_ADMIN" className="text-slate-900">📋 External Crew Lead (Dispatcher)</option>
+                  <option value="EXTERNAL_FIELD_INSTALLER" className="text-slate-900">🚐 External Field Crew (Apex Crew A)</option>
+                  <option value="EXTERNAL_SUBCONTRACTOR" className="text-slate-900">🛠️ Subcontractor</option>
+                </select>
+                {activeUserRole !== 'SYSTEM_ADMIN' && activeUserRole !== 'SUBSCRIBER_ADMIN' && (
+                  <button
+                    type="button"
+                    onClick={() => setActiveUserRole('SYSTEM_ADMIN')}
+                    className="px-1.5 py-0.5 bg-amber-400 text-slate-950 hover:bg-amber-300 rounded text-[9px] font-black cursor-pointer ml-1 transition-all"
+                    title="Return to Global Administrator clearance"
+                  >
+                    Exit Preview
+                  </button>
+                )}
+              </div>
+            )}
 
             <button
               onClick={() => setTheme(isDark ? 'light' : 'dark')}
@@ -3705,18 +3710,20 @@ export default function App() {
               <span>Reports</span>
             </button>
 
-            {/* 6. SETTINGS */}
-            <button
-              onClick={() => setActiveNav('settings')}
-              className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-md text-left transition-all ${
-                activeNav === 'settings'
-                  ? isDark ? 'bg-blue-900/60 text-blue-300 font-bold border-l-4 border-blue-500' : 'bg-blue-600 text-white font-bold shadow-sm'
-                  : isDark ? 'text-slate-300 hover:bg-slate-800' : 'text-slate-700 hover:bg-slate-200'
-              }`}
-            >
-              <Settings className="w-4 h-4" />
-              <span>Settings</span>
-            </button>
+            {/* 6. SETTINGS (Strictly Restricted to Global & Subscriber Admins) */}
+            {isActualAdmin && (
+              <button
+                onClick={() => setActiveNav('settings')}
+                className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-md text-left transition-all ${
+                  activeNav === 'settings'
+                    ? isDark ? 'bg-blue-900/60 text-blue-300 font-bold border-l-4 border-blue-500' : 'bg-blue-600 text-white font-bold shadow-sm'
+                    : isDark ? 'text-slate-300 hover:bg-slate-800' : 'text-slate-700 hover:bg-slate-200'
+                }`}
+              >
+                <Settings className="w-4 h-4" />
+                <span>Settings</span>
+              </button>
+            )}
 
             {/* 7. HELP */}
             <button
@@ -5447,6 +5454,26 @@ export default function App() {
 
           {/* SCREEN 7: EXPANDED FULL-SCREEN SETTINGS HUB */}
           {activeNav === 'settings' && (
+            !isActualAdmin ? (
+              <div className="flex-1 flex flex-col items-center justify-center p-12 text-center space-y-4">
+                <div className="p-4 bg-rose-100 dark:bg-rose-950/50 rounded-2xl border border-rose-300 dark:border-rose-800">
+                  <ShieldAlert className="w-12 h-12 text-rose-600" />
+                </div>
+                <div className="space-y-1">
+                  <h3 className="text-xl font-black text-slate-900 dark:text-slate-100">Administrator Clearance Required</h3>
+                  <p className="text-xs text-slate-500 max-w-md">
+                    System settings, user administration, and security configurations are strictly restricted to Global and Subscriber Administrators.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setActiveNav('jobs')}
+                  className="px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg text-xs shadow-md transition-all cursor-pointer"
+                >
+                  Return to Operational Dispatch
+                </button>
+              </div>
+            ) : (
             <div className="flex-1 overflow-auto flex flex-col p-6 space-y-6">
               <div className="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-800">
                 <div>
@@ -8387,6 +8414,7 @@ export default function App() {
               </div>
 
             </div>
+            )
           )}
 
         </main>
