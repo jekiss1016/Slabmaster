@@ -2482,8 +2482,8 @@ export default function App() {
   const handleLogoUpload = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 500 * 1024) {
-        alert('File size exceeds 500KB limit.');
+      if (file.size > 2 * 1024 * 1024) {
+        alert('File size exceeds 2MB limit. Please upload an optimized banner image under 2MB.');
         return;
       }
       const reader = new FileReader();
