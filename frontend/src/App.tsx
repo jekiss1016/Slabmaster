@@ -333,7 +333,7 @@ export default function App() {
   // Navigation & Theme State (Accounts is now positioned ABOVE Jobs!)
   const [activeNav, setActiveNav] = useState<'accounts' | 'account_detail' | 'community_detail' | 'jobs' | 'job_detail' | 'change_log' | 'calendar' | 'reports' | 'forms' | 'settings' | 'help'>('accounts');
   const [theme, setTheme] = useState<'dark' | 'light'>('light');
-  const [selectedRegion, setSelectedRegion] = useState('Location 1');
+  const [selectedRegion, setSelectedRegion] = useState('All');
   const [searchCategory, setSearchCategory] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -1537,6 +1537,19 @@ export default function App() {
     return plantAdminAllowedRegions.filter(r => r === 'GLOBAL' || activeFacilityNames.includes(r));
   };
 
+  // User Accessible Active Facilities (Used for Multi-Site Facility Dropdown)
+  const getUserAccessibleActiveFacilities = (): Array<{ id: string; name: string; code: string; isDefault: boolean }> => {
+    const activeRegions = regionsList.filter(r => r.status === 'ACTIVE');
+    if (isSubscriberOrGlobalAdmin || authenticatedUserActualRole === 'SYSTEM_ADMIN' || authenticatedUserActualRole === 'SUBSCRIBER_ADMIN' || isDemoBypass) {
+      return activeRegions;
+    }
+    const user = systemUsersList.find(u => u.email.toLowerCase() === (authenticatedUserEmail || '').toLowerCase());
+    if (!user || user.scopedRegions.includes('GLOBAL') || user.scopedRegions.includes('Global (All Regions)')) {
+      return activeRegions;
+    }
+    return activeRegions.filter(r => user.scopedRegions.some(sr => sr.toLowerCase().includes(r.name.toLowerCase()) || r.name.toLowerCase().includes(sr.toLowerCase())));
+  };
+
   // Microsoft Entra ID Authentication Detector (Azure Static Web Apps /.auth/me)
   useEffect(() => {
     async function checkAuthSession() {
@@ -1718,6 +1731,14 @@ export default function App() {
         (job.installDate?.date && job.installDate.date.toLowerCase().includes(q)) ||
         (job.externalId && job.externalId.toLowerCase().includes(q));
       if (!match) return false;
+    }
+
+    // Facility / Location Filter (Allows 'All' or specific facility)
+    if (selectedRegion && selectedRegion !== 'All' && selectedRegion !== 'ALL') {
+      const jobRegion = job.regionName || 'Location 1';
+      if (!jobRegion.toLowerCase().includes(selectedRegion.toLowerCase()) && !selectedRegion.toLowerCase().includes(jobRegion.toLowerCase())) {
+        return false;
+      }
     }
 
     if (activeView === 'Unscheduled Jobs View') {
@@ -3529,25 +3550,29 @@ export default function App() {
       
       {/* 1. TOP TOOLBAR & MODULE HEADER */}
       <header className={`border-b shadow-md ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-gradient-to-r from-blue-600 to-indigo-700 text-white border-blue-700'}`}>
-        <div className="px-6 py-4 flex items-center justify-between">
+        <div className="px-6 py-3 flex items-center justify-between gap-4">
           
-          {/* Logo / Subscriber Branding Display (h-28 max-w-[500px]) */}
-          <div className="flex items-center space-x-4">
+          {/* Logo / Subscriber Branding Display (4x Prominent Display) */}
+          <div className="flex items-center space-x-3 shrink-0">
             {logoBase64 ? (
-              <img src={logoBase64} alt="Subscriber Logo" className="h-28 max-w-[500px] object-contain rounded bg-white/10 p-2 shadow-lg border border-white/20" />
+              <img
+                src={logoBase64}
+                alt="Subscriber Logo"
+                className="h-24 md:h-32 max-h-[135px] max-w-[450px] object-contain rounded-xl bg-white/95 p-1.5 shadow-xl border-2 border-white/40"
+              />
             ) : (
-              <div className="h-28 px-8 bg-white/20 rounded-xl flex items-center justify-center font-black text-white text-3xl shadow-xl border border-white/30 tracking-tight">
+              <div className="h-24 px-8 bg-white/20 rounded-xl flex items-center justify-center font-black text-white text-3xl shadow-xl border border-white/30 tracking-tight">
                 {subscriberName}
               </div>
             )}
           </div>
 
-          {/* Global Search Bar */}
-          <div className="flex items-center space-x-1 bg-white rounded-md p-1 border border-slate-200 shadow-sm text-slate-900 mx-4 shrink-0">
+          {/* Global Search Bar (Centered) */}
+          <div className="flex items-center space-x-1 bg-white rounded-lg p-1 border border-slate-200 shadow-sm text-slate-900 max-w-md w-full shrink">
             <select
               value={searchCategory}
               onChange={(e) => setSearchCategory(e.target.value)}
-              className="bg-white text-xs font-semibold px-2 py-1 focus:outline-none cursor-pointer text-slate-800 rounded"
+              className="bg-white text-xs font-bold px-2 py-1 focus:outline-none cursor-pointer text-slate-800 rounded"
             >
               <option value="All" className="text-slate-900 bg-white">All</option>
               <option value="Accounts" className="text-slate-900 bg-white">Accounts</option>
@@ -3560,87 +3585,19 @@ export default function App() {
               placeholder="Search all columns..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="bg-white text-xs px-2.5 py-1 focus:outline-none placeholder-slate-400 text-slate-900 w-44 md:w-60"
+              className="bg-white text-xs px-2.5 py-1 focus:outline-none placeholder-slate-400 text-slate-900 w-full min-w-[120px]"
             />
             <button className="p-1.5 hover:bg-slate-100 text-slate-600 hover:text-slate-900 rounded transition-all cursor-pointer">
-              <Search className="w-3.5 h-3.5" />
+              <Search className="w-4 h-4 text-blue-600" />
             </button>
           </div>
 
-          {/* Top Action Buttons (Conditioned strictly to relevant pages!) */}
-          <div className="flex items-center space-x-4 md:space-x-6 text-xs font-medium pl-4 border-l border-white/20">
-            
-            {/* View Controls: Visible on Accounts and Jobs grid pages */}
-            {(activeNav === 'accounts' || activeNav === 'jobs') && (
-              <>
-                <button
-                  onClick={() => setActiveModal('views')}
-                  className="flex flex-col items-center space-y-1 hover:opacity-80 transition-all cursor-pointer"
-                >
-                  <Eye className="w-5 h-5" />
-                  <span>Views</span>
-                </button>
-
-                <button
-                  onClick={() => setActiveModal('customize')}
-                  className="flex flex-col items-center space-y-1 hover:opacity-80 transition-all cursor-pointer"
-                >
-                  <Sliders className="w-5 h-5" />
-                  <span>Customize</span>
-                </button>
-
-                <button
-                  onClick={() => setActiveModal('save_view')}
-                  className="flex flex-col items-center space-y-1 hover:opacity-80 transition-all cursor-pointer"
-                >
-                  <Save className="w-5 h-5" />
-                  <span>Save View</span>
-                </button>
-
-                <button
-                  onClick={() => exportTableToCsv(activeNav as any)}
-                  className="flex flex-col items-center space-y-1 hover:opacity-80 transition-all cursor-pointer text-emerald-200 hover:text-emerald-100"
-                  title="Export Scoped CSV"
-                >
-                  <Download className="w-5 h-5" />
-                  <span>Export CSV</span>
-                </button>
-              </>
-            )}
-
-            {/* Context-Scoped Create Action Button */}
-            {shouldShowCreateButton && (
-              <button
-                onClick={triggerContextualCreate}
-                className="flex items-center space-x-1.5 hover:opacity-90 transition-all bg-white/20 px-3.5 py-2 rounded-md border border-white/30 shadow-sm cursor-pointer font-bold text-xs"
-              >
-                <Plus className="w-4 h-4" />
-                <span>{getCreateButtonLabel()}</span>
-              </button>
-            )}
-
-            {/* Active Module Title */}
-            <div className="pl-4 border-l border-white/20 text-xl font-bold tracking-tight">
-              {activeNav === 'accounts' && 'Accounts'}
-              {activeNav === 'account_detail' && 'Account Detail'}
-              {activeNav === 'community_detail' && 'Community Detail'}
-              {activeNav === 'jobs' && 'Jobs'}
-              {activeNav === 'job_detail' && 'Job Detail'}
-              {activeNav === 'change_log' && 'Change Log'}
-              {activeNav === 'calendar' && 'Calendar'}
-              {activeNav === 'reports' && 'Reports'}
-              {activeNav === 'forms' && 'Form Packets'}
-              {activeNav === 'settings' && 'Settings'}
-              {activeNav === 'help' && 'Help'}
-            </div>
-          </div>
-
-          {/* Right Utilities (Super Admin Role Simulator, Theme & Region) */}
-          <div className="flex items-center space-x-3 text-xs">
-            {/* Global Admin Role Simulator / Impersonation Tool (Strictly restricted to Global Administrator / SYSTEM_ADMIN) */}
+          {/* Right Utilities (Super Admin Simulator & Authenticated User Status) */}
+          <div className="flex items-center space-x-3 text-xs shrink-0">
+            {/* Global Admin Role Simulator / Impersonation Tool (Strictly restricted to SYSTEM_ADMIN) */}
             {isGlobalSuperAdmin && (
               <div className="flex items-center space-x-1.5 bg-white/10 px-2.5 py-1.5 rounded-md border border-white/20 shadow-xs">
-                <span title="Super Admin Impersonation: In production, role switching is strictly restricted to Global Administrators (Super Admins). All standard users are locked to their login role.">
+                <span title="Super Admin Impersonation: In production, role switching is strictly restricted to Global Administrators (Super Admins).">
                   <Shield className="w-3.5 h-3.5 text-amber-300" />
                 </span>
                 <select
@@ -3671,60 +3628,9 @@ export default function App() {
               </div>
             )}
 
-            <button
-              onClick={() => setTheme(isDark ? 'light' : 'dark')}
-              className="p-2 rounded-md bg-white/10 hover:bg-white/20 border border-white/20 transition-all flex items-center space-x-1.5 cursor-pointer"
-            >
-              {isDark ? <Sun className="w-4 h-4 text-amber-300" /> : <Moon className="w-4 h-4 text-blue-100" />}
-              <span className="font-semibold">{isDark ? 'Light' : 'Dark'}</span>
-            </button>
-
-            {/* Shutdown Region Alert Indicator */}
-            {regionsList.find(r => r.name === selectedRegion)?.status === 'SHUTDOWN' && (
-              <div className="flex items-center space-x-1.5 px-3 py-1 bg-rose-600 text-white rounded-md border border-rose-300 text-[11px] font-black tracking-wide shadow-md animate-pulse">
-                <AlertCircle className="w-3.5 h-3.5" />
-                <span>SHUTDOWN / READ-ONLY</span>
-              </div>
-            )}
-
-            {/* User Local Timezone Display Selector (Automatic Daylight Saving Time) */}
-            <div className="flex items-center space-x-1.5 bg-white/10 border border-white/20 px-2.5 py-1.5 rounded-md text-[11px]" title="Display Timezone: All application dates, timestamps, and audit events render in your selected local time">
-              <Globe className="w-3.5 h-3.5 text-blue-200" />
-              <select
-                value={userDisplayTimezone}
-                onChange={(e) => setUserDisplayTimezone(e.target.value)}
-                className="bg-transparent font-bold focus:outline-none cursor-pointer text-white max-w-[150px]"
-              >
-                {US_TIMEZONES.map(tz => {
-                  const now = new Date();
-                  const shortTime = formatDisplayTime(now, tz.iana, { timeOnly: true });
-                  return (
-                    <option key={tz.iana} value={tz.iana} className="text-slate-900 font-bold">
-                      {tz.label} ({shortTime})
-                    </option>
-                  );
-                })}
-              </select>
-            </div>
-
-            <div className="flex items-center space-x-1 bg-white/10 border border-white/20 px-2.5 py-1.5 rounded-md">
-              <MapPin className="w-4 h-4 text-white" />
-              <select
-                value={selectedRegion}
-                onChange={(e) => setSelectedRegion(e.target.value)}
-                className="bg-transparent font-semibold focus:outline-none cursor-pointer text-white"
-              >
-                {regionsList.filter(r => r.status === 'ACTIVE').map((r) => (
-                  <option key={r.id} value={r.name} className="text-slate-900 font-bold">
-                    {r.name} {r.isDefault ? '[DEFAULT]' : ''}
-                  </option>
-                ))}
-              </select>
-            </div>
-
             {/* Authenticated User Status & Sign Out */}
             {isAuthenticated ? (
-              <div className="flex items-center space-x-2 bg-emerald-500/20 border border-emerald-400/30 px-2.5 py-1.5 rounded-md text-[11px]">
+              <div className="flex items-center space-x-2 bg-emerald-500/20 border border-emerald-400/30 px-3 py-1.5 rounded-lg text-[11px]">
                 <span className="font-bold text-emerald-200 flex items-center space-x-1">
                   <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
                   <span className="truncate max-w-[130px]">{authenticatedUserEmail}</span>
@@ -3741,7 +3647,7 @@ export default function App() {
               <button
                 type="button"
                 onClick={() => setIsDemoBypass(false)}
-                className="px-2.5 py-1.5 bg-amber-500/20 border border-amber-400/40 hover:bg-amber-500/30 text-amber-200 rounded-md text-[11px] font-bold transition-all cursor-pointer flex items-center space-x-1"
+                className="px-3 py-1.5 bg-amber-500/20 border border-amber-400/40 hover:bg-amber-500/30 text-amber-200 rounded-md text-[11px] font-bold transition-all cursor-pointer flex items-center space-x-1"
                 title="Exit Demo Simulation and return to Entra ID Login Screen"
               >
                 <span>Exit Demo</span>
@@ -3770,7 +3676,7 @@ export default function App() {
       {/* 2. BODY LAYOUT (SIDEBAR + MAIN CONTENT) */}
       <div className="flex-1 flex overflow-hidden">
         
-        {/* LEFT NAVIGATION SIDEBAR (Accounts is positioned ABOVE Jobs!) */}
+        {/* LEFT NAVIGATION SIDEBAR */}
         <aside className={`w-52 border-r flex flex-col justify-between shrink-0 shadow-sm ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-300'}`}>
           <nav className="p-2 space-y-1 text-xs font-semibold">
             
@@ -3866,6 +3772,18 @@ export default function App() {
               <HelpCircle className="w-4 h-4" />
               <span>Help</span>
             </button>
+
+            {/* 8. THEME TOGGLE (MOVED BELOW HELP) */}
+            <div className="pt-3 mt-3 border-t border-slate-200 dark:border-slate-800">
+              <button
+                type="button"
+                onClick={() => setTheme(isDark ? 'light' : 'dark')}
+                className="w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-left transition-all bg-slate-200/70 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 cursor-pointer font-bold"
+              >
+                {isDark ? <Sun className="w-4 h-4 text-amber-400 shrink-0" /> : <Moon className="w-4 h-4 text-indigo-600 shrink-0" />}
+                <span>{isDark ? 'Light Mode' : 'Dark Mode'}</span>
+              </button>
+            </div>
           </nav>
 
           <div className={`p-3 border-t text-xs ${isDark ? 'border-slate-800 bg-slate-950' : 'border-slate-300 bg-slate-100'}`}>
@@ -3887,25 +3805,88 @@ export default function App() {
           {/* SCREEN 0: ACCOUNTS LIST / GRID VIEW */}
           {activeNav === 'accounts' && (
             <div className="flex-1 flex flex-col overflow-hidden">
-              {/* Account View Filter Subheader */}
-              <div className={`px-4 py-2 border-b flex items-center justify-between text-xs ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-300 shadow-sm'}`}>
-                <div className="flex items-center space-x-4">
+              {/* Account Views, Location Filter & Action Subheader */}
+              <div className={`px-4 py-2.5 border-b flex flex-wrap items-center justify-between gap-3 text-xs ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-300 shadow-xs'}`}>
+                <div className="flex flex-wrap items-center gap-2.5">
                   <div className="flex items-center space-x-1.5">
-                    <span className="font-semibold text-slate-500">Account View:</span>
+                    <span className="font-bold text-slate-500">Account View:</span>
                     <select
                       value={accountView}
                       onChange={(e) => setAccountView(e.target.value)}
-                      className={`font-bold rounded border px-2 py-1 focus:outline-none cursor-pointer ${isDark ? 'bg-slate-950 border-slate-700 text-blue-400' : 'bg-slate-50 border-slate-300 text-blue-700'}`}
+                      className={`font-bold rounded-lg border px-2.5 py-1.5 focus:outline-none cursor-pointer text-xs ${isDark ? 'bg-slate-950 border-slate-700 text-blue-400' : 'bg-slate-50 border-slate-300 text-blue-700'}`}
                     >
                       <option value="All Active Accounts">All Active Accounts</option>
                       <option value="Archived Accounts">Archived Accounts</option>
                       <option value="High Volume Builders">High Volume Builders</option>
                     </select>
                   </div>
+
+                  <button
+                    onClick={() => setActiveModal('views')}
+                    className="flex items-center space-x-1 px-2.5 py-1.5 rounded-lg font-bold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 transition-all cursor-pointer"
+                  >
+                    <Eye className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                    <span>Views</span>
+                  </button>
+
+                  <button
+                    onClick={() => setActiveModal('customize')}
+                    className="flex items-center space-x-1 px-2.5 py-1.5 rounded-lg font-bold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 transition-all cursor-pointer"
+                  >
+                    <Sliders className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                    <span>Customize</span>
+                  </button>
+
+                  <button
+                    onClick={() => setActiveModal('save_view')}
+                    className="flex items-center space-x-1 px-2.5 py-1.5 rounded-lg font-bold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 transition-all cursor-pointer"
+                  >
+                    <Save className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                    <span>Save View</span>
+                  </button>
+
+                  <button
+                    onClick={() => exportTableToCsv('accounts')}
+                    className="flex items-center space-x-1 px-2.5 py-1.5 rounded-lg font-bold bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/60 dark:hover:bg-emerald-900/80 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 transition-all cursor-pointer"
+                    title="Export CSV"
+                  >
+                    <Download className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>Export CSV</span>
+                  </button>
+
+                  {/* Location Dropdown (Only appears for users with access to more than 1 facility; defaults to All) */}
+                  {getUserAccessibleActiveFacilities().length > 1 && (
+                    <div className="flex items-center space-x-1.5 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 px-2 py-1 rounded-lg text-xs">
+                      <MapPin className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
+                      <span className="font-semibold text-slate-500">Location:</span>
+                      <select
+                        value={selectedRegion}
+                        onChange={(e) => setSelectedRegion(e.target.value)}
+                        className="bg-transparent font-bold text-slate-800 dark:text-slate-200 focus:outline-none cursor-pointer"
+                      >
+                        <option value="All">All ({getUserAccessibleActiveFacilities().length})</option>
+                        {getUserAccessibleActiveFacilities().map((r) => (
+                          <option key={r.id} value={r.name} className="text-slate-900">
+                            {r.name} {r.isDefault ? '[DEFAULT]' : ''}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
                 </div>
 
-                <div className="text-[11px] text-slate-400">
-                  Showing <strong className="text-blue-500">{filteredAccounts.length}</strong> of <strong className="text-slate-500">{accountsData.length}</strong> builder accounts
+                <div className="flex items-center space-x-3">
+                  <div className="text-[11px] text-slate-400 hidden sm:block">
+                    Showing <strong className="text-blue-500">{filteredAccounts.length}</strong> of <strong className="text-slate-500">{accountsData.length}</strong> accounts
+                  </div>
+
+                  <button
+                    onClick={() => { setCreateScope('account'); setActiveModal('create'); }}
+                    className="flex items-center space-x-1.5 bg-blue-600 hover:bg-blue-500 text-white font-bold px-3.5 py-1.5 rounded-lg text-xs shadow-sm transition-all cursor-pointer"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>+ Create Account</span>
+                  </button>
                 </div>
               </div>
 
@@ -4216,8 +4197,81 @@ export default function App() {
 
           {/* SCREEN 1: JOBS TABLE GRID */}
           {activeNav === 'jobs' && (
-            <div className="flex-1 overflow-auto p-4">
-              <div className={`border rounded-lg overflow-hidden shadow-md ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-300'}`}>
+            <div className="flex-1 flex flex-col overflow-hidden">
+              {/* Jobs Views, Location Filter & Action Subheader */}
+              <div className={`px-4 py-2.5 border-b flex flex-wrap items-center justify-between gap-3 text-xs ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-300 shadow-xs'}`}>
+                <div className="flex flex-wrap items-center gap-2.5">
+                  <button
+                    onClick={() => setActiveModal('views')}
+                    className="flex items-center space-x-1 px-2.5 py-1.5 rounded-lg font-bold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 transition-all cursor-pointer"
+                  >
+                    <Eye className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                    <span>Views: <strong className="text-blue-600 dark:text-blue-400">{activeView}</strong></span>
+                  </button>
+
+                  <button
+                    onClick={() => setActiveModal('customize')}
+                    className="flex items-center space-x-1 px-2.5 py-1.5 rounded-lg font-bold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 transition-all cursor-pointer"
+                  >
+                    <Sliders className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                    <span>Customize</span>
+                  </button>
+
+                  <button
+                    onClick={() => setActiveModal('save_view')}
+                    className="flex items-center space-x-1 px-2.5 py-1.5 rounded-lg font-bold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 transition-all cursor-pointer"
+                  >
+                    <Save className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                    <span>Save View</span>
+                  </button>
+
+                  <button
+                    onClick={() => exportTableToCsv('jobs')}
+                    className="flex items-center space-x-1 px-2.5 py-1.5 rounded-lg font-bold bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/60 dark:hover:bg-emerald-900/80 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 transition-all cursor-pointer"
+                    title="Export CSV"
+                  >
+                    <Download className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>Export CSV</span>
+                  </button>
+
+                  {/* Location Dropdown (Only appears for users with access to more than 1 facility; defaults to All) */}
+                  {getUserAccessibleActiveFacilities().length > 1 && (
+                    <div className="flex items-center space-x-1.5 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 px-2 py-1 rounded-lg text-xs">
+                      <MapPin className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
+                      <span className="font-semibold text-slate-500">Location:</span>
+                      <select
+                        value={selectedRegion}
+                        onChange={(e) => setSelectedRegion(e.target.value)}
+                        className="bg-transparent font-bold text-slate-800 dark:text-slate-200 focus:outline-none cursor-pointer"
+                      >
+                        <option value="All">All ({getUserAccessibleActiveFacilities().length})</option>
+                        {getUserAccessibleActiveFacilities().map((r) => (
+                          <option key={r.id} value={r.name} className="text-slate-900">
+                            {r.name} {r.isDefault ? '[DEFAULT]' : ''}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex items-center space-x-3">
+                  <div className="text-[11px] text-slate-400 hidden sm:block">
+                    Showing <strong className="text-blue-500">{filteredJobs.length}</strong> of <strong className="text-slate-500">{jobsData.length}</strong> jobs
+                  </div>
+
+                  <button
+                    onClick={() => { setCreateScope('job'); setActiveModal('create'); }}
+                    className="flex items-center space-x-1.5 bg-blue-600 hover:bg-blue-500 text-white font-bold px-3.5 py-1.5 rounded-lg text-xs shadow-sm transition-all cursor-pointer"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>+ Create Job</span>
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex-1 overflow-auto p-4">
+                <div className={`border rounded-lg overflow-hidden shadow-md ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-300'}`}>
                 {filteredJobs.length === 0 ? (
                   <div className="p-12 text-center text-slate-400">
                     <AlertCircle className="w-8 h-8 mx-auto mb-2 text-slate-400" />
@@ -4357,6 +4411,7 @@ export default function App() {
                     </tbody>
                   </table>
                 )}
+              </div>
               </div>
             </div>
           )}
@@ -4995,21 +5050,51 @@ export default function App() {
                   </button>
                 </div>
 
-                <div className="flex items-center space-x-2 font-medium">
-                  <Filter className="w-3.5 h-3.5 text-slate-400" />
-                  <span>Filter by:</span>
+                <div className="flex flex-wrap items-center gap-2 font-medium">
+                  <div className="flex items-center space-x-1.5">
+                    <Filter className="w-3.5 h-3.5 text-slate-400" />
+                    <span>Filter:</span>
 
-                  <select value={calAccountFilter} onChange={(e) => setCalAccountFilter(e.target.value)} className="p-1 border rounded bg-transparent text-slate-900 dark:text-slate-100">
-                    <option value="All">All Builders</option>
-                    <option value="PERRY HOMES">Perry Homes</option>
-                    <option value="TOLL BROTHERS">Toll Brothers</option>
-                  </select>
+                    <select value={calAccountFilter} onChange={(e) => setCalAccountFilter(e.target.value)} className="p-1 border rounded bg-transparent text-slate-900 dark:text-slate-100">
+                      <option value="All">All Builders</option>
+                      <option value="PERRY HOMES">Perry Homes</option>
+                      <option value="TOLL BROTHERS">Toll Brothers</option>
+                    </select>
 
-                  <select value={calCommunityFilter} onChange={(e) => setCalCommunityFilter(e.target.value)} className="p-1 border rounded bg-transparent text-slate-900 dark:text-slate-100">
-                    <option value="All">All Communities</option>
-                    <option value="STAR FARMS">Star Farms</option>
-                    <option value="Oakridge">Oakridge Estates</option>
-                  </select>
+                    <select value={calCommunityFilter} onChange={(e) => setCalCommunityFilter(e.target.value)} className="p-1 border rounded bg-transparent text-slate-900 dark:text-slate-100">
+                      <option value="All">All Communities</option>
+                      <option value="STAR FARMS">Star Farms</option>
+                      <option value="Oakridge">Oakridge Estates</option>
+                    </select>
+                  </div>
+
+                  {/* Location Dropdown (Only appears for users with access to more than 1 facility; defaults to All) */}
+                  {getUserAccessibleActiveFacilities().length > 1 && (
+                    <div className="flex items-center space-x-1.5 bg-slate-100 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 px-2 py-1 rounded-lg text-xs">
+                      <MapPin className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
+                      <span className="font-semibold text-slate-500">Location:</span>
+                      <select
+                        value={selectedRegion}
+                        onChange={(e) => setSelectedRegion(e.target.value)}
+                        className="bg-transparent font-bold text-slate-800 dark:text-slate-200 focus:outline-none cursor-pointer"
+                      >
+                        <option value="All">All ({getUserAccessibleActiveFacilities().length})</option>
+                        {getUserAccessibleActiveFacilities().map((r) => (
+                          <option key={r.id} value={r.name} className="text-slate-900">
+                            {r.name} {r.isDefault ? '[DEFAULT]' : ''}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
+                  <button
+                    onClick={() => { setCreateScope('job'); setActiveModal('create'); }}
+                    className="flex items-center space-x-1.5 bg-blue-600 hover:bg-blue-500 text-white font-bold px-3 py-1.5 rounded-lg text-xs shadow-sm transition-all cursor-pointer ml-1"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>+ Create Job</span>
+                  </button>
                 </div>
               </div>
 
