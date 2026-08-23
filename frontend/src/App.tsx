@@ -1909,21 +1909,62 @@ export default function App() {
     return true;
   });
 
-  // Core Scheduling Engine: Workday & Holiday Evaluation
+  // Core Scheduling Engine: Workday & Holiday Evaluation (Timezone Immune)
   const isDateWorkingDay = (dateStr: string, regionScopeName?: string): boolean => {
     if (!dateStr || dateStr === 'No Date') return false;
-    const d = new Date(dateStr);
-    if (isNaN(d.getTime())) return false;
 
-    const isoDate = d.toISOString().split('T')[0];
-    const mm = String(d.getMonth() + 1).padStart(2, '0');
-    const dd = String(d.getDate()).padStart(2, '0');
-    const yyyy = String(d.getFullYear());
-    const formattedMDY = `${mm}/${dd}/${yyyy}`;
+    // Safely parse year, month, day without UTC timezone offset skew
+    let yyyy: number;
+    let mmNum: number;
+    let ddNum: number;
+
+    if (dateStr.includes('-')) {
+      const parts = dateStr.split('T')[0].split('-');
+      if (parts.length === 3) {
+        yyyy = parseInt(parts[0], 10);
+        mmNum = parseInt(parts[1], 10);
+        ddNum = parseInt(parts[2], 10);
+      } else {
+        const dObj = new Date(dateStr);
+        yyyy = dObj.getFullYear();
+        mmNum = dObj.getMonth() + 1;
+        ddNum = dObj.getDate();
+      }
+    } else if (dateStr.includes('/')) {
+      const parts = dateStr.split('/');
+      if (parts.length >= 3) {
+        mmNum = parseInt(parts[0], 10);
+        ddNum = parseInt(parts[1], 10);
+        yyyy = parseInt(parts[2], 10);
+        if (yyyy < 100) yyyy += 2000;
+      } else if (parts.length === 2) {
+        mmNum = parseInt(parts[0], 10);
+        ddNum = parseInt(parts[1], 10);
+        yyyy = new Date().getFullYear();
+      } else {
+        const dObj = new Date(dateStr);
+        yyyy = dObj.getFullYear();
+        mmNum = dObj.getMonth() + 1;
+        ddNum = dObj.getDate();
+      }
+    } else {
+      const dObj = new Date(dateStr);
+      yyyy = dObj.getFullYear();
+      mmNum = dObj.getMonth() + 1;
+      ddNum = dObj.getDate();
+    }
+
+    if (isNaN(yyyy) || isNaN(mmNum) || isNaN(ddNum)) return false;
+
+    // Noon local time guarantees correct getDay() regardless of DST or timezones
+    const d = new Date(yyyy, mmNum - 1, ddNum, 12, 0, 0);
+    const isoDate = `${yyyy}-${String(mmNum).padStart(2, '0')}-${String(ddNum).padStart(2, '0')}`;
+    const formattedMDY = `${String(mmNum).padStart(2, '0')}/${String(ddNum).padStart(2, '0')}/${yyyy}`;
+    const shortMD = `${mmNum}/${ddNum}`;
 
     // 1. One-off Extra Work Day / Overtime Catch-up Override (at Global or Region/Plant level)
     const isCustomWorkDay = customWorkDayList.some(w => {
-      const matchDate = w.date === formattedMDY || w.date === isoDate;
+      const matchDate = w.date === formattedMDY || w.date === isoDate || w.date === shortMD;
       if (matchDate) {
         if (w.regionScope === 'Global (All Regions)') return true;
         if (regionScopeName && (w.regionScope.includes(regionScopeName) || regionScopeName.includes(w.regionScope))) return true;
@@ -1936,7 +1977,7 @@ export default function App() {
 
     // Check company & regional holidays
     const isHoliday = companyHolidays.some(h => {
-      if (h.date === formattedMDY || h.date === isoDate) {
+      if (h.date === formattedMDY || h.date === isoDate || h.date === shortMD) {
         if (h.regionScope === 'Global (All Regions)') return true;
         if (regionScopeName && (h.regionScope.includes(regionScopeName) || regionScopeName.includes(h.regionScope))) return true;
         if (!regionScopeName && (h.regionScope.includes(selectedRegion) || selectedRegion.includes(h.regionScope))) return true;
@@ -1960,12 +2001,21 @@ export default function App() {
   };
 
   const calculateNextWorkingDate = (startDateStr: string, workDaysToAdd: number, regionScopeName?: string): string => {
-    const d = new Date(startDateStr);
+    let d: Date;
+    if (startDateStr.includes('-')) {
+      const parts = startDateStr.split('T')[0].split('-');
+      d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10), 12, 0, 0);
+    } else if (startDateStr.includes('/')) {
+      const parts = startDateStr.split('/');
+      d = new Date(parseInt(parts[2], 10), parseInt(parts[0], 10) - 1, parseInt(parts[1], 10), 12, 0, 0);
+    } else {
+      d = new Date(startDateStr);
+    }
     if (isNaN(d.getTime())) return startDateStr;
     let added = 0;
     while (added < workDaysToAdd) {
       d.setDate(d.getDate() + 1);
-      const iso = d.toISOString().split('T')[0];
+      const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
       if (isDateWorkingDay(iso, regionScopeName)) {
         added++;
       }
@@ -3267,13 +3317,22 @@ export default function App() {
   };
 
   const get14DayRange = (centerDateStr: string) => {
-    const current = new Date(centerDateStr);
+    let current: Date;
+    if (centerDateStr.includes('-')) {
+      const parts = centerDateStr.split('T')[0].split('-');
+      current = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10), 12, 0, 0);
+    } else {
+      current = new Date(centerDateStr);
+    }
     const days: { dateStr: string; dayName: string; formatted: string; isCenter: boolean }[] = [];
     
     for (let i = -7; i <= 7; i++) {
       const d = new Date(current);
       d.setDate(d.getDate() + i);
-      const dateStr = d.toISOString().split('T')[0];
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      const dateStr = `${yyyy}-${mm}-${dd}`;
       const dayName = d.toLocaleDateString('en-US', { weekday: 'short' });
       const formatted = `${d.getMonth() + 1}/${d.getDate()}`;
       days.push({ dateStr, dayName, formatted, isCenter: i === 0 });
@@ -3290,24 +3349,35 @@ export default function App() {
     const cleanTarget = targetDateString.trim();
     if (cleanTarget === calDay.formatted || cleanTarget === calDay.dateStr) return true;
 
-    const parts = cleanTarget.split('/');
-    if (parts.length >= 2) {
-      const month = parseInt(parts[0], 10);
-      const day = parseInt(parts[1], 10);
-      const calParts = calDay.formatted.split('/');
-      if (calParts.length === 2) {
-        const calMonth = parseInt(calParts[0], 10);
-        const calDayNum = parseInt(calParts[1], 10);
-        if (month === calMonth && day === calDayNum) return true;
+    // Check M/D or M/D/YYYY
+    if (cleanTarget.includes('/')) {
+      const parts = cleanTarget.split('/');
+      if (parts.length >= 2) {
+        const m = parseInt(parts[0], 10);
+        const d = parseInt(parts[1], 10);
+        const targetMD = `${m}/${d}`;
+        if (targetMD === calDay.formatted) return true;
+        if (parts.length === 3) {
+          const y = parts[2].length === 4 ? parts[2] : `20${parts[2]}`;
+          const targetISO = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+          if (targetISO === calDay.dateStr) return true;
+        }
       }
     }
 
-    const parsed = new Date(cleanTarget);
-    if (!isNaN(parsed.getTime())) {
-      const targetFormatted = `${parsed.getMonth() + 1}/${parsed.getDate()}`;
-      const targetISO = parsed.toISOString().split('T')[0];
-      return targetFormatted === calDay.formatted || targetISO === calDay.dateStr;
+    // Check YYYY-MM-DD
+    if (cleanTarget.includes('-')) {
+      const parts = cleanTarget.split('T')[0].split('-');
+      if (parts.length === 3) {
+        const y = parts[0];
+        const m = parseInt(parts[1], 10);
+        const d = parseInt(parts[2], 10);
+        const targetMD = `${m}/${d}`;
+        const targetISO = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+        if (targetMD === calDay.formatted || targetISO === calDay.dateStr) return true;
+      }
     }
+
     return false;
   };
 
@@ -3376,7 +3446,13 @@ export default function App() {
   };
 
   const shiftCalendarDays = (offsetDays: number) => {
-    const d = new Date(centerDate + 'T00:00:00');
+    let d: Date;
+    if (centerDate.includes('-')) {
+      const parts = centerDate.split('T')[0].split('-');
+      d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10), 12, 0, 0);
+    } else {
+      d = new Date(centerDate);
+    }
     d.setDate(d.getDate() + offsetDays);
     const yyyy = d.getFullYear();
     const mm = String(d.getMonth() + 1).padStart(2, '0');
@@ -3385,11 +3461,11 @@ export default function App() {
   };
 
   const getDayObjFromISO = (isoStr: string) => {
-    const parts = isoStr.split('-');
+    const parts = isoStr.split('T')[0].split('-');
     if (parts.length === 3) {
       const m = parseInt(parts[1], 10);
       const d = parseInt(parts[2], 10);
-      return { dateStr: isoStr, formatted: `${m}/${d}` };
+      return { dateStr: `${parts[0]}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`, formatted: `${m}/${d}` };
     }
     return { dateStr: isoStr, formatted: isoStr };
   };
@@ -5458,8 +5534,14 @@ export default function App() {
                   </button>
 
                   <div className="text-center px-1 flex-1">
-                    <div className="font-black text-sm text-slate-900 dark:text-white tracking-tight">
-                      {new Date(centerDate + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                    <div className="font-black text-sm text-slate-950 dark:text-white tracking-tight">
+                      {(() => {
+                        const parts = centerDate.split('T')[0].split('-');
+                        const d = parts.length === 3 
+                          ? new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10), 12, 0, 0)
+                          : new Date(centerDate);
+                        return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+                      })()}
                     </div>
                     <div className="flex items-center justify-center space-x-1.5 mt-0.5">
                       {centerDate === new Date().toISOString().split('T')[0] ? (
