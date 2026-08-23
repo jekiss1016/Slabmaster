@@ -1511,11 +1511,11 @@ export default function App() {
     return user.role === 'EXTERNAL_FIELD_INSTALLER' || user.role === 'INTERNAL_FIELD_INSTALLER';
   };
 
-  // Get available installers strictly scoped to the specified region (both internal and external)
+  // Get available installers strictly scoped to the specified region (only ACTIVE installers)
   const getAvailableInstallersForRegion = (regionName?: string): AppUser[] => {
     return systemUsersList.filter(u => {
       if (!isInstallerUser(u)) return false;
-      if (u.status === 'INACTIVE') return false;
+      if (u.status !== 'ACTIVE') return false; // Inactive / unverified users are strictly excluded from assignment dropdowns
       if (!regionName || u.scopedRegions.includes('GLOBAL') || u.scopedRegions.includes('Global (All Regions)')) return true;
       return u.scopedRegions.some(r => r.toLowerCase().includes(regionName.toLowerCase()) || regionName.toLowerCase().includes(r.toLowerCase()));
     });
@@ -1528,12 +1528,13 @@ export default function App() {
   const isActualAdmin = isDemoBypass || authenticatedUserActualRole === 'SUBSCRIBER_ADMIN' || authenticatedUserActualRole === 'SYSTEM_ADMIN';
   const isSubscriberOrGlobalAdmin = isActualAdmin && (activeUserRole === 'SUBSCRIBER_ADMIN' || activeUserRole === 'SYSTEM_ADMIN');
 
-  // Get available plant regions for current user to assign
+  // Get available plant regions for current user to assign (strictly active operating facilities)
   const getPlantAdminAccessibleRegions = (): string[] => {
+    const activeFacilityNames = regionsList.filter(r => r.status === 'ACTIVE').map(r => r.name);
     if (isSubscriberOrGlobalAdmin) {
-      return ['GLOBAL', 'Location 1', 'Phoenix Metro (PHX)', 'Tucson East (TUC)', 'Denver North (DEN)', 'Tampa Plant (TPA)'];
+      return ['GLOBAL', ...activeFacilityNames];
     }
-    return plantAdminAllowedRegions;
+    return plantAdminAllowedRegions.filter(r => r === 'GLOBAL' || activeFacilityNames.includes(r));
   };
 
   // Microsoft Entra ID Authentication Detector (Azure Static Web Apps /.auth/me)
@@ -2985,14 +2986,30 @@ export default function App() {
 
   // Region & Operating Facility Handlers with Dedicated Address Breakdown
   const handleToggleShutdownRegion = (regId: string) => {
+    const target = regionsList.find(r => r.id === regId);
+    const nextStatus: 'ACTIVE' | 'SHUTDOWN' = target?.status === 'ACTIVE' ? 'SHUTDOWN' : 'ACTIVE';
+    
     const updated = regionsList.map((r) => {
       if (r.id === regId) {
-        const nextStatus: 'ACTIVE' | 'SHUTDOWN' = r.status === 'ACTIVE' ? 'SHUTDOWN' : 'ACTIVE';
         return { ...r, status: nextStatus };
       }
       return r;
     });
     setRegionsList(updated);
+
+    // If shutting down the currently selected facility, revert to default active facility or GLOBAL
+    if (nextStatus === 'SHUTDOWN' && target) {
+      const activeDefault = updated.find(r => r.status === 'ACTIVE' && r.isDefault) || updated.find(r => r.status === 'ACTIVE');
+      if (selectedRegion === target.name && activeDefault) {
+        setSelectedRegion(activeDefault.name);
+      }
+      if (selectedLeadTimeScope === target.name) {
+        setSelectedLeadTimeScope('GLOBAL');
+      }
+      if (calendarConfigScope === target.name) {
+        setCalendarConfigScope('GLOBAL');
+      }
+    }
   };
 
   const handleSetDefaultRegion = (regId: string) => {
@@ -3021,7 +3038,7 @@ export default function App() {
       state: newRegionState || 'AZ',
       zip: newRegionZip || '85001',
       address: fullFormattedAddress || '100 Main Logistics Way, Phoenix, AZ 85001',
-      timezone: newRegionTimezone || 'America/Phoenix (MST)',
+      timezone: newRegionTimezone || 'America/Phoenix',
       isDefault: false,
       status: 'ACTIVE' as const,
       activeJobsCount: 0,
@@ -3697,9 +3714,9 @@ export default function App() {
                 onChange={(e) => setSelectedRegion(e.target.value)}
                 className="bg-transparent font-semibold focus:outline-none cursor-pointer text-white"
               >
-                {regionsList.map((r) => (
+                {regionsList.filter(r => r.status === 'ACTIVE').map((r) => (
                   <option key={r.id} value={r.name} className="text-slate-900 font-bold">
-                    {r.name} {r.status === 'SHUTDOWN' ? '[SHUTDOWN]' : r.isDefault ? '[DEFAULT]' : ''}
+                    {r.name} {r.isDefault ? '[DEFAULT]' : ''}
                   </option>
                 ))}
               </select>
@@ -6108,7 +6125,7 @@ export default function App() {
                               className="p-2.5 border rounded-lg font-bold text-sm bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-sm cursor-pointer min-w-[260px]"
                             >
                               <option value="GLOBAL">🌐 Global Baseline (All Operating Facilities)</option>
-                              {regionsList.map((reg) => (
+                              {regionsList.filter(reg => reg.status === 'ACTIVE').map((reg) => (
                                 <option key={reg.id} value={reg.name}>
                                   📍 {reg.name} ({reg.code})
                                 </option>
@@ -7901,10 +7918,9 @@ export default function App() {
                             className="p-2 border rounded-lg font-bold bg-white dark:bg-slate-900 text-blue-700 dark:text-blue-400 shadow-xs cursor-pointer"
                           >
                             <option value="GLOBAL">Subscriber Level (Global Default - All Regions)</option>
-                            <option value="Phoenix Metro (PHX)">Phoenix Metro (PHX)</option>
-                            <option value="Tucson East (TUC)">Tucson East (TUC)</option>
-                            <option value="Denver North (DEN)">Denver North (DEN)</option>
-                            <option value="Tampa Plant (TPA)">Tampa Plant (TPA)</option>
+                            {regionsList.filter(r => r.status === 'ACTIVE').map(r => (
+                              <option key={r.id} value={r.name}>{r.name} ({r.code})</option>
+                            ))}
                           </select>
                         </div>
 
@@ -8062,13 +8078,12 @@ export default function App() {
                               <select
                                 value={newHolidayRegion}
                                 onChange={(e) => setNewHolidayRegion(e.target.value)}
-                                className="w-full p-2 border rounded font-semibold text-slate-900 dark:bg-slate-900 dark:text-slate-100"
+                                className="w-full p-2 border rounded font-semibold text-slate-900 dark:bg-slate-900 dark:text-slate-100 cursor-pointer"
                               >
                                 <option value="Global (All Regions)">Global (All Regions)</option>
-                                <option value="Phoenix Metro (PHX)">Phoenix Metro (PHX)</option>
-                                <option value="Tucson East (TUC)">Tucson East (TUC)</option>
-                                <option value="Denver North (DEN)">Denver North (DEN)</option>
-                                <option value="Tampa Plant (TPA)">Tampa Plant (TPA)</option>
+                                {regionsList.filter(r => r.status === 'ACTIVE').map(r => (
+                                  <option key={r.id} value={r.name}>{r.name} ({r.code})</option>
+                                ))}
                               </select>
                             </div>
 
@@ -8180,10 +8195,10 @@ export default function App() {
                               <select
                                 value={newWorkDayRegion}
                                 onChange={(e) => setNewWorkDayRegion(e.target.value)}
-                                className="w-full p-2 border rounded font-semibold text-slate-900 dark:bg-slate-900 dark:text-slate-100"
+                                className="w-full p-2 border rounded font-semibold text-slate-900 dark:bg-slate-900 dark:text-slate-100 cursor-pointer"
                               >
                                 <option value="Global (All Regions)">Global (All Regions)</option>
-                                {regionsList.map((reg) => (
+                                {regionsList.filter(r => r.status === 'ACTIVE').map((reg) => (
                                   <option key={reg.id} value={reg.name}>{reg.name} ({reg.code})</option>
                                 ))}
                               </select>
