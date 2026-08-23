@@ -5400,7 +5400,7 @@ export default function App() {
               {/* MOBILE DAILY STACKED CALENDAR VIEW (EXCLUSIVELY APPLIED TO MOBILE < md:)  */}
               {/* ========================================================================= */}
               <div
-                className="block md:hidden space-y-3.5 select-none"
+                className="block md:hidden space-y-3.5 select-none min-h-[calc(100vh-230px)] flex flex-col"
                 onTouchStart={(e) => {
                   setCalTouchStartX(e.targetTouches[0].clientX);
                   setCalTouchEndX(null);
@@ -5513,8 +5513,8 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* Mobile Daily Stacked List */}
-                <div className="space-y-3">
+                {/* Mobile Daily Stacked List (Full-Height Touch Target) */}
+                <div className="flex-1 flex flex-col space-y-3">
                   {(() => {
                     const mobileDayObj = getDayObjFromISO(centerDate);
                     const isWork = isDateWorkingDay(mobileDayObj.dateStr);
@@ -5524,26 +5524,20 @@ export default function App() {
 
                     if (!isWork) {
                       return (
-                        <div className="p-8 text-center rounded-2xl border border-dashed border-slate-300 dark:border-slate-800 bg-slate-100/60 dark:bg-slate-950/60 space-y-2">
-                          <Lock className="w-6 h-6 text-slate-400 mx-auto" />
-                          <div className="font-bold text-sm text-slate-600 dark:text-slate-400">Non-Working Day</div>
-                          <p className="text-xs text-slate-500">Facility fabrication and installation are closed for this date.</p>
-                          <button
-                            type="button"
-                            onClick={() => handleToggleOvertimeDay(mobileDayObj.dateStr)}
-                            className="mt-2 px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-xs"
-                          >
-                            + Enable Overtime Shift
-                          </button>
+                        <div className="flex-1 min-h-[340px] p-8 text-center rounded-2xl border border-dashed border-slate-300 dark:border-slate-800 bg-slate-100/60 dark:bg-slate-950/60 flex flex-col items-center justify-center space-y-2">
+                          <Lock className="w-8 h-8 text-slate-400 mx-auto" />
+                          <div className="font-bold text-sm text-slate-700 dark:text-slate-300">Non-Working Day</div>
+                          <p className="text-xs text-slate-500 max-w-xs">Facility fabrication and installation are closed for this date.</p>
                         </div>
                       );
                     }
 
                     if (dayMilestones.length === 0) {
                       return (
-                        <div className="p-8 text-center rounded-2xl border border-dashed border-slate-300 dark:border-slate-800 text-xs text-slate-400 space-y-1">
-                          <p className="font-bold">No milestones scheduled for this date.</p>
-                          <p className="text-[11px]">Use the Prior/Next controls above to browse other days.</p>
+                        <div className="flex-1 min-h-[340px] p-8 text-center rounded-2xl border border-dashed border-slate-300 dark:border-slate-800 text-xs text-slate-400 flex flex-col items-center justify-center space-y-1.5">
+                          <CalendarDays className="w-8 h-8 text-slate-300 dark:text-slate-700 mx-auto mb-1" />
+                          <p className="font-bold text-slate-600 dark:text-slate-400">No milestones scheduled for this date.</p>
+                          <p className="text-[11px] text-slate-400">Swipe left or right anywhere to browse other days.</p>
                         </div>
                       );
                     }
@@ -5860,17 +5854,11 @@ export default function App() {
                             >
                               <div className="space-y-1.5 flex flex-col w-full">
                                 {!isWork ? (
-                                  <div className="text-center py-5 text-slate-400">
+                                  <div className="text-center py-6 text-slate-400">
                                     <div className="font-bold text-[10px] flex items-center justify-center space-x-1">
-                                      <Lock className="w-3 h-3" />
+                                      <Lock className="w-3.5 h-3.5 text-slate-400" />
                                       <span>Non-Working Day</span>
                                     </div>
-                                    <button
-                                      onClick={() => handleToggleOvertimeDay(d.dateStr)}
-                                      className="mt-1 text-[9px] text-blue-600 dark:text-blue-400 hover:underline font-bold cursor-pointer"
-                                    >
-                                      + Enable Overtime Day
-                                    </button>
                                   </div>
                                 ) : (
                                   <>
@@ -5922,15 +5910,6 @@ export default function App() {
                                   </>
                                 )}
                               </div>
-
-                              {isOvertime && (
-                                <button
-                                  onClick={() => handleToggleOvertimeDay(d.dateStr)}
-                                  className="text-[9px] text-amber-700 dark:text-amber-400 hover:underline font-semibold text-center cursor-pointer mt-2"
-                                >
-                                  Overtime Enabled (Revert)
-                                </button>
-                              )}
                             </div>
                           );
                         })}
@@ -6013,17 +5992,11 @@ export default function App() {
                             >
                               <div className="space-y-1.5 flex flex-col w-full">
                                 {!isWork ? (
-                                  <div className="text-center py-5 text-slate-400">
+                                  <div className="text-center py-6 text-slate-400">
                                     <div className="font-bold text-[10px] flex items-center justify-center space-x-1">
-                                      <Lock className="w-3 h-3" />
+                                      <Lock className="w-3.5 h-3.5 text-slate-400" />
                                       <span>Non-Working Day</span>
                                     </div>
-                                    <button
-                                      onClick={() => handleToggleOvertimeDay(d.dateStr)}
-                                      className="mt-1 text-[9px] text-blue-600 dark:text-blue-400 hover:underline font-bold cursor-pointer"
-                                    >
-                                      + Enable Overtime Day
-                                    </button>
                                   </div>
                                 ) : (
                                   <>
@@ -6075,15 +6048,6 @@ export default function App() {
                                   </>
                                 )}
                               </div>
-
-                              {isOvertime && (
-                                <button
-                                  onClick={() => handleToggleOvertimeDay(d.dateStr)}
-                                  className="text-[9px] text-amber-700 dark:text-amber-400 hover:underline font-semibold text-center cursor-pointer mt-2"
-                                >
-                                  Overtime Enabled (Revert)
-                                </button>
-                              )}
                             </div>
                           );
                         })}
