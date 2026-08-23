@@ -3566,20 +3566,20 @@ export default function App() {
   return (
     <div className={`min-h-screen flex flex-col font-sans transition-colors duration-200 ${isDark ? 'bg-slate-950 text-slate-100' : 'bg-slate-100 text-slate-900'}`}>
       
-      {/* 1. TOP TOOLBAR & MODULE HEADER (PROMINENT 4X BANNER BRANDING) */}
+      {/* 1. TOP TOOLBAR & MODULE HEADER (ULTRA-WIDE 8:1 BANNER BRANDING) */}
       <header className={`border-b shadow-md ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-gradient-to-r from-blue-600 to-indigo-700 text-white border-blue-700'}`}>
-        <div className="px-6 py-4 flex flex-wrap lg:flex-nowrap items-center justify-between gap-6">
+        <div className="px-6 py-2.5 flex flex-wrap lg:flex-nowrap items-center justify-between gap-5 min-h-[72px]">
           
-          {/* Logo / Subscriber Branding Display (4x Tall & 4x Wide Banner) */}
+          {/* Logo / Subscriber Branding Display (Ultra-Wide 8:1 Banner) */}
           <div className="flex items-center shrink-0">
             {logoBase64 ? (
               <img
                 src={logoBase64}
                 alt="Subscriber Banner Logo"
-                className="h-32 sm:h-36 md:h-44 lg:h-48 max-h-[200px] max-w-[650px] sm:max-w-[800px] md:max-w-[1000px] w-auto object-contain rounded-2xl bg-white/95 px-5 py-2.5 shadow-2xl border-2 border-white/50"
+                className="h-16 sm:h-18 md:h-20 lg:h-22 max-h-[90px] max-w-[550px] sm:max-w-[750px] md:max-w-[950px] lg:max-w-[1200px] w-auto object-contain rounded-xl bg-white/95 px-4 py-1.5 shadow-xl border-2 border-white/50"
               />
             ) : (
-              <div className="h-32 px-10 bg-white/20 rounded-2xl flex items-center justify-center font-black text-white text-4xl shadow-xl border border-white/30 tracking-tight">
+              <div className="h-16 px-6 bg-white/20 rounded-xl flex items-center justify-center font-black text-white text-2xl shadow-xl border border-white/30 tracking-tight">
                 {subscriberName}
               </div>
             )}
@@ -7806,12 +7806,13 @@ export default function App() {
                                 className="text-xs cursor-pointer"
                               />
                               <div className="p-3 bg-blue-50/80 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 rounded-lg text-left text-xs space-y-1.5 text-blue-950 dark:text-blue-200">
-                                <strong className="block font-bold text-blue-900 dark:text-blue-300">📐 Banner Style & Size Requirements:</strong>
+                                <strong className="block font-bold text-blue-900 dark:text-blue-300">📐 Ultra-Wide Banner Style & Size Requirements:</strong>
                                 <ul className="list-disc pl-4 space-y-1 text-[11px] text-slate-600 dark:text-slate-300">
-                                  <li><strong>Format:</strong> Horizontal Banner (Icon on left + Business Name typography to the right).</li>
-                                  <li><strong>Recommended Dimensions:</strong> 600px × 120px to 1200px × 240px (Wide <strong>4:1 to 5:1 Aspect Ratio</strong>).</li>
+                                  <li><strong>Layout Format:</strong> Ultra-Wide Panoramic Banner (Emblem on left + Wide bold typography stretching to the right).</li>
+                                  <li><strong>Recommended Dimensions:</strong> 1200px × 150px to 1600px × 200px (Wide <strong>8:1 Aspect Ratio</strong>).</li>
+                                  <li><strong>Vertical Profile:</strong> Compact height (~64px to 88px) with wide horizontal span.</li>
                                   <li><strong>Supported Formats:</strong> PNG (transparent background recommended), SVG, JPG, WebP.</li>
-                                  <li><strong>Max File Size:</strong> 2MB (Converted automatically to high-speed Base64 data in database).</li>
+                                  <li><strong>Max File Size:</strong> 2MB (Converted automatically to high-performance Base64 data in database).</li>
                                 </ul>
                               </div>
                             </div>
@@ -7820,18 +7821,18 @@ export default function App() {
 
                         <div className="p-6 rounded-xl border bg-slate-50 dark:bg-slate-950 flex flex-col justify-between">
                           <div>
-                            <strong className="block text-sm text-slate-500 mb-2">Live Header Banner Logo Preview (Large 4x Display):</strong>
+                            <strong className="block text-sm text-slate-500 mb-2">Live Header Ultra-Wide Banner Logo Preview (8:1 Aspect Ratio):</strong>
                             <div className="p-5 bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl shadow-lg flex items-center justify-start">
                               {logoBase64 ? (
-                                <img src={logoBase64} alt="Uploaded Logo Preview" className="h-28 md:h-36 max-h-[160px] max-w-[550px] object-contain border-2 border-white/40 p-2 rounded-xl bg-white/95 shadow-xl" />
+                                <img src={logoBase64} alt="Uploaded Logo Preview" className="h-16 md:h-20 max-h-[85px] max-w-[700px] object-contain border-2 border-white/40 p-1.5 rounded-xl bg-white/95 shadow-xl" />
                               ) : (
-                                <div className="h-28 px-8 bg-white/20 rounded-xl flex items-center justify-center font-black text-white text-3xl shadow-sm border border-white/30 tracking-tight">
+                                <div className="h-16 px-8 bg-white/20 rounded-xl flex items-center justify-center font-black text-white text-2xl shadow-sm border border-white/30 tracking-tight">
                                   {subscriberName}
                                 </div>
                               )}
                             </div>
                           </div>
-                          <span className="text-[11px] text-slate-400 mt-4">Banner format ensures crisp, human-readable company typography with large, high-impact enterprise branding.</span>
+                          <span className="text-[11px] text-slate-400 mt-4">Ultra-wide 8:1 banner format ensures maximum legibility while keeping the application header compact.</span>
                         </div>
                       </div>
                     </div>
