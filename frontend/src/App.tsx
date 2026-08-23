@@ -1,5 +1,6 @@
 import React, { useState, useEffect, ChangeEvent } from 'react';
 import { DEFAULT_GRANITECRAFT_BANNER_BASE64 } from './brandingAsset';
+import { APP_VERSION } from './version';
 import {
   Search,
   Eye,
@@ -8654,10 +8655,16 @@ export default function App() {
 
                 </div>
               </div>
-
             </div>
             )
           )}
+
+          {/* CENTER DETAIL SECTION FOOTER */}
+          <footer className={`py-2 px-4 border-t text-center text-[11px] font-medium transition-colors shrink-0 ${
+            isDark ? 'bg-slate-900/90 border-slate-800 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'
+          }`}>
+            <span>© 2026 SlabMaster | <span className="font-semibold text-blue-600 dark:text-blue-400">{APP_VERSION}</span></span>
+          </footer>
 
         </main>
       </div>
