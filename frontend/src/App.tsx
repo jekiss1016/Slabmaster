@@ -3566,31 +3566,31 @@ export default function App() {
   return (
     <div className={`min-h-screen flex flex-col font-sans transition-colors duration-200 ${isDark ? 'bg-slate-950 text-slate-100' : 'bg-slate-100 text-slate-900'}`}>
       
-      {/* 1. TOP TOOLBAR & MODULE HEADER (COMPACT BANNER STYLE) */}
-      <header className={`border-b shadow-xs ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-gradient-to-r from-blue-600 to-indigo-700 text-white border-blue-700'}`}>
-        <div className="px-6 py-2 flex items-center justify-between gap-4 min-h-[56px]">
+      {/* 1. TOP TOOLBAR & MODULE HEADER (PROMINENT 4X BANNER BRANDING) */}
+      <header className={`border-b shadow-md ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-gradient-to-r from-blue-600 to-indigo-700 text-white border-blue-700'}`}>
+        <div className="px-6 py-4 flex flex-wrap lg:flex-nowrap items-center justify-between gap-6">
           
-          {/* Logo / Subscriber Branding Display (Horizontal Banner Style) */}
-          <div className="flex items-center space-x-3 shrink-0">
+          {/* Logo / Subscriber Branding Display (4x Tall & 4x Wide Banner) */}
+          <div className="flex items-center shrink-0">
             {logoBase64 ? (
               <img
                 src={logoBase64}
                 alt="Subscriber Banner Logo"
-                className="h-11 md:h-12 max-h-[48px] max-w-[280px] md:max-w-[340px] object-contain rounded-lg bg-white/95 px-2 py-0.5 shadow-md border border-white/40"
+                className="h-32 sm:h-36 md:h-44 lg:h-48 max-h-[200px] max-w-[650px] sm:max-w-[800px] md:max-w-[1000px] w-auto object-contain rounded-2xl bg-white/95 px-5 py-2.5 shadow-2xl border-2 border-white/50"
               />
             ) : (
-              <div className="h-10 px-4 bg-white/20 rounded-lg flex items-center justify-center font-black text-white text-lg shadow-sm border border-white/30 tracking-tight">
+              <div className="h-32 px-10 bg-white/20 rounded-2xl flex items-center justify-center font-black text-white text-4xl shadow-xl border border-white/30 tracking-tight">
                 {subscriberName}
               </div>
             )}
           </div>
 
           {/* Global Search Bar (Centered) */}
-          <div className="flex items-center space-x-1 bg-white rounded-lg p-1 border border-slate-200 shadow-sm text-slate-900 max-w-md w-full shrink">
+          <div className="flex items-center space-x-1 bg-white rounded-xl p-1.5 border border-slate-200 shadow-sm text-slate-900 max-w-md w-full shrink">
             <select
               value={searchCategory}
               onChange={(e) => setSearchCategory(e.target.value)}
-              className="bg-white text-xs font-bold px-2 py-1 focus:outline-none cursor-pointer text-slate-800 rounded"
+              className="bg-white text-xs font-bold px-2 py-1.5 focus:outline-none cursor-pointer text-slate-800 rounded"
             >
               <option value="All" className="text-slate-900 bg-white">All</option>
               <option value="Accounts" className="text-slate-900 bg-white">Accounts</option>
@@ -3603,7 +3603,7 @@ export default function App() {
               placeholder="Search all columns..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="bg-white text-xs px-2.5 py-1 focus:outline-none placeholder-slate-400 text-slate-900 w-full min-w-[120px]"
+              className="bg-white text-xs px-2.5 py-1.5 focus:outline-none placeholder-slate-400 text-slate-900 w-full min-w-[120px]"
             />
             <button className="p-1.5 hover:bg-slate-100 text-slate-600 hover:text-slate-900 rounded transition-all cursor-pointer">
               <Search className="w-4 h-4 text-blue-600" />
@@ -3614,9 +3614,9 @@ export default function App() {
           <div className="flex items-center space-x-3 text-xs shrink-0">
             {/* Global Admin Role Simulator / Impersonation Tool (Strictly restricted to SYSTEM_ADMIN) */}
             {isGlobalSuperAdmin && (
-              <div className="flex items-center space-x-1.5 bg-white/10 px-2.5 py-1 rounded-md border border-white/20 shadow-xs">
+              <div className="flex items-center space-x-1.5 bg-white/10 px-3 py-1.5 rounded-lg border border-white/20 shadow-xs">
                 <span title="Super Admin Impersonation: In production, role switching is strictly restricted to Global Administrators (Super Admins).">
-                  <Shield className="w-3.5 h-3.5 text-amber-300" />
+                  <Shield className="w-4 h-4 text-amber-300" />
                 </span>
                 <select
                   value={activeUserRole}
@@ -3637,7 +3637,7 @@ export default function App() {
                   <button
                     type="button"
                     onClick={() => setActiveUserRole('SYSTEM_ADMIN')}
-                    className="px-1.5 py-0.5 bg-amber-400 text-slate-950 hover:bg-amber-300 rounded text-[9px] font-black cursor-pointer ml-1 transition-all"
+                    className="px-2 py-0.5 bg-amber-400 text-slate-950 hover:bg-amber-300 rounded text-[10px] font-black cursor-pointer ml-1 transition-all"
                     title="Return to Global Administrator clearance"
                   >
                     Exit Preview
@@ -3648,14 +3648,14 @@ export default function App() {
 
             {/* Authenticated User Status & Sign Out (Displays Full Name Value) */}
             {isAuthenticated ? (
-              <div className="flex items-center space-x-2 bg-emerald-500/20 border border-emerald-400/30 px-3 py-1 rounded-lg text-[11px]">
+              <div className="flex items-center space-x-2 bg-emerald-500/20 border border-emerald-400/30 px-3 py-1.5 rounded-lg text-[11px]">
                 <span className="font-bold text-emerald-200 flex items-center space-x-1.5" title={`Signed in as ${authenticatedUserEmail}`}>
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
                   <span className="truncate max-w-[160px] font-bold">{getLoggedInUserDisplayName()}</span>
                 </span>
                 <a
                   href="/.auth/logout?post_logout_redirect_uri=/"
-                  className="px-2 py-0.5 bg-white/20 hover:bg-white/30 text-white rounded font-bold transition-all cursor-pointer text-[10px]"
+                  className="px-2.5 py-1 bg-white/20 hover:bg-white/30 text-white rounded font-bold transition-all cursor-pointer text-[10px]"
                   title="Sign out of Microsoft Entra ID"
                 >
                   Sign Out
@@ -3665,7 +3665,7 @@ export default function App() {
               <button
                 type="button"
                 onClick={() => setIsDemoBypass(false)}
-                className="px-3 py-1 bg-amber-500/20 border border-amber-400/40 hover:bg-amber-500/30 text-amber-200 rounded-md text-[11px] font-bold transition-all cursor-pointer flex items-center space-x-1"
+                className="px-3 py-1.5 bg-amber-500/20 border border-amber-400/40 hover:bg-amber-500/30 text-amber-200 rounded-md text-[11px] font-bold transition-all cursor-pointer flex items-center space-x-1"
                 title="Exit Demo Simulation and return to Entra ID Login Screen"
               >
                 <span>Exit Demo</span>
@@ -7820,18 +7820,18 @@ export default function App() {
 
                         <div className="p-6 rounded-xl border bg-slate-50 dark:bg-slate-950 flex flex-col justify-between">
                           <div>
-                            <strong className="block text-sm text-slate-500 mb-2">Live Header Banner Logo Preview:</strong>
-                            <div className="p-4 bg-gradient-to-r from-blue-600 to-indigo-700 rounded-xl shadow-md flex items-center justify-start">
+                            <strong className="block text-sm text-slate-500 mb-2">Live Header Banner Logo Preview (Large 4x Display):</strong>
+                            <div className="p-5 bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl shadow-lg flex items-center justify-start">
                               {logoBase64 ? (
-                                <img src={logoBase64} alt="Uploaded Logo Preview" className="h-12 max-h-[50px] max-w-[340px] object-contain border border-white/40 p-1 rounded-lg bg-white/95 shadow-md" />
+                                <img src={logoBase64} alt="Uploaded Logo Preview" className="h-28 md:h-36 max-h-[160px] max-w-[550px] object-contain border-2 border-white/40 p-2 rounded-xl bg-white/95 shadow-xl" />
                               ) : (
-                                <div className="h-10 px-4 bg-white/20 rounded-lg flex items-center justify-center font-black text-white text-lg shadow-sm border border-white/30 tracking-tight">
+                                <div className="h-28 px-8 bg-white/20 rounded-xl flex items-center justify-center font-black text-white text-3xl shadow-sm border border-white/30 tracking-tight">
                                   {subscriberName}
                                 </div>
                               )}
                             </div>
                           </div>
-                          <span className="text-[11px] text-slate-400 mt-4">Banner format ensures crisp, human-readable company typography while keeping the application top title bar slim and compact.</span>
+                          <span className="text-[11px] text-slate-400 mt-4">Banner format ensures crisp, human-readable company typography with large, high-impact enterprise branding.</span>
                         </div>
                       </div>
                     </div>
