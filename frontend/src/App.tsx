@@ -3807,18 +3807,6 @@ export default function App() {
               </button>
             </div>
           </nav>
-
-          <div className={`p-3 border-t text-xs ${isDark ? 'border-slate-800 bg-slate-950' : 'border-slate-300 bg-slate-100'}`}>
-            <div className="flex items-center space-x-2">
-              <div className="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-[10px]">
-                👤
-              </div>
-              <div className="overflow-hidden">
-                <div className="font-bold truncate text-slate-800 dark:text-slate-200">SAPIntegration</div>
-                <div className="text-[10px] text-emerald-500 font-medium">● Connected</div>
-              </div>
-            </div>
-          </div>
         </aside>
 
         {/* MAIN CONTENT CANVAS */}
