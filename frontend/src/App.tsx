@@ -252,13 +252,84 @@ interface AccountRow {
 
 interface ChangeLogEntry {
   id: string;
-  timestamp: string;
+  timestamp: string; // Stored strictly in ISO-8601 UTC in database
   changedBy: string;
   summary: string;
   diffs: { field: string; from: string; to: string }[];
 }
 
+export interface USTimezoneOption {
+  iana: string;
+  label: string;
+  standardAbbr: string;
+  daylightAbbr: string;
+  hasDst: boolean;
+  regionExample: string;
+}
+
+export const US_TIMEZONES: USTimezoneOption[] = [
+  { iana: 'America/New_York', label: 'Eastern Time (ET)', standardAbbr: 'EST', daylightAbbr: 'EDT', hasDst: true, regionExample: 'Florida, New York, Atlanta, Boston, Detroit, Miami' },
+  { iana: 'America/Chicago', label: 'Central Time (CT)', standardAbbr: 'CST', daylightAbbr: 'CDT', hasDst: true, regionExample: 'Texas, Chicago, Dallas, Minneapolis, Nashville, St. Louis' },
+  { iana: 'America/Denver', label: 'Mountain Time (MT)', standardAbbr: 'MST', daylightAbbr: 'MDT', hasDst: true, regionExample: 'Colorado, Utah, New Mexico, Boise, Salt Lake City' },
+  { iana: 'America/Phoenix', label: 'Arizona Mountain (MST • No DST)', standardAbbr: 'MST', daylightAbbr: 'MST', hasDst: false, regionExample: 'Phoenix, Tucson, Flagstaff, Mesa (No Daylight Saving)' },
+  { iana: 'America/Los_Angeles', label: 'Pacific Time (PT)', standardAbbr: 'PST', daylightAbbr: 'PDT', hasDst: true, regionExample: 'Washington, California, Oregon, Nevada, Seattle' },
+  { iana: 'America/Anchorage', label: 'Alaska Time (AKT)', standardAbbr: 'AKST', daylightAbbr: 'AKDT', hasDst: true, regionExample: 'Anchorage, Juneau, Fairbanks' },
+  { iana: 'America/Adak', label: 'Hawaii-Aleutian (HST/HDT with DST)', standardAbbr: 'HAST', daylightAbbr: 'HADT', hasDst: true, regionExample: 'Adak, Aleutian Islands' },
+  { iana: 'Pacific/Honolulu', label: 'Hawaii Standard (HST • No DST)', standardAbbr: 'HST', daylightAbbr: 'HST', hasDst: false, regionExample: 'Honolulu, Maui, Oahu, Kauai (No Daylight Saving)' },
+  { iana: 'America/Puerto_Rico', label: 'Atlantic Standard (AST • No DST)', standardAbbr: 'AST', daylightAbbr: 'AST', hasDst: false, regionExample: 'Puerto Rico, US Virgin Islands' },
+  { iana: 'Pacific/Guam', label: 'Chamorro Standard (ChST • No DST)', standardAbbr: 'ChST', daylightAbbr: 'ChST', hasDst: false, regionExample: 'Guam, Saipan, Northern Mariana Islands' },
+  { iana: 'Pacific/Pago_Pago', label: 'Samoa Standard (SST • No DST)', standardAbbr: 'SST', daylightAbbr: 'SST', hasDst: false, regionExample: 'American Samoa / Pago Pago' },
+];
+
+export const formatDisplayTime = (
+  dateInput: Date | string | number | undefined,
+  targetTimeZone: string,
+  options?: { includeDate?: boolean; includeSeconds?: boolean; timeOnly?: boolean }
+): string => {
+  if (!dateInput) return '—';
+  try {
+    const d = typeof dateInput === 'string' || typeof dateInput === 'number' ? new Date(dateInput) : dateInput;
+    if (isNaN(d.getTime())) return String(dateInput);
+
+    if (options?.timeOnly) {
+      return new Intl.DateTimeFormat('en-US', {
+        timeZone: targetTimeZone,
+        hour: 'numeric',
+        minute: '2-digit',
+        second: options.includeSeconds ? '2-digit' : undefined,
+        hour12: true,
+        timeZoneName: 'short',
+      }).format(d);
+    }
+
+    return new Intl.DateTimeFormat('en-US', {
+      timeZone: targetTimeZone,
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      second: options?.includeSeconds ? '2-digit' : undefined,
+      hour12: true,
+      timeZoneName: 'short',
+    }).format(d);
+  } catch (e) {
+    const d = new Date(dateInput);
+    return isNaN(d.getTime()) ? String(dateInput) : d.toLocaleString();
+  }
+};
+
 export default function App() {
+  // User Local Timezone Display Preference (Auto-detects browser timezone or falls back to ET)
+  const [userDisplayTimezone, setUserDisplayTimezone] = useState<string>(() => {
+    try {
+      const detected = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      return US_TIMEZONES.some(tz => tz.iana === detected) ? detected : 'America/New_York';
+    } catch {
+      return 'America/New_York';
+    }
+  });
+
   // Navigation & Theme State (Accounts is now positioned ABOVE Jobs!)
   const [activeNav, setActiveNav] = useState<'accounts' | 'account_detail' | 'community_detail' | 'jobs' | 'job_detail' | 'change_log' | 'calendar' | 'reports' | 'forms' | 'settings' | 'help'>('accounts');
   const [theme, setTheme] = useState<'dark' | 'light'>('light');
@@ -483,7 +554,7 @@ export default function App() {
       state: 'AZ',
       zip: '85041',
       address: '2400 W Broadway Rd, Suite 100, Phoenix, AZ 85041',
-      timezone: 'America/Phoenix (MST)',
+      timezone: 'America/Phoenix',
       isDefault: true,
       status: 'ACTIVE',
       activeJobsCount: 4,
@@ -497,7 +568,7 @@ export default function App() {
       state: 'AZ',
       zip: '85711',
       address: '6100 E Broadway Blvd, Tucson, AZ 85711',
-      timezone: 'America/Phoenix (MST)',
+      timezone: 'America/Phoenix',
       isDefault: false,
       status: 'ACTIVE',
       activeJobsCount: 1,
@@ -511,7 +582,7 @@ export default function App() {
       state: 'CO',
       zip: '80238',
       address: '10200 E 56th Ave, Denver, CO 80238',
-      timezone: 'America/Denver (MDT)',
+      timezone: 'America/Denver',
       isDefault: false,
       status: 'ACTIVE',
       activeJobsCount: 1,
@@ -525,7 +596,7 @@ export default function App() {
       state: 'FL',
       zip: '33607',
       address: '4900 W Cypress St, Tampa, FL 33607',
-      timezone: 'America/New_York (EST)',
+      timezone: 'America/New_York',
       isDefault: false,
       status: 'SHUTDOWN',
       activeJobsCount: 0,
@@ -539,7 +610,7 @@ export default function App() {
   const [newRegionCity, setNewRegionCity] = useState('');
   const [newRegionState, setNewRegionState] = useState('AZ');
   const [newRegionZip, setNewRegionZip] = useState('');
-  const [newRegionTimezone, setNewRegionTimezone] = useState('America/Phoenix (MST)');
+  const [newRegionTimezone, setNewRegionTimezone] = useState('America/Phoenix');
   const [regionAddedSuccess, setRegionAddedSuccess] = useState(false);
 
   const [editingRegion, setEditingRegion] = useState<null | {
@@ -1827,7 +1898,7 @@ export default function App() {
 
     const newLogs: ChangeLogEntry = {
       id: String(Date.now()),
-      timestamp: new Date().toLocaleString(),
+      timestamp: new Date().toISOString(),
       changedBy: `${activeUserRole === 'SUBSCRIBER_ADMIN' ? 'Admin' : 'Scheduler'} (${activeUserRole})`,
       summary: `Auto-Dependency Shift Applied on ${sourceJob.jobName} (Triggered by ${triggerPhase.toUpperCase()} date change to ${newDate})`,
       diffs: affectedActivities.map(a => ({
@@ -1901,7 +1972,7 @@ export default function App() {
 
     const newLog: ChangeLogEntry = {
       id: String(Date.now()),
-      timestamp: new Date().toLocaleString(),
+      timestamp: new Date().toISOString(),
       changedBy: `${activeUserRole === 'SUBSCRIBER_ADMIN' ? 'Admin' : 'Scheduler'} (${activeUserRole})`,
       summary: `Job Activity Dates Updated for ${editingDateJob.jobName}`,
       diffs: [
@@ -1952,7 +2023,7 @@ export default function App() {
 
     const newLog: ChangeLogEntry = {
       id: String(Date.now()),
-      timestamp: new Date().toLocaleString(),
+      timestamp: new Date().toISOString(),
       changedBy: `${activeUserRole === 'SUBSCRIBER_ADMIN' ? 'Admin' : 'Scheduler'} (${activeUserRole})`,
       summary: `Job Details & Metadata Updated for ${updatedJob.jobName}`,
       diffs: [
@@ -1981,7 +2052,7 @@ export default function App() {
 
     const newLog: ChangeLogEntry = {
       id: String(Date.now()),
-      timestamp: new Date().toLocaleString(),
+      timestamp: new Date().toISOString(),
       changedBy: `${activeUserRole === 'SUBSCRIBER_ADMIN' ? 'Admin' : 'Scheduler'} (${activeUserRole})`,
       summary: `Activity Assignee Updated: [${assignee}] on Job ${targetJob.jobName}`,
       diffs: [
@@ -2033,7 +2104,7 @@ export default function App() {
 
     const log: ChangeLogEntry = {
       id: String(Date.now()),
-      timestamp: new Date().toLocaleString(),
+      timestamp: new Date().toISOString(),
       changedBy: `${activeAssigneeName} (${activeUserRole})`,
       summary: `Activity "${activity.activityName}" marked COMPLETE on Job ${job.jobName}`,
       diffs: [{ field: 'Activity Status', from: activity.status, to: 'Complete' }]
@@ -2089,7 +2160,7 @@ export default function App() {
 
     const log: ChangeLogEntry = {
       id: String(Date.now()),
-      timestamp: new Date().toLocaleString(),
+      timestamp: new Date().toISOString(),
       changedBy: `${activeUserRole === 'SUBSCRIBER_ADMIN' ? 'Admin' : 'Office User'}`,
       summary: `Created Warranty / Rework Order "${newReworkJob.jobName}" linked to Lot ${parentJob.lotNumber}`,
       diffs: [{ field: 'Order Type', from: 'Issue Ticket', to: 'Warranty Job Active' }]
@@ -2186,7 +2257,7 @@ export default function App() {
 
     const newLog: ChangeLogEntry = {
       id: String(Date.now()),
-      timestamp: new Date().toLocaleString(),
+      timestamp: new Date().toISOString(),
       changedBy: `${isSubscriberOrGlobalAdmin ? 'Admin' : 'Plant Admin'} (${activeUserRole})`,
       summary: `User Account Created: [${getInstallerDisplayName(newUser)}] (${newUser.role})`,
       diffs: [
@@ -2245,7 +2316,7 @@ export default function App() {
 
     const newLog: ChangeLogEntry = {
       id: String(Date.now()),
-      timestamp: new Date().toLocaleString(),
+      timestamp: new Date().toISOString(),
       changedBy: `${isSubscriberOrGlobalAdmin ? 'Admin' : 'Super Admin'} (${activeUserRole})`,
       summary: `Internal Employee Account Provisioned: [${newInternalUser.fullName}] (${newInternalUser.role})`,
       diffs: [
@@ -2315,7 +2386,7 @@ export default function App() {
 
     const newLog: ChangeLogEntry = {
       id: String(Date.now()),
-      timestamp: new Date().toLocaleString(),
+      timestamp: new Date().toISOString(),
       changedBy: `${isSubscriberOrGlobalAdmin ? 'Admin' : 'Super Admin'} (${activeUserRole})`,
       summary: `User Profile Updated: [${updatedUser.fullName}] (${updatedUser.email})`,
       diffs: [
@@ -2338,7 +2409,7 @@ export default function App() {
     
     const newLog: ChangeLogEntry = {
       id: String(Date.now()),
-      timestamp: new Date().toLocaleString(),
+      timestamp: new Date().toISOString(),
       changedBy: `${activeUserRole === 'SUBSCRIBER_ADMIN' ? 'Admin' : 'Office User'} (${activeUserRole})`,
       summary: `User Status Updated: [${getInstallerDisplayName(user)}] ➔ ${nextStatus}`,
       diffs: [{ field: 'Status', from: user.status, to: nextStatus }]
@@ -2353,7 +2424,7 @@ export default function App() {
       setSystemUsersList(systemUsersList.filter(u => u.id !== userId));
       const newLog: ChangeLogEntry = {
         id: String(Date.now()),
-        timestamp: new Date().toLocaleString(),
+        timestamp: new Date().toISOString(),
         changedBy: `${activeUserRole === 'SUBSCRIBER_ADMIN' ? 'Admin' : 'Office User'} (${activeUserRole})`,
         summary: `User Account Removed: [${getInstallerDisplayName(user)}]`,
         diffs: [{ field: 'User Removed', from: user.email, to: 'Deleted' }]
@@ -2483,7 +2554,7 @@ export default function App() {
 
     const newLog: ChangeLogEntry = {
       id: String(Date.now()),
-      timestamp: new Date().toLocaleString(),
+      timestamp: new Date().toISOString(),
       changedBy: `${activeUserRole === 'SUBSCRIBER_ADMIN' ? 'Admin' : 'Scheduler'} (${activeUserRole})`,
       summary: `One-Off Extra Working Day Added: ${newW.name} on ${newW.date} (${newW.regionScope})`,
       diffs: [
@@ -2500,7 +2571,7 @@ export default function App() {
     if (item) {
       const newLog: ChangeLogEntry = {
         id: String(Date.now()),
-        timestamp: new Date().toLocaleString(),
+        timestamp: new Date().toISOString(),
         changedBy: `${activeUserRole === 'SUBSCRIBER_ADMIN' ? 'Admin' : 'Scheduler'} (${activeUserRole})`,
         summary: `One-Off Extra Working Day Removed: ${item.name} (${item.date})`,
         diffs: [
@@ -2560,7 +2631,7 @@ export default function App() {
 
       const newLog: ChangeLogEntry = {
         id: String(Date.now()),
-        timestamp: new Date().toLocaleString(),
+        timestamp: new Date().toISOString(),
         changedBy: `${activeUserRole === 'SUBSCRIBER_ADMIN' ? 'Admin' : 'Scheduler'} (${activeUserRole})`,
         summary: `Workflow Milestone Updated: [${newMilestoneName}] in [${scopeName === 'GLOBAL' ? 'Global Baseline' : scopeName}]`,
         diffs: [
@@ -2593,7 +2664,7 @@ export default function App() {
 
       const newLog: ChangeLogEntry = {
         id: String(Date.now()),
-        timestamp: new Date().toLocaleString(),
+        timestamp: new Date().toISOString(),
         changedBy: `${activeUserRole === 'SUBSCRIBER_ADMIN' ? 'Admin' : 'Scheduler'} (${activeUserRole})`,
         summary: `New Workflow Milestone Added: [${newMs.name}] to [${scopeName === 'GLOBAL' ? 'Global Baseline' : scopeName}]`,
         diffs: [
@@ -2676,7 +2747,7 @@ export default function App() {
 
     const newLog: ChangeLogEntry = {
       id: String(Date.now()),
-      timestamp: new Date().toLocaleString(),
+      timestamp: new Date().toISOString(),
       changedBy: `${activeUserRole === 'SUBSCRIBER_ADMIN' ? 'Admin' : 'Scheduler'} (${activeUserRole})`,
       summary: `Workflow Milestone Removed: [${msToDelete.name}] from [${scopeName === 'GLOBAL' ? 'Global Baseline' : scopeName}]`,
       diffs: [
@@ -2828,7 +2899,7 @@ export default function App() {
 
       const newLog: ChangeLogEntry = {
         id: String(Date.now()),
-        timestamp: new Date().toLocaleString(),
+        timestamp: new Date().toISOString(),
         changedBy: `${activeUserRole === 'SUBSCRIBER_ADMIN' ? 'Admin' : 'Scheduler'} (${activeUserRole})`,
         summary: `Activity Catalog Type Updated: [${newActTypeName}]`,
         diffs: [
@@ -2854,7 +2925,7 @@ export default function App() {
 
       const newLog: ChangeLogEntry = {
         id: String(Date.now()),
-        timestamp: new Date().toLocaleString(),
+        timestamp: new Date().toISOString(),
         changedBy: `${activeUserRole === 'SUBSCRIBER_ADMIN' ? 'Admin' : 'Scheduler'} (${activeUserRole})`,
         summary: `New Activity Catalog Type Created: [${newAct.name}]`,
         diffs: [
@@ -2883,7 +2954,7 @@ export default function App() {
 
     const newLog: ChangeLogEntry = {
       id: String(Date.now()),
-      timestamp: new Date().toLocaleString(),
+      timestamp: new Date().toISOString(),
       changedBy: `${activeUserRole === 'SUBSCRIBER_ADMIN' ? 'Admin' : 'Scheduler'} (${activeUserRole})`,
       summary: `Activity Catalog Type Removed: [${act.name}] (0 child assignments)`,
       diffs: [{ field: 'Deleted Activity', from: act.name, to: 'Deleted' }]
@@ -2899,7 +2970,7 @@ export default function App() {
       const nextStatus = !act.enabled ? 'Enabled (Active in Dropdowns)' : 'Disabled (Excluded from Dropdowns)';
       const newLog: ChangeLogEntry = {
         id: String(Date.now()),
-        timestamp: new Date().toLocaleString(),
+        timestamp: new Date().toISOString(),
         changedBy: `${activeUserRole === 'SUBSCRIBER_ADMIN' ? 'Admin' : 'Scheduler'} (${activeUserRole})`,
         summary: `Activity Catalog Status Toggled: [${act.name}] ➔ ${nextStatus}`,
         diffs: [{ field: 'Status', from: act.enabled ? 'Active' : 'Disabled', to: nextStatus }]
@@ -3598,6 +3669,26 @@ export default function App() {
                 <span>SHUTDOWN / READ-ONLY</span>
               </div>
             )}
+
+            {/* User Local Timezone Display Selector (Automatic Daylight Saving Time) */}
+            <div className="flex items-center space-x-1.5 bg-white/10 border border-white/20 px-2.5 py-1.5 rounded-md text-[11px]" title="Display Timezone: All application dates, timestamps, and audit events render in your selected local time">
+              <Globe className="w-3.5 h-3.5 text-blue-200" />
+              <select
+                value={userDisplayTimezone}
+                onChange={(e) => setUserDisplayTimezone(e.target.value)}
+                className="bg-transparent font-bold focus:outline-none cursor-pointer text-white max-w-[150px]"
+              >
+                {US_TIMEZONES.map(tz => {
+                  const now = new Date();
+                  const shortTime = formatDisplayTime(now, tz.iana, { timeOnly: true });
+                  return (
+                    <option key={tz.iana} value={tz.iana} className="text-slate-900 font-bold">
+                      {tz.label} ({shortTime})
+                    </option>
+                  );
+                })}
+              </select>
+            </div>
 
             <div className="flex items-center space-x-1 bg-white/10 border border-white/20 px-2.5 py-1.5 rounded-md">
               <MapPin className="w-4 h-4 text-white" />
@@ -4789,6 +4880,12 @@ export default function App() {
                   </button>
                   <h2 className="text-base font-black text-blue-600 dark:text-blue-400">Change Log (Audit Trail)</h2>
                 </div>
+
+                {/* Active Display Timezone Badge */}
+                <div className="flex items-center space-x-1.5 bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800 px-3 py-1 rounded-lg text-[11px] font-bold text-blue-700 dark:text-blue-300">
+                  <Globe className="w-3.5 h-3.5 text-blue-500" />
+                  <span>Times Rendered In: {US_TIMEZONES.find(t => t.iana === userDisplayTimezone)?.label || userDisplayTimezone}</span>
+                </div>
               </div>
 
               <div className="p-6 max-w-4xl mx-auto space-y-6 flex-1 overflow-auto w-full">
@@ -4810,9 +4907,9 @@ export default function App() {
                       >
                         <div className="flex items-center justify-between">
                           <span className="font-bold text-slate-700 dark:text-slate-300">
-                            ● {log.timestamp} by <strong className="text-blue-600 underline">{log.changedBy}</strong>
+                            ● {formatDisplayTime(log.timestamp, userDisplayTimezone)} by <strong className="text-blue-600 underline">{log.changedBy}</strong>
                           </span>
-                          <span className="text-[10px] bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded font-mono">System Audit</span>
+                          <span className="text-[10px] bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded font-mono">System Audit (UTC Backend)</span>
                         </div>
 
                         <div className="font-semibold text-slate-800 dark:text-slate-200">{log.summary}</div>
@@ -5624,16 +5721,23 @@ export default function App() {
                           </div>
 
                           <div>
-                            <label className="block font-bold mb-1">Operating Timezone</label>
+                            <label className="block font-bold mb-1 flex items-center space-x-1.5">
+                              <Globe className="w-3.5 h-3.5 text-blue-600" />
+                              <span>Operating Timezone (Auto-DST)</span>
+                            </label>
                             <select
                               value={newRegionTimezone}
                               onChange={(e) => setNewRegionTimezone(e.target.value)}
-                              className="w-full p-2.5 border rounded font-semibold text-slate-900 dark:bg-slate-900 dark:text-slate-100"
+                              className="w-full p-2.5 border rounded font-semibold text-slate-900 dark:bg-slate-900 dark:text-slate-100 cursor-pointer"
                             >
-                              <option value="America/Phoenix (MST)">America/Phoenix (MST)</option>
-                              <option value="America/Denver (MDT)">America/Denver (MDT)</option>
-                              <option value="America/Chicago (CST)">America/Chicago (CST)</option>
-                              <option value="America/New_York (EST)">America/New_York (EST)</option>
+                              {US_TIMEZONES.map((tz) => {
+                                const localTimePreview = formatDisplayTime(new Date(), tz.iana, { timeOnly: true });
+                                return (
+                                  <option key={tz.iana} value={tz.iana}>
+                                    {tz.label} — {tz.regionExample} ({localTimePreview})
+                                  </option>
+                                );
+                              })}
                             </select>
                           </div>
                         </div>
@@ -5746,7 +5850,15 @@ export default function App() {
 
                                 <td className="p-3">
                                   <div className="font-medium text-slate-700 dark:text-slate-300">{reg.address}</div>
-                                  <div className="text-[10px] text-slate-400 font-mono">{reg.timezone}</div>
+                                  <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                                    <span className="text-[10px] text-blue-700 dark:text-blue-300 font-bold bg-blue-50 dark:bg-blue-950/70 px-2 py-0.5 rounded border border-blue-200 dark:border-blue-800 flex items-center space-x-1">
+                                      <Globe className="w-3 h-3 text-blue-500" />
+                                      <span>{US_TIMEZONES.find(t => t.iana === reg.timezone)?.label || reg.timezone}</span>
+                                    </span>
+                                    <span className="text-[10px] text-slate-600 dark:text-slate-400 font-mono bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded" title={`Live local time at ${reg.name} facility`}>
+                                      🕒 Facility: <strong>{formatDisplayTime(new Date(), reg.timezone, { timeOnly: true })}</strong>
+                                    </span>
+                                  </div>
                                 </td>
 
                                 <td className="p-3 text-center">
@@ -5870,16 +5982,23 @@ export default function App() {
                               </div>
 
                               <div>
-                                <label className="block font-bold mb-1">Timezone</label>
+                                <label className="block font-bold mb-1 flex items-center space-x-1.5">
+                                  <Globe className="w-3.5 h-3.5 text-blue-600" />
+                                  <span>Timezone (Auto-DST)</span>
+                                </label>
                                 <select
                                   value={editingRegion.timezone}
                                   onChange={(e) => setEditingRegion({ ...editingRegion, timezone: e.target.value })}
-                                  className="w-full p-2.5 border rounded font-semibold text-slate-900 dark:bg-slate-950 dark:text-slate-100 dark:border-slate-800"
+                                  className="w-full p-2.5 border rounded font-semibold text-slate-900 dark:bg-slate-950 dark:text-slate-100 dark:border-slate-800 cursor-pointer"
                                 >
-                                  <option value="America/Phoenix (MST)">America/Phoenix (MST)</option>
-                                  <option value="America/Denver (MDT)">America/Denver (MDT)</option>
-                                  <option value="America/Chicago (CST)">America/Chicago (CST)</option>
-                                  <option value="America/New_York (EST)">America/New_York (EST)</option>
+                                  {US_TIMEZONES.map((tz) => {
+                                    const localTimePreview = formatDisplayTime(new Date(), tz.iana, { timeOnly: true });
+                                    return (
+                                      <option key={tz.iana} value={tz.iana}>
+                                        {tz.label} — {tz.regionExample} ({localTimePreview})
+                                      </option>
+                                    );
+                                  })}
                                 </select>
                               </div>
 
@@ -6073,7 +6192,7 @@ export default function App() {
                           e.preventDefault();
                           const newLog: ChangeLogEntry = {
                             id: String(Date.now()),
-                            timestamp: new Date().toLocaleString(),
+                            timestamp: new Date().toISOString(),
                             changedBy: `${activeUserRole === 'SUBSCRIBER_ADMIN' ? 'Admin' : 'Scheduler'} (${activeUserRole})`,
                             summary: `Auto-Schedule & Workflow Settings Saved for [${selectedLeadTimeScope === 'GLOBAL' ? 'Global Baseline' : selectedLeadTimeScope}]`,
                             diffs: [
