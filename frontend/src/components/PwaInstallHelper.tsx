@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Download, Smartphone, Share, PlusSquare, CheckCircle, X, MoreVertical, Sparkles } from 'lucide-react';
+import { Download, Share, PlusSquare, CheckCircle, X, MoreVertical, Sparkles, Check } from 'lucide-react';
 
 interface PwaInstallHelperProps {
   isDark: boolean;
@@ -12,15 +12,28 @@ export const PwaInstallButton: React.FC<PwaInstallHelperProps> = ({ isDark }) =>
   const [showInstallModal, setShowInstallModal] = useState<boolean>(false);
 
   useEffect(() => {
-    // Check if already running in standalone / installed PWA mode
-    const checkStandalone = () => {
+    // Check if already running in standalone / installed PWA mode or marked as installed
+    const checkInstalledState = () => {
       const isStandaloneMode =
         window.matchMedia('(display-mode: standalone)').matches ||
-        (window.navigator as any).standalone === true;
+        window.matchMedia('(display-mode: fullscreen)').matches ||
+        window.matchMedia('(display-mode: minimal-ui)').matches ||
+        window.matchMedia('(display-mode: window-controls-overlay)').matches ||
+        (window.navigator as any).standalone === true ||
+        document.referrer.startsWith('android-app://') ||
+        localStorage.getItem('slabmaster_pwa_installed') === 'true';
+
       setIsStandalone(isStandaloneMode);
     };
 
-    checkStandalone();
+    checkInstalledState();
+
+    // Listen to media query changes (e.g. if opened as standalone or resized)
+    const mediaQuery = window.matchMedia('(display-mode: standalone)');
+    const handleMediaChange = () => checkInstalledState();
+    if (mediaQuery.addEventListener) {
+      mediaQuery.addEventListener('change', handleMediaChange);
+    }
 
     // Check if iOS device
     const userAgent = window.navigator.userAgent.toLowerCase();
@@ -33,14 +46,31 @@ export const PwaInstallButton: React.FC<PwaInstallHelperProps> = ({ isDark }) =>
       setDeferredPrompt(e);
     };
 
+    // Capture appinstalled event (Fires when installation completes on PC or Android)
+    const handleAppInstalled = () => {
+      try {
+        localStorage.setItem('slabmaster_pwa_installed', 'true');
+      } catch (err) {
+        // Ignore storage errors
+      }
+      setIsStandalone(true);
+      setShowInstallModal(false);
+      setDeferredPrompt(null);
+    };
+
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    window.addEventListener('appinstalled', handleAppInstalled);
 
     return () => {
+      if (mediaQuery.removeEventListener) {
+        mediaQuery.removeEventListener('change', handleMediaChange);
+      }
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      window.removeEventListener('appinstalled', handleAppInstalled);
     };
   }, []);
 
-  // Dynamically hide button if already running in standalone PWA window
+  // Dynamically hide button if already running in standalone PWA window or previously marked installed
   if (isStandalone) {
     return null;
   }
@@ -51,6 +81,9 @@ export const PwaInstallButton: React.FC<PwaInstallHelperProps> = ({ isDark }) =>
         deferredPrompt.prompt();
         const choiceResult = await deferredPrompt.userChoice;
         if (choiceResult && choiceResult.outcome === 'accepted') {
+          try {
+            localStorage.setItem('slabmaster_pwa_installed', 'true');
+          } catch (e) {}
           setIsStandalone(true);
         }
         setDeferredPrompt(null);
@@ -62,22 +95,30 @@ export const PwaInstallButton: React.FC<PwaInstallHelperProps> = ({ isDark }) =>
     }
   };
 
+  const markAlreadyInstalled = () => {
+    try {
+      localStorage.setItem('slabmaster_pwa_installed', 'true');
+    } catch (e) {}
+    setIsStandalone(true);
+    setShowInstallModal(false);
+  };
+
   return (
     <>
       <button
         type="button"
         onClick={handleInstallClick}
         className="w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-left transition-all bg-gradient-to-r from-blue-600/15 to-indigo-600/15 hover:from-blue-600/25 hover:to-indigo-600/25 text-blue-600 dark:text-blue-400 font-bold text-xs border border-blue-200 dark:border-blue-800 cursor-pointer shadow-xs active:scale-95"
-        title="Install SlabMaster PWA on your mobile home screen"
+        title="Install SlabMaster PWA on your device"
       >
         <Download className="w-4 h-4 shrink-0" />
         <span>Install App</span>
       </button>
 
-      {/* High-Contrast Installation Modal (Android Chrome & iOS Safari) */}
+      {/* High-Contrast Installation Modal (Android Chrome, iOS Safari, PC Edge/Chrome) */}
       {showInstallModal && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
-          <div className={`max-w-md w-full p-6 rounded-2xl border shadow-2xl space-y-4 ${
+          <div className={`max-w-md w-full p-6 rounded-2xl border-2 shadow-2xl space-y-4 ${
             isDark ? 'bg-slate-900 border-slate-700 text-slate-100' : 'bg-white border-slate-300 text-slate-900'
           }`}>
             {/* Modal Header */}
@@ -131,7 +172,7 @@ export const PwaInstallButton: React.FC<PwaInstallHelperProps> = ({ isDark }) =>
                 </div>
               </div>
             ) : (
-              // Android Chrome / Edge Instructions
+              // Android Chrome / Edge / PC Instructions
               <div className="space-y-3">
                 <div className="p-3 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-xl text-blue-950 dark:text-blue-200 flex items-start space-x-2.5">
                   <Sparkles className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
@@ -144,10 +185,10 @@ export const PwaInstallButton: React.FC<PwaInstallHelperProps> = ({ isDark }) =>
                   <div className="w-6 h-6 rounded-full bg-blue-600 text-white font-black text-xs flex items-center justify-center shrink-0 mt-0.5">1</div>
                   <div className="space-y-1">
                     <div className="font-black text-xs text-slate-950 dark:text-white">
-                      Tap the 3 dots menu (<MoreVertical className="w-3.5 h-3.5 inline text-blue-600 dark:text-blue-400" />) in Chrome
+                      Tap the 3 dots menu (<MoreVertical className="w-3.5 h-3.5 inline text-blue-600 dark:text-blue-400" />) or Install icon
                     </div>
                     <div className="text-xs text-slate-700 dark:text-slate-300 font-medium">
-                      Located in the top right corner of your Chrome browser screen.
+                      Located in the top right corner of your browser window.
                     </div>
                   </div>
                 </div>
@@ -159,14 +200,15 @@ export const PwaInstallButton: React.FC<PwaInstallHelperProps> = ({ isDark }) =>
                       Tap <span className="underline decoration-blue-500 underline-offset-2">"Install app"</span> or <span className="underline decoration-blue-500 underline-offset-2">"Add to Home screen"</span>
                     </div>
                     <div className="text-xs text-slate-700 dark:text-slate-300 font-medium">
-                      Chrome will immediately install SlabMaster with the new icon directly on your phone!
+                      Your device will immediately install SlabMaster directly with native application capabilities!
                     </div>
                   </div>
                 </div>
               </div>
             )}
 
-            <div className="pt-2">
+            {/* Action Buttons */}
+            <div className="pt-2 space-y-2">
               <button
                 type="button"
                 onClick={() => setShowInstallModal(false)}
@@ -174,6 +216,15 @@ export const PwaInstallButton: React.FC<PwaInstallHelperProps> = ({ isDark }) =>
               >
                 <CheckCircle className="w-4 h-4" />
                 <span>Got It</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={markAlreadyInstalled}
+                className="w-full py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold rounded-xl text-xs transition-all cursor-pointer flex items-center justify-center space-x-1.5"
+              >
+                <Check className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Already Installed? Dismiss Button</span>
               </button>
             </div>
           </div>

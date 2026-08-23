@@ -4053,10 +4053,10 @@ export default function App() {
               <button
                 type="button"
                 onClick={() => setTheme(isDark ? 'light' : 'dark')}
-                className="w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-left font-bold text-xs bg-slate-100 dark:bg-slate-800"
+                className="w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-left font-black text-xs border border-slate-300 dark:border-slate-700 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-950 dark:text-white transition-all shadow-xs cursor-pointer active:scale-98"
               >
-                {isDark ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-indigo-600" />}
-                <span>{isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}</span>
+                {isDark ? <Sun className="w-4.5 h-4.5 text-amber-400 shrink-0" /> : <Moon className="w-4.5 h-4.5 text-blue-600 dark:text-blue-400 shrink-0" />}
+                <span className="text-slate-950 dark:text-white font-extrabold">{isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}</span>
               </button>
 
               <PwaInstallButton isDark={isDark} />
@@ -4179,10 +4179,10 @@ export default function App() {
               <button
                 type="button"
                 onClick={() => setTheme(isDark ? 'light' : 'dark')}
-                className="w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-left transition-all bg-slate-200/70 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 cursor-pointer font-bold text-xs"
+                className="w-full flex items-center space-x-2.5 px-3 py-2 rounded-xl text-left font-extrabold text-xs hover:bg-slate-200 dark:hover:bg-slate-800 border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-950 dark:text-white transition-all shadow-2xs cursor-pointer active:scale-98"
               >
-                {isDark ? <Sun className="w-4 h-4 text-amber-400 shrink-0" /> : <Moon className="w-4 h-4 text-indigo-600 shrink-0" />}
-                <span>{isDark ? 'Light Mode' : 'Dark Mode'}</span>
+                {isDark ? <Sun className="w-4 h-4 text-amber-400 shrink-0" /> : <Moon className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />}
+                <span className="text-slate-950 dark:text-white font-extrabold">{isDark ? 'Light Mode' : 'Dark Mode'}</span>
               </button>
 
               <PwaInstallButton isDark={isDark} />
