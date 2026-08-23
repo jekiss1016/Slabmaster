@@ -351,7 +351,7 @@ export default function App() {
 
   // Subscriber Custom Branding State
   const [subscriberName, setSubscriberName] = useState('GraniteCraft Fabrication Inc.');
-  const [logoBase64, setLogoBase64] = useState<string>('');
+  const [logoBase64, setLogoBase64] = useState<string>('/granitecraft-logo.jpg');
   const [brandColor, setBrandColor] = useState('#2563eb');
 
   // Toolbar Action Modals State
