@@ -382,6 +382,10 @@ export default function App() {
     }
   };
 
+  // Desktop Calendar Hover Tooltip & Mobile Daily Stacked State
+  const [calHoverInfo, setCalHoverInfo] = useState<{ item: any; day: any; top: number; left: number } | null>(null);
+  const [expandedMobileMilestoneKey, setExpandedMobileMilestoneKey] = useState<string | null>(null);
+
   // Form Templates, Packets & Runner State
   const [formTemplates, setFormTemplates] = useState<FormTemplate[]>(DEFAULT_FORM_TEMPLATES);
   const [formPackets, setFormPackets] = useState<FormPacket[]>(DEFAULT_FORM_PACKETS);
@@ -3342,9 +3346,22 @@ export default function App() {
   };
 
   const shiftCalendarDays = (offsetDays: number) => {
-    const d = new Date(centerDate);
+    const d = new Date(centerDate + 'T00:00:00');
     d.setDate(d.getDate() + offsetDays);
-    setCenterDate(d.toISOString().split('T')[0]);
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    setCenterDate(`${yyyy}-${mm}-${dd}`);
+  };
+
+  const getDayObjFromISO = (isoStr: string) => {
+    const parts = isoStr.split('-');
+    if (parts.length === 3) {
+      const m = parseInt(parts[1], 10);
+      const d = parseInt(parts[2], 10);
+      return { dateStr: isoStr, formatted: `${m}/${d}` };
+    }
+    return { dateStr: isoStr, formatted: isoStr };
   };
 
   // Open Scoped Create Modal based on active screen context
@@ -5363,456 +5380,783 @@ export default function App() {
 
           {/* SCREEN 4: MASTER SCHEDULING CALENDAR & CREW CAPACITY BOARD */}
           {activeNav === 'calendar' && (
-            <div className="flex-1 overflow-auto p-4 space-y-4">
-              {/* Calendar Controls & Filters */}
-              <div className={`p-4 rounded-lg border flex flex-wrap items-center justify-between gap-3 text-xs ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-300 shadow-sm'}`}>
-                <div className="flex items-center space-x-3">
-                  <button onClick={() => shiftCalendarDays(-7)} className="p-1.5 rounded border hover:bg-slate-200 dark:hover:bg-slate-800 cursor-pointer">
+            <div className="flex-1 overflow-auto p-3 sm:p-4 space-y-4">
+              
+              {/* ========================================================================= */}
+              {/* MOBILE DAILY STACKED CALENDAR VIEW (EXCLUSIVELY APPLIED TO MOBILE < md:)  */}
+              {/* ========================================================================= */}
+              <div className="block md:hidden space-y-3.5">
+                {/* Mobile Day Navigation Bar */}
+                <div className={`p-3.5 rounded-2xl border flex items-center justify-between shadow-sm ${
+                  isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'
+                }`}>
+                  <button
+                    type="button"
+                    onClick={() => shiftCalendarDays(-1)}
+                    className="p-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 font-bold text-xs flex items-center space-x-1 active:scale-95 cursor-pointer shadow-2xs"
+                  >
                     <ChevronLeft className="w-4 h-4" />
+                    <span>Prior</span>
                   </button>
 
-                  <div className="flex items-center space-x-2 bg-blue-50 dark:bg-slate-950 border border-blue-300 dark:border-slate-700 px-3 py-1.5 rounded-md">
-                    <CalendarIcon className="w-4 h-4 text-blue-600" />
-                    <span className="font-bold text-slate-700 dark:text-slate-300">Selected Anchor Date:</span>
-                    <input
-                      type="date"
-                      value={centerDate}
-                      onChange={(e) => setCenterDate(e.target.value)}
-                      className="bg-transparent font-bold text-blue-600 dark:text-blue-400 focus:outline-none cursor-pointer"
-                    />
+                  <div className="text-center px-1 flex-1">
+                    <div className="font-black text-sm text-slate-900 dark:text-white tracking-tight">
+                      {new Date(centerDate + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                    </div>
+                    <div className="flex items-center justify-center space-x-1.5 mt-0.5">
+                      {centerDate === new Date().toISOString().split('T')[0] ? (
+                        <span className="px-1.5 py-0.2 rounded-full text-[9px] font-black bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300">
+                          TODAY
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setCenterDate(new Date().toISOString().split('T')[0])}
+                          className="text-[10px] text-blue-600 dark:text-blue-400 font-bold hover:underline cursor-pointer"
+                        >
+                          Jump to Today
+                        </button>
+                      )}
+                      <span className="text-[10px] text-slate-400 font-mono">
+                        • {getCalendarMilestonesForDay(getDayObjFromISO(centerDate)).length} item(s)
+                      </span>
+                    </div>
                   </div>
 
-                  <button onClick={() => shiftCalendarDays(7)} className="p-1.5 rounded border hover:bg-slate-200 dark:hover:bg-slate-800 cursor-pointer">
+                  <button
+                    type="button"
+                    onClick={() => shiftCalendarDays(1)}
+                    className="p-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 font-bold text-xs flex items-center space-x-1 active:scale-95 cursor-pointer shadow-2xs"
+                  >
+                    <span>Next</span>
                     <ChevronRight className="w-4 h-4" />
                   </button>
                 </div>
 
-                {/* View Mode Toggle: 14-Day View vs Assignee Lanes */}
-                <div className="flex items-center space-x-2 bg-slate-100 dark:bg-slate-950 p-1 rounded-lg border border-slate-200 dark:border-slate-800">
-                  <button
-                    onClick={() => setCalendarViewMode('grid')}
-                    className={`px-3 py-1.5 rounded-md font-bold transition-all flex items-center space-x-1.5 cursor-pointer ${
-                      calendarViewMode === 'grid' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800'
-                    }`}
-                  >
-                    <CalendarDays className="w-3.5 h-3.5" />
-                    <span>14-Day Timeline</span>
-                  </button>
-                  <button
-                    onClick={() => setCalendarViewMode('assignees')}
-                    className={`px-3 py-1.5 rounded-md font-bold transition-all flex items-center space-x-1.5 cursor-pointer ${
-                      calendarViewMode === 'assignees' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800'
-                    }`}
-                  >
-                    <Users className="w-3.5 h-3.5" />
-                    <span>Assignee / Crew Capacity</span>
-                  </button>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-2 font-medium">
-                  <div className="flex items-center space-x-1.5">
-                    <Filter className="w-3.5 h-3.5 text-slate-400" />
-                    <span>Filter:</span>
-
-                    <select value={calAccountFilter} onChange={(e) => setCalAccountFilter(e.target.value)} className="p-1 border rounded bg-transparent text-slate-900 dark:text-slate-100">
-                      <option value="All">All Builders</option>
-                      <option value="PERRY HOMES">Perry Homes</option>
-                      <option value="TOLL BROTHERS">Toll Brothers</option>
-                    </select>
-
-                    <select value={calCommunityFilter} onChange={(e) => setCalCommunityFilter(e.target.value)} className="p-1 border rounded bg-transparent text-slate-900 dark:text-slate-100">
-                      <option value="All">All Communities</option>
-                      <option value="STAR FARMS">Star Farms</option>
-                      <option value="Oakridge">Oakridge Estates</option>
-                    </select>
+                {/* Mobile Filters & Jump Date Picker */}
+                <div className={`p-3 rounded-xl border flex flex-wrap items-center justify-between gap-2 text-xs ${
+                  isDark ? 'bg-slate-900/60 border-slate-800' : 'bg-white border-slate-200 shadow-xs'
+                }`}>
+                  <div className="flex items-center space-x-1.5 flex-1 min-w-[140px]">
+                    <CalendarIcon className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                    <input
+                      type="date"
+                      value={centerDate}
+                      onChange={(e) => setCenterDate(e.target.value)}
+                      className="bg-transparent font-bold text-xs text-blue-600 dark:text-blue-400 focus:outline-none cursor-pointer w-full"
+                    />
                   </div>
 
-                  {/* Location Dropdown (Only appears for users with access to more than 1 facility; defaults to All) */}
-                  {getUserAccessibleActiveFacilities().length > 1 && (
-                    <div className="flex items-center space-x-1.5 bg-slate-100 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 px-2 py-1 rounded-lg text-xs">
-                      <MapPin className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
-                      <span className="font-semibold text-slate-500">Location:</span>
-                      <select
-                        value={selectedRegion}
-                        onChange={(e) => setSelectedRegion(e.target.value)}
-                        className="bg-transparent font-bold text-slate-800 dark:text-slate-200 focus:outline-none cursor-pointer"
-                      >
-                        <option value="All">All ({getUserAccessibleActiveFacilities().length})</option>
-                        {getUserAccessibleActiveFacilities().map((r) => (
-                          <option key={r.id} value={r.name} className="text-slate-900">
-                            {r.name} {r.isDefault ? '[DEFAULT]' : ''}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  )}
+                  <div className="flex items-center space-x-1.5">
+                    <select
+                      value={calAccountFilter}
+                      onChange={(e) => setCalAccountFilter(e.target.value)}
+                      className="p-1 text-[11px] border rounded-lg bg-transparent text-slate-800 dark:text-slate-200 font-semibold"
+                    >
+                      <option value="All">All Builders</option>
+                      <option value="PERRY HOMES">Perry</option>
+                      <option value="TOLL BROTHERS">Toll</option>
+                    </select>
 
-                  <button
-                    onClick={() => { setCreateScope('job'); setActiveModal('create'); }}
-                    className="flex items-center space-x-1.5 bg-blue-600 hover:bg-blue-500 text-white font-bold px-3 py-1.5 rounded-lg text-xs shadow-sm transition-all cursor-pointer ml-1"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    <span>+ Create Job</span>
-                  </button>
+                    <button
+                      type="button"
+                      onClick={() => { setCreateScope('job'); setActiveModal('create'); }}
+                      className="px-2.5 py-1 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg text-[11px] flex items-center space-x-1"
+                    >
+                      <Plus className="w-3 h-3" />
+                      <span>Job</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Mobile Daily Stacked List */}
+                <div className="space-y-3">
+                  {(() => {
+                    const mobileDayObj = getDayObjFromISO(centerDate);
+                    const isWork = isDateWorkingDay(mobileDayObj.dateStr);
+                    const customDayMatch = customWorkDayList.find(w => w.date === mobileDayObj.formatted || w.date === mobileDayObj.dateStr);
+                    const isOvertime = customWorkDays.includes(mobileDayObj.dateStr) || !!customDayMatch;
+                    const dayMilestones = isWork ? getCalendarMilestonesForDay(mobileDayObj) : [];
+
+                    if (!isWork) {
+                      return (
+                        <div className="p-8 text-center rounded-2xl border border-dashed border-slate-300 dark:border-slate-800 bg-slate-100/60 dark:bg-slate-950/60 space-y-2">
+                          <Lock className="w-6 h-6 text-slate-400 mx-auto" />
+                          <div className="font-bold text-sm text-slate-600 dark:text-slate-400">Non-Working Day</div>
+                          <p className="text-xs text-slate-500">Facility fabrication and installation are closed for this date.</p>
+                          <button
+                            type="button"
+                            onClick={() => handleToggleOvertimeDay(mobileDayObj.dateStr)}
+                            className="mt-2 px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-xs"
+                          >
+                            + Enable Overtime Shift
+                          </button>
+                        </div>
+                      );
+                    }
+
+                    if (dayMilestones.length === 0) {
+                      return (
+                        <div className="p-8 text-center rounded-2xl border border-dashed border-slate-300 dark:border-slate-800 text-xs text-slate-400 space-y-1">
+                          <p className="font-bold">No milestones scheduled for this date.</p>
+                          <p className="text-[11px]">Use the Prior/Next controls above to browse other days.</p>
+                        </div>
+                      );
+                    }
+
+                    return dayMilestones.map((item) => {
+                      const isExpanded = expandedMobileMilestoneKey === item.key;
+                      const mapUrl = `https://maps.google.com/?q=${encodeURIComponent(`${item.job.streetAddress}, ${item.job.cityStateZip}`)}`;
+
+                      return (
+                        <div
+                          key={item.key}
+                          className={`rounded-2xl border transition-all overflow-hidden ${
+                            isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200 shadow-sm'
+                          }`}
+                        >
+                          {/* Card Header (Tap to Expand Details) */}
+                          <div
+                            onClick={() => setExpandedMobileMilestoneKey(isExpanded ? null : item.key)}
+                            className="p-3.5 cursor-pointer active:bg-slate-50 dark:active:bg-slate-800/50 space-y-2"
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center space-x-1.5">
+                                <span className={`px-2 py-0.5 rounded-md text-[10px] font-black uppercase ${item.badgeClass}`}>
+                                  {item.phaseLabel}
+                                </span>
+                                <span className="font-black text-xs text-blue-600 dark:text-blue-400">
+                                  Lot {item.job.lotNumber}
+                                </span>
+                              </div>
+                              <span className="text-[10px] font-bold text-slate-500">
+                                {item.job.accountName}
+                              </span>
+                            </div>
+
+                            <div className="flex items-start justify-between gap-2">
+                              <h4 className="font-black text-sm text-slate-900 dark:text-white leading-tight">
+                                {item.job.jobName}
+                              </h4>
+                              <span className="text-[10px] text-blue-600 dark:text-blue-400 font-bold shrink-0">
+                                {isExpanded ? 'Hide ▲' : 'Details ▼'}
+                              </span>
+                            </div>
+
+                            <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1 border-t border-slate-100 dark:border-slate-800">
+                              <span className="flex items-center space-x-1">
+                                <Users className="w-3 h-3 text-slate-400" />
+                                <span className="font-semibold text-slate-700 dark:text-slate-300 truncate max-w-[160px]">{item.crew}</span>
+                              </span>
+                              <span className="font-bold text-slate-600 dark:text-slate-400">{mobileDayObj.formatted}</span>
+                            </div>
+                          </div>
+
+                          {/* Expanded Full Item Details (Revealed on Touch) */}
+                          {isExpanded && (
+                            <div className="p-3.5 bg-slate-50 dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 space-y-3 text-xs animate-in fade-in duration-150">
+                              <div className="space-y-1.5">
+                                <div className="text-[10px] font-black uppercase text-slate-400">Job Location & Contact:</div>
+                                <div className="font-bold text-slate-800 dark:text-slate-200">{item.job.communityName} (Lot {item.job.lotNumber})</div>
+                                <a
+                                  href={mapUrl}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="text-xs text-blue-600 dark:text-blue-400 flex items-center space-x-1 underline font-semibold"
+                                >
+                                  <MapPin className="w-3.5 h-3.5 shrink-0" />
+                                  <span>{item.job.streetAddress}, {item.job.cityStateZip}</span>
+                                </a>
+                              </div>
+
+                              <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-200 dark:border-slate-800 text-[11px]">
+                                <div>
+                                  <span className="text-slate-400 block text-[10px]">Salesperson</span>
+                                  <span className="font-bold text-slate-800 dark:text-slate-200">{item.job.salesperson}</span>
+                                </div>
+                                <div>
+                                  <span className="text-slate-400 block text-[10px]">Job Status</span>
+                                  <span className="font-bold text-slate-800 dark:text-slate-200">{item.job.status}</span>
+                                </div>
+                              </div>
+
+                              {item.job.installerNotesText && (
+                                <div className="pt-2 border-t border-slate-200 dark:border-slate-800">
+                                  <span className="text-slate-400 block text-[10px]">Installer Notes:</span>
+                                  <p className="text-[11px] text-slate-700 dark:text-slate-300 font-medium italic mt-0.5">
+                                    "{item.job.installerNotesText}"
+                                  </p>
+                                </div>
+                              )}
+
+                              {/* Mobile Action Buttons */}
+                              <div className="pt-2 flex items-center space-x-2">
+                                <button
+                                  type="button"
+                                  onClick={() => openJobDetailScreen(item.job, 'calendar')}
+                                  className="flex-1 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-xs flex items-center justify-center space-x-1.5 shadow-sm active:scale-95"
+                                >
+                                  <ExternalLink className="w-3.5 h-3.5" />
+                                  <span>Open Full Job Record</span>
+                                </button>
+
+                                {formTemplates.length > 0 && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setActiveFormRunner({
+                                        formTemplate: formTemplates[0],
+                                        job: item.job,
+                                        activity: item.job.activities?.[0],
+                                        packetId: 'pkt_default'
+                                      });
+                                    }}
+                                    className="py-2 px-3 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-xl text-xs flex items-center justify-center space-x-1 shadow-sm active:scale-95"
+                                  >
+                                    <FileCheck className="w-3.5 h-3.5" />
+                                    <span>QA Walk</span>
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    });
+                  })()}
                 </div>
               </div>
 
-              {/* Drag-and-Drop Instruction Banner for Schedulers */}
-              {activeUserRole !== 'EXTERNAL_FIELD_INSTALLER' && activeUserRole !== 'EXTERNAL_SUBCONTRACTOR' && (
-                <div className="p-2.5 bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 rounded-lg text-xs flex items-center justify-between text-blue-900 dark:text-blue-300">
-                  <div className="flex items-center space-x-2">
-                    <Sliders className="w-4 h-4 text-blue-600" />
-                    <span><strong>Scheduler Drag-and-Drop Active:</strong> Drag any activity card to a working day to shift dates. Downstream dependencies and deadline warnings will prompt for confirmation.</span>
-                  </div>
-                  <span className="text-[11px] font-semibold text-slate-500">Non-working days are locked (gray shaded).</span>
-                </div>
-              )}
+              {/* ========================================================================= */}
+              {/* DESKTOP CALENDAR VIEW (MD AND UP - 100% PRESERVED WITH HOVER TOOLTIP)      */}
+              {/* ========================================================================= */}
+              <div className="hidden md:block space-y-4">
+                {/* Calendar Controls & Filters */}
+                <div className={`p-4 rounded-lg border flex flex-wrap items-center justify-between gap-3 text-xs ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-300 shadow-sm'}`}>
+                  <div className="flex items-center space-x-3">
+                    <button onClick={() => shiftCalendarDays(-7)} className="p-1.5 rounded border hover:bg-slate-200 dark:hover:bg-slate-800 cursor-pointer">
+                      <ChevronLeft className="w-4 h-4" />
+                    </button>
 
-              {/* VIEW 1: 14-DAY GRID WITH SHADED NON-WORKING DAYS */}
-              {calendarViewMode === 'grid' && (
-                <div className={`p-4 rounded-lg border space-y-6 text-xs ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-300 shadow-md'}`}>
-                  {/* Week 1 */}
-                  <div>
-                    <div className="font-bold text-slate-400 mb-2 flex items-center justify-between">
-                      <span>Week 1 (Days -7 to -1)</span>
-                      <span className="text-[11px] font-normal text-slate-400">{week1Days[0]?.formatted} – {week1Days[6]?.formatted}</span>
+                    <div className="flex items-center space-x-2 bg-blue-50 dark:bg-slate-950 border border-blue-300 dark:border-slate-700 px-3 py-1.5 rounded-md">
+                      <CalendarIcon className="w-4 h-4 text-blue-600" />
+                      <span className="font-bold text-slate-700 dark:text-slate-300">Selected Anchor Date:</span>
+                      <input
+                        type="date"
+                        value={centerDate}
+                        onChange={(e) => setCenterDate(e.target.value)}
+                        className="bg-transparent font-bold text-blue-600 dark:text-blue-400 focus:outline-none cursor-pointer"
+                      />
                     </div>
 
-                    <div className="grid grid-cols-7 gap-2 text-center font-bold">
-                      {week1Days.map((d, i) => {
-                        const isWork = isDateWorkingDay(d.dateStr);
-                        const customDayMatch = customWorkDayList.find(w => w.date === d.formatted || w.date === d.dateStr);
-                        const isOvertime = customWorkDays.includes(d.dateStr) || !!customDayMatch;
-                        return (
-                          <div
-                            key={i}
-                            className={`p-2 rounded border transition-all ${
-                              !isWork
-                                ? 'bg-slate-200/80 dark:bg-slate-800/80 border-slate-300 dark:border-slate-700 text-slate-500'
-                                : d.isCenter
-                                  ? 'bg-blue-600 text-white shadow-md'
-                                  : isOvertime
-                                    ? 'bg-emerald-100 text-emerald-900 border-emerald-300 dark:bg-emerald-950 dark:text-emerald-300'
-                                    : 'bg-slate-100 dark:bg-slate-950 border-slate-300 dark:border-slate-800'
-                            }`}
-                          >
-                            <div className="flex items-center justify-center space-x-1">
-                              <span>{d.dayName}</span>
-                              {!isWork && <Lock className="w-3 h-3 text-slate-400" />}
-                              {isOvertime && (
-                                <span className="text-[9px] bg-emerald-600 text-white px-1 rounded font-black" title={customDayMatch?.name || 'Extra Working Day'}>
-                                  OT
-                                </span>
-                              )}
-                            </div>
-                            <div className="text-[10px] opacity-80">{d.formatted}</div>
-                          </div>
-                        );
-                      })}
-                    </div>
-
-                    <div className="grid grid-cols-7 gap-2 mt-2 items-start">
-                      {week1Days.map((d, i) => {
-                        const isWork = isDateWorkingDay(d.dateStr);
-                        const customDayMatch = customWorkDayList.find(w => w.date === d.formatted || w.date === d.dateStr);
-                        const isOvertime = customWorkDays.includes(d.dateStr) || !!customDayMatch;
-                        const milestones = isWork ? getCalendarMilestonesForDay(d) : [];
-                        return (
-                          <div
-                            key={i}
-                            onDragOver={(e) => {
-                              if (isWork) {
-                                e.preventDefault();
-                                e.currentTarget.classList.add('ring-2', 'ring-blue-500');
-                              }
-                            }}
-                            onDragLeave={(e) => {
-                              e.currentTarget.classList.remove('ring-2', 'ring-blue-500');
-                            }}
-                            onDrop={(e) => {
-                              e.preventDefault();
-                              e.currentTarget.classList.remove('ring-2', 'ring-blue-500');
-                              if (!isWork || !draggedActivity) return;
-                              const job = jobsData.find(j => j.id === draggedActivity.jobId);
-                              if (job) {
-                                calculateShiftPreview(job, draggedActivity.phase.toLowerCase().includes('temp') ? 'template' : draggedActivity.phase.toLowerCase().includes('fab') ? 'fab' : 'install', d.formatted);
-                              }
-                              setDraggedActivity(null);
-                            }}
-                            className={`min-h-[130px] h-auto p-2 border rounded-lg transition-all flex flex-col justify-between ${
-                              !isWork
-                                ? 'bg-slate-200/50 dark:bg-slate-950/60 border-slate-300 dark:border-slate-800'
-                                : 'bg-slate-50/70 dark:bg-slate-950/30 border-dashed border-slate-300 dark:border-slate-800'
-                            }`}
-                          >
-                            <div className="space-y-1.5 flex flex-col w-full">
-                              {!isWork ? (
-                                <div className="text-center py-5 text-slate-400">
-                                  <div className="font-bold text-[10px] flex items-center justify-center space-x-1">
-                                    <Lock className="w-3 h-3" />
-                                    <span>Non-Working Day</span>
-                                  </div>
-                                  <button
-                                    onClick={() => handleToggleOvertimeDay(d.dateStr)}
-                                    className="mt-1 text-[9px] text-blue-600 dark:text-blue-400 hover:underline font-bold cursor-pointer"
-                                  >
-                                    + Enable Overtime Day
-                                  </button>
-                                </div>
-                              ) : (
-                                <>
-                                  {milestones.length === 0 ? (
-                                    <div className="text-slate-400 dark:text-slate-600 text-[10px] italic py-4 text-center">
-                                      No Scheduled Milestones
-                                    </div>
-                                  ) : (
-                                    milestones.map((item) => (
-                                      <div
-                                        key={item.key}
-                                        draggable={activeUserRole !== 'EXTERNAL_FIELD_INSTALLER' && activeUserRole !== 'EXTERNAL_SUBCONTRACTOR'}
-                                        onDragStart={() => setDraggedActivity({
-                                          jobId: item.job.id,
-                                          activityId: `act_${item.phase}`,
-                                          activityName: item.job.jobName,
-                                          currentDate: d.formatted,
-                                          phase: item.phase
-                                        })}
-                                        onClick={() => openJobDetailScreen(item.job, 'calendar')}
-                                        className={`p-2 rounded-lg text-[10px] font-bold shadow-xs cursor-pointer transition-all border flex flex-col space-y-1 group ${item.cardClass}`}
-                                      >
-                                        <div className="flex items-center justify-between">
-                                          <span className={`px-1.5 py-0.5 rounded text-[9px] font-black ${item.badgeClass}`}>
-                                            {item.phaseLabel}
-                                          </span>
-                                          <span className="text-[9px] font-medium opacity-80">Lot {item.job.lotNumber}</span>
-                                        </div>
-                                        <div className="font-bold text-xs truncate leading-tight">
-                                          {item.job.jobName}
-                                        </div>
-                                        <div className="text-[9px] opacity-80 flex items-center justify-between pt-0.5 border-t border-black/10 dark:border-white/10">
-                                          <span className="truncate">{item.crew}</span>
-                                          <ExternalLink className="w-3 h-3 shrink-0 opacity-60 group-hover:opacity-100" />
-                                        </div>
-                                      </div>
-                                    ))
-                                  )}
-                                </>
-                              )}
-                            </div>
-
-                            {isOvertime && (
-                              <button
-                                onClick={() => handleToggleOvertimeDay(d.dateStr)}
-                                className="text-[9px] text-amber-700 dark:text-amber-400 hover:underline font-semibold text-center cursor-pointer mt-2"
-                              >
-                                Overtime Enabled (Revert)
-                              </button>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
+                    <button onClick={() => shiftCalendarDays(7)} className="p-1.5 rounded border hover:bg-slate-200 dark:hover:bg-slate-800 cursor-pointer">
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
                   </div>
 
-                  {/* Week 2 */}
-                  <div>
-                    <div className="font-bold text-slate-400 mb-2 flex items-center justify-between">
-                      <span className="text-blue-600 dark:text-blue-400 font-extrabold">Week 2 (Selected Date & Next 7 Days)</span>
-                      <span className="text-[11px] font-normal text-slate-400">{week2Days[0]?.formatted} – {week2Days[7]?.formatted}</span>
+                  {/* View Mode Toggle: 14-Day View vs Assignee Lanes */}
+                  <div className="flex items-center space-x-2 bg-slate-100 dark:bg-slate-950 p-1 rounded-lg border border-slate-200 dark:border-slate-800">
+                    <button
+                      onClick={() => setCalendarViewMode('grid')}
+                      className={`px-3 py-1.5 rounded-md font-bold transition-all flex items-center space-x-1.5 cursor-pointer ${
+                        calendarViewMode === 'grid' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800'
+                      }`}
+                    >
+                      <CalendarDays className="w-3.5 h-3.5" />
+                      <span>14-Day Timeline</span>
+                    </button>
+                    <button
+                      onClick={() => setCalendarViewMode('assignees')}
+                      className={`px-3 py-1.5 rounded-md font-bold transition-all flex items-center space-x-1.5 cursor-pointer ${
+                        calendarViewMode === 'assignees' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800'
+                      }`}
+                    >
+                      <Users className="w-3.5 h-3.5" />
+                      <span>Assignee / Crew Capacity</span>
+                    </button>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2 font-medium">
+                    <div className="flex items-center space-x-1.5">
+                      <Filter className="w-3.5 h-3.5 text-slate-400" />
+                      <span>Filter:</span>
+
+                      <select value={calAccountFilter} onChange={(e) => setCalAccountFilter(e.target.value)} className="p-1 border rounded bg-transparent text-slate-900 dark:text-slate-100">
+                        <option value="All">All Builders</option>
+                        <option value="PERRY HOMES">Perry Homes</option>
+                        <option value="TOLL BROTHERS">Toll Brothers</option>
+                      </select>
+
+                      <select value={calCommunityFilter} onChange={(e) => setCalCommunityFilter(e.target.value)} className="p-1 border rounded bg-transparent text-slate-900 dark:text-slate-100">
+                        <option value="All">All Communities</option>
+                        <option value="STAR FARMS">Star Farms</option>
+                        <option value="Oakridge">Oakridge Estates</option>
+                      </select>
                     </div>
 
-                    <div className="grid grid-cols-8 gap-2 text-center font-bold">
-                      {week2Days.map((d, i) => {
-                        const isWork = isDateWorkingDay(d.dateStr);
-                        const customDayMatch = customWorkDayList.find(w => w.date === d.formatted || w.date === d.dateStr);
-                        const isOvertime = customWorkDays.includes(d.dateStr) || !!customDayMatch;
-                        return (
-                          <div
-                            key={i}
-                            className={`p-2 rounded border transition-all ${
-                              !isWork
-                                ? 'bg-slate-200/80 dark:bg-slate-800/80 border-slate-300 dark:border-slate-700 text-slate-500'
-                                : d.isCenter
-                                  ? 'bg-blue-600 text-white shadow-md'
-                                  : isOvertime
-                                    ? 'bg-emerald-100 text-emerald-900 border-emerald-300 dark:bg-emerald-950 dark:text-emerald-300'
-                                    : 'bg-slate-100 dark:bg-slate-950 border-slate-300 dark:border-slate-800'
-                            }`}
-                          >
-                            <div className="flex items-center justify-center space-x-1">
-                              <span>{d.dayName}</span>
-                              {!isWork && <Lock className="w-3 h-3 text-slate-400" />}
-                              {isOvertime && (
-                                <span className="text-[9px] bg-emerald-600 text-white px-1 rounded font-black" title={customDayMatch?.name || 'Extra Working Day'}>
-                                  OT
-                                </span>
-                              )}
-                            </div>
-                            <div className="text-[10px] opacity-80">{d.formatted}</div>
-                          </div>
-                        );
-                      })}
-                    </div>
+                    {/* Location Dropdown */}
+                    {getUserAccessibleActiveFacilities().length > 1 && (
+                      <div className="flex items-center space-x-1.5 bg-slate-100 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 px-2 py-1 rounded-lg text-xs">
+                        <MapPin className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
+                        <span className="font-semibold text-slate-500">Location:</span>
+                        <select
+                          value={selectedRegion}
+                          onChange={(e) => setSelectedRegion(e.target.value)}
+                          className="bg-transparent font-bold text-slate-800 dark:text-slate-200 focus:outline-none cursor-pointer"
+                        >
+                          <option value="All">All ({getUserAccessibleActiveFacilities().length})</option>
+                          {getUserAccessibleActiveFacilities().map((r) => (
+                            <option key={r.id} value={r.name} className="text-slate-900">
+                              {r.name} {r.isDefault ? '[DEFAULT]' : ''}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
 
-                    <div className="grid grid-cols-8 gap-2 mt-2 items-start">
-                      {week2Days.map((d, i) => {
-                        const isWork = isDateWorkingDay(d.dateStr);
-                        const customDayMatch = customWorkDayList.find(w => w.date === d.formatted || w.date === d.dateStr);
-                        const isOvertime = customWorkDays.includes(d.dateStr) || !!customDayMatch;
-                        const milestones = isWork ? getCalendarMilestonesForDay(d) : [];
-                        return (
-                          <div
-                            key={i}
-                            onDragOver={(e) => {
-                              if (isWork) {
-                                e.preventDefault();
-                                e.currentTarget.classList.add('ring-2', 'ring-blue-500');
-                              }
-                            }}
-                            onDragLeave={(e) => {
-                              e.currentTarget.classList.remove('ring-2', 'ring-blue-500');
-                            }}
-                            onDrop={(e) => {
-                              e.preventDefault();
-                              e.currentTarget.classList.remove('ring-2', 'ring-blue-500');
-                              if (!isWork || !draggedActivity) return;
-                              const job = jobsData.find(j => j.id === draggedActivity.jobId);
-                              if (job) {
-                                calculateShiftPreview(job, draggedActivity.phase.toLowerCase().includes('temp') ? 'template' : draggedActivity.phase.toLowerCase().includes('fab') ? 'fab' : 'install', d.formatted);
-                              }
-                              setDraggedActivity(null);
-                            }}
-                            className={`min-h-[130px] h-auto p-2 border rounded-lg transition-all flex flex-col justify-between ${
-                              !isWork
-                                ? 'bg-slate-200/50 dark:bg-slate-950/60 border-slate-300 dark:border-slate-800'
-                                : 'bg-slate-50/70 dark:bg-slate-950/30 border-dashed border-slate-300 dark:border-slate-800'
-                            }`}
-                          >
-                            <div className="space-y-1.5 flex flex-col w-full">
-                              {!isWork ? (
-                                <div className="text-center py-5 text-slate-400">
-                                  <div className="font-bold text-[10px] flex items-center justify-center space-x-1">
-                                    <Lock className="w-3 h-3" />
-                                    <span>Non-Working Day</span>
-                                  </div>
-                                  <button
-                                    onClick={() => handleToggleOvertimeDay(d.dateStr)}
-                                    className="mt-1 text-[9px] text-blue-600 dark:text-blue-400 hover:underline font-bold cursor-pointer"
-                                  >
-                                    + Enable Overtime Day
-                                  </button>
-                                </div>
-                              ) : (
-                                <>
-                                  {milestones.length === 0 ? (
-                                    <div className="text-slate-400 dark:text-slate-600 text-[10px] italic py-4 text-center">
-                                      No Scheduled Milestones
-                                    </div>
-                                  ) : (
-                                    milestones.map((item) => (
-                                      <div
-                                        key={item.key}
-                                        draggable={activeUserRole !== 'EXTERNAL_FIELD_INSTALLER' && activeUserRole !== 'EXTERNAL_SUBCONTRACTOR'}
-                                        onDragStart={() => setDraggedActivity({
-                                          jobId: item.job.id,
-                                          activityId: `act_${item.phase}`,
-                                          activityName: item.job.jobName,
-                                          currentDate: d.formatted,
-                                          phase: item.phase
-                                        })}
-                                        onClick={() => openJobDetailScreen(item.job, 'calendar')}
-                                        className={`p-2 rounded-lg text-[10px] font-bold shadow-xs cursor-pointer transition-all border flex flex-col space-y-1 group ${item.cardClass}`}
-                                      >
-                                        <div className="flex items-center justify-between">
-                                          <span className={`px-1.5 py-0.5 rounded text-[9px] font-black ${item.badgeClass}`}>
-                                            {item.phaseLabel}
-                                          </span>
-                                          <span className="text-[9px] font-medium opacity-80">Lot {item.job.lotNumber}</span>
-                                        </div>
-                                        <div className="font-bold text-xs truncate leading-tight">
-                                          {item.job.jobName}
-                                        </div>
-                                        <div className="text-[9px] opacity-80 flex items-center justify-between pt-0.5 border-t border-black/10 dark:border-white/10">
-                                          <span className="truncate">{item.crew}</span>
-                                          <ExternalLink className="w-3 h-3 shrink-0 opacity-60 group-hover:opacity-100" />
-                                        </div>
-                                      </div>
-                                    ))
-                                  )}
-                                </>
-                              )}
-                            </div>
-
-                            {isOvertime && (
-                              <button
-                                onClick={() => handleToggleOvertimeDay(d.dateStr)}
-                                className="text-[9px] text-amber-700 dark:text-amber-400 hover:underline font-semibold text-center cursor-pointer mt-2"
-                              >
-                                Overtime Enabled (Revert)
-                              </button>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
+                    <button
+                      onClick={() => { setCreateScope('job'); setActiveModal('create'); }}
+                      className="flex items-center space-x-1.5 bg-blue-600 hover:bg-blue-500 text-white font-bold px-3 py-1.5 rounded-lg text-xs shadow-sm transition-all cursor-pointer ml-1"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>+ Create Job</span>
+                    </button>
                   </div>
                 </div>
-              )}
 
-              {/* VIEW 2: ASSIGNEE & CREW CAPACITY BOARD */}
-              {calendarViewMode === 'assignees' && (
-                <div className={`p-4 rounded-lg border space-y-4 text-xs ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-300 shadow-md'}`}>
-                  <div className="flex items-center justify-between border-b pb-3">
-                    <h3 className="font-bold text-sm flex items-center space-x-2 text-slate-800 dark:text-slate-200">
-                      <Truck className="w-4 h-4 text-blue-600" />
-                      <span>Installation & Field Crews Daily Capacity Lanes</span>
-                    </h3>
-                    <span className="text-slate-400 text-xs">Workload balancing for {selectedRegion}</span>
+                {/* Drag-and-Drop Instruction Banner for Schedulers */}
+                {activeUserRole !== 'EXTERNAL_FIELD_INSTALLER' && activeUserRole !== 'EXTERNAL_SUBCONTRACTOR' && (
+                  <div className="p-2.5 bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 rounded-lg text-xs flex items-center justify-between text-blue-900 dark:text-blue-300">
+                    <div className="flex items-center space-x-2">
+                      <Sliders className="w-4 h-4 text-blue-600" />
+                      <span><strong>Scheduler Drag-and-Drop Active:</strong> Drag any activity card to a working day to shift dates. Hover over any event to see complete job details.</span>
+                    </div>
+                    <span className="text-[11px] font-semibold text-slate-500">Non-working days are locked (gray shaded).</span>
                   </div>
+                )}
 
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    {[
-                      { crew: 'Install Truck 1', type: 'FIELD CREW', maxHrs: 8, scheduledHrs: 6, color: 'border-blue-500 bg-blue-500/10' },
-                      { crew: 'Apex Install Crew A', type: 'FIELD CREW', maxHrs: 8, scheduledHrs: 7.5, color: 'border-indigo-500 bg-indigo-500/10' },
-                      { crew: 'Titan Stone Crew 2', type: 'FIELD CREW', maxHrs: 8, scheduledHrs: 5.5, color: 'border-purple-500 bg-purple-500/10' },
-                      { crew: 'Service Warranty Tech 1', type: 'SERVICE', maxHrs: 8, scheduledHrs: 3, color: 'border-amber-500 bg-amber-500/10' },
-                    ].map((lane, idx) => (
-                      <div key={idx} className={`p-3 rounded-xl border-2 ${lane.color} space-y-3`}>
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <div className="font-bold text-sm text-slate-900 dark:text-slate-100">{lane.crew}</div>
-                            <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">{lane.type}</span>
-                          </div>
-                          <div className="text-right">
-                            <span className="font-black text-xs text-blue-600 dark:text-blue-400">{lane.scheduledHrs}h / {lane.maxHrs}h</span>
-                            <div className="w-16 bg-slate-200 dark:bg-slate-800 rounded-full h-1.5 mt-1 overflow-hidden">
-                              <div className="bg-blue-600 h-full rounded-full" style={{ width: `${(lane.scheduledHrs / lane.maxHrs) * 100}%` }}></div>
-                            </div>
-                          </div>
-                        </div>
+                {/* VIEW 1: 14-DAY GRID WITH SHADED NON-WORKING DAYS & HOVER TOOLTIPS */}
+                {calendarViewMode === 'grid' && (
+                  <div className={`p-4 rounded-lg border space-y-6 text-xs ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-300 shadow-md'}`}>
+                    {/* Week 1 */}
+                    <div>
+                      <div className="font-bold text-slate-400 mb-2 flex items-center justify-between">
+                        <span>Week 1 (Days -7 to -1)</span>
+                        <span className="text-[11px] font-normal text-slate-400">{week1Days[0]?.formatted} – {week1Days[6]?.formatted}</span>
+                      </div>
 
-                        {/* Activities in this lane */}
-                        <div className="space-y-2">
-                          {jobsData.filter(j => j.assignedCrew === lane.crew || (idx === 0 && j.id === '1') || (idx === 3 && j.id === '2')).map((j) => (
+                      <div className="grid grid-cols-7 gap-2 text-center font-bold">
+                        {week1Days.map((d, i) => {
+                          const isWork = isDateWorkingDay(d.dateStr);
+                          const customDayMatch = customWorkDayList.find(w => w.date === d.formatted || w.date === d.dateStr);
+                          const isOvertime = customWorkDays.includes(d.dateStr) || !!customDayMatch;
+                          return (
                             <div
-                              key={j.id}
-                              onClick={() => openJobDetailScreen(j, 'calendar')}
-                              className="p-2.5 bg-white dark:bg-slate-900 border rounded-lg shadow-xs cursor-pointer hover:border-blue-500 transition-all"
+                              key={i}
+                              className={`p-2 rounded border transition-all ${
+                                !isWork
+                                  ? 'bg-slate-200/80 dark:bg-slate-800/80 border-slate-300 dark:border-slate-700 text-slate-500'
+                                  : d.isCenter
+                                    ? 'bg-blue-600 text-white shadow-md'
+                                    : isOvertime
+                                      ? 'bg-emerald-100 text-emerald-900 border-emerald-300 dark:bg-emerald-950 dark:text-emerald-300'
+                                      : 'bg-slate-100 dark:bg-slate-950 border-slate-300 dark:border-slate-800'
+                              }`}
                             >
-                              <div className="font-bold text-xs text-blue-700 dark:text-blue-400">{j.jobName}</div>
-                              <div className="text-[11px] text-slate-600 dark:text-slate-400 font-medium">{j.communityName} • Lot {j.lotNumber}</div>
-                              <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-100 dark:border-slate-800 text-[10px]">
-                                <span className="font-bold text-emerald-600">{j.installDate.date}</span>
-                                <span className="px-1.5 py-0.5 rounded bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300 font-extrabold">{j.status}</span>
+                              <div className="flex items-center justify-center space-x-1">
+                                <span>{d.dayName}</span>
+                                {!isWork && <Lock className="w-3 h-3 text-slate-400" />}
+                                {isOvertime && (
+                                  <span className="text-[9px] bg-emerald-600 text-white px-1 rounded font-black" title={customDayMatch?.name || 'Extra Working Day'}>
+                                    OT
+                                  </span>
+                                )}
+                              </div>
+                              <div className="text-[10px] opacity-80">{d.formatted}</div>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      <div className="grid grid-cols-7 gap-2 mt-2 items-start">
+                        {week1Days.map((d, i) => {
+                          const isWork = isDateWorkingDay(d.dateStr);
+                          const customDayMatch = customWorkDayList.find(w => w.date === d.formatted || w.date === d.dateStr);
+                          const isOvertime = customWorkDays.includes(d.dateStr) || !!customDayMatch;
+                          const milestones = isWork ? getCalendarMilestonesForDay(d) : [];
+                          return (
+                            <div
+                              key={i}
+                              onDragOver={(e) => {
+                                if (isWork) {
+                                  e.preventDefault();
+                                  e.currentTarget.classList.add('ring-2', 'ring-blue-500');
+                                }
+                              }}
+                              onDragLeave={(e) => {
+                                e.currentTarget.classList.remove('ring-2', 'ring-blue-500');
+                              }}
+                              onDrop={(e) => {
+                                e.preventDefault();
+                                e.currentTarget.classList.remove('ring-2', 'ring-blue-500');
+                                if (!isWork || !draggedActivity) return;
+                                const job = jobsData.find(j => j.id === draggedActivity.jobId);
+                                if (job) {
+                                  calculateShiftPreview(job, draggedActivity.phase.toLowerCase().includes('temp') ? 'template' : draggedActivity.phase.toLowerCase().includes('fab') ? 'fab' : 'install', d.formatted);
+                                }
+                                setDraggedActivity(null);
+                              }}
+                              className={`min-h-[130px] h-auto p-2 border rounded-lg transition-all flex flex-col justify-between ${
+                                !isWork
+                                  ? 'bg-slate-200/50 dark:bg-slate-950/60 border-slate-300 dark:border-slate-800'
+                                  : 'bg-slate-50/70 dark:bg-slate-950/30 border-dashed border-slate-300 dark:border-slate-800'
+                              }`}
+                            >
+                              <div className="space-y-1.5 flex flex-col w-full">
+                                {!isWork ? (
+                                  <div className="text-center py-5 text-slate-400">
+                                    <div className="font-bold text-[10px] flex items-center justify-center space-x-1">
+                                      <Lock className="w-3 h-3" />
+                                      <span>Non-Working Day</span>
+                                    </div>
+                                    <button
+                                      onClick={() => handleToggleOvertimeDay(d.dateStr)}
+                                      className="mt-1 text-[9px] text-blue-600 dark:text-blue-400 hover:underline font-bold cursor-pointer"
+                                    >
+                                      + Enable Overtime Day
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <>
+                                    {milestones.length === 0 ? (
+                                      <div className="text-slate-400 dark:text-slate-600 text-[10px] italic py-4 text-center">
+                                        No Scheduled Milestones
+                                      </div>
+                                    ) : (
+                                      milestones.map((item) => (
+                                        <div
+                                          key={item.key}
+                                          draggable={activeUserRole !== 'EXTERNAL_FIELD_INSTALLER' && activeUserRole !== 'EXTERNAL_SUBCONTRACTOR'}
+                                          onDragStart={() => setDraggedActivity({
+                                            jobId: item.job.id,
+                                            activityId: `act_${item.phase}`,
+                                            activityName: item.job.jobName,
+                                            currentDate: d.formatted,
+                                            phase: item.phase
+                                          })}
+                                          onMouseEnter={(e) => {
+                                            const rect = e.currentTarget.getBoundingClientRect();
+                                            setCalHoverInfo({
+                                              item,
+                                              day: d,
+                                              top: rect.bottom + 6,
+                                              left: Math.max(16, Math.min(rect.left, window.innerWidth - 370))
+                                            });
+                                          }}
+                                          onMouseLeave={() => setCalHoverInfo(null)}
+                                          onClick={() => openJobDetailScreen(item.job, 'calendar')}
+                                          className={`p-2 rounded-lg text-[10px] font-bold shadow-xs cursor-pointer transition-all border flex flex-col space-y-1 group ${item.cardClass}`}
+                                        >
+                                          <div className="flex items-center justify-between">
+                                            <span className={`px-1.5 py-0.5 rounded text-[9px] font-black ${item.badgeClass}`}>
+                                              {item.phaseLabel}
+                                            </span>
+                                            <span className="text-[9px] font-medium opacity-80">Lot {item.job.lotNumber}</span>
+                                          </div>
+                                          <div className="font-bold text-xs truncate leading-tight">
+                                            {item.job.jobName}
+                                          </div>
+                                          <div className="text-[9px] opacity-80 flex items-center justify-between pt-0.5 border-t border-black/10 dark:border-white/10">
+                                            <span className="truncate">{item.crew}</span>
+                                            <ExternalLink className="w-3 h-3 shrink-0 opacity-60 group-hover:opacity-100" />
+                                          </div>
+                                        </div>
+                                      ))
+                                    )}
+                                  </>
+                                )}
+                              </div>
+
+                              {isOvertime && (
+                                <button
+                                  onClick={() => handleToggleOvertimeDay(d.dateStr)}
+                                  className="text-[9px] text-amber-700 dark:text-amber-400 hover:underline font-semibold text-center cursor-pointer mt-2"
+                                >
+                                  Overtime Enabled (Revert)
+                                </button>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Week 2 */}
+                    <div>
+                      <div className="font-bold text-slate-400 mb-2 flex items-center justify-between">
+                        <span className="text-blue-600 dark:text-blue-400 font-extrabold">Week 2 (Selected Date & Next 7 Days)</span>
+                        <span className="text-[11px] font-normal text-slate-400">{week2Days[0]?.formatted} – {week2Days[7]?.formatted}</span>
+                      </div>
+
+                      <div className="grid grid-cols-8 gap-2 text-center font-bold">
+                        {week2Days.map((d, i) => {
+                          const isWork = isDateWorkingDay(d.dateStr);
+                          const customDayMatch = customWorkDayList.find(w => w.date === d.formatted || w.date === d.dateStr);
+                          const isOvertime = customWorkDays.includes(d.dateStr) || !!customDayMatch;
+                          return (
+                            <div
+                              key={i}
+                              className={`p-2 rounded border transition-all ${
+                                !isWork
+                                  ? 'bg-slate-200/80 dark:bg-slate-800/80 border-slate-300 dark:border-slate-700 text-slate-500'
+                                  : d.isCenter
+                                    ? 'bg-blue-600 text-white shadow-md'
+                                    : isOvertime
+                                      ? 'bg-emerald-100 text-emerald-900 border-emerald-300 dark:bg-emerald-950 dark:text-emerald-300'
+                                      : 'bg-slate-100 dark:bg-slate-950 border-slate-300 dark:border-slate-800'
+                              }`}
+                            >
+                              <div className="flex items-center justify-center space-x-1">
+                                <span>{d.dayName}</span>
+                                {!isWork && <Lock className="w-3 h-3 text-slate-400" />}
+                                {isOvertime && (
+                                  <span className="text-[9px] bg-emerald-600 text-white px-1 rounded font-black" title={customDayMatch?.name || 'Extra Working Day'}>
+                                    OT
+                                  </span>
+                                )}
+                              </div>
+                              <div className="text-[10px] opacity-80">{d.formatted}</div>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      <div className="grid grid-cols-8 gap-2 mt-2 items-start">
+                        {week2Days.map((d, i) => {
+                          const isWork = isDateWorkingDay(d.dateStr);
+                          const customDayMatch = customWorkDayList.find(w => w.date === d.formatted || w.date === d.dateStr);
+                          const isOvertime = customWorkDays.includes(d.dateStr) || !!customDayMatch;
+                          const milestones = isWork ? getCalendarMilestonesForDay(d) : [];
+                          return (
+                            <div
+                              key={i}
+                              onDragOver={(e) => {
+                                if (isWork) {
+                                  e.preventDefault();
+                                  e.currentTarget.classList.add('ring-2', 'ring-blue-500');
+                                }
+                              }}
+                              onDragLeave={(e) => {
+                                e.currentTarget.classList.remove('ring-2', 'ring-blue-500');
+                              }}
+                              onDrop={(e) => {
+                                e.preventDefault();
+                                e.currentTarget.classList.remove('ring-2', 'ring-blue-500');
+                                if (!isWork || !draggedActivity) return;
+                                const job = jobsData.find(j => j.id === draggedActivity.jobId);
+                                if (job) {
+                                  calculateShiftPreview(job, draggedActivity.phase.toLowerCase().includes('temp') ? 'template' : draggedActivity.phase.toLowerCase().includes('fab') ? 'fab' : 'install', d.formatted);
+                                }
+                                setDraggedActivity(null);
+                              }}
+                              className={`min-h-[130px] h-auto p-2 border rounded-lg transition-all flex flex-col justify-between ${
+                                !isWork
+                                  ? 'bg-slate-200/50 dark:bg-slate-950/60 border-slate-300 dark:border-slate-800'
+                                  : 'bg-slate-50/70 dark:bg-slate-950/30 border-dashed border-slate-300 dark:border-slate-800'
+                              }`}
+                            >
+                              <div className="space-y-1.5 flex flex-col w-full">
+                                {!isWork ? (
+                                  <div className="text-center py-5 text-slate-400">
+                                    <div className="font-bold text-[10px] flex items-center justify-center space-x-1">
+                                      <Lock className="w-3 h-3" />
+                                      <span>Non-Working Day</span>
+                                    </div>
+                                    <button
+                                      onClick={() => handleToggleOvertimeDay(d.dateStr)}
+                                      className="mt-1 text-[9px] text-blue-600 dark:text-blue-400 hover:underline font-bold cursor-pointer"
+                                    >
+                                      + Enable Overtime Day
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <>
+                                    {milestones.length === 0 ? (
+                                      <div className="text-slate-400 dark:text-slate-600 text-[10px] italic py-4 text-center">
+                                        No Scheduled Milestones
+                                      </div>
+                                    ) : (
+                                      milestones.map((item) => (
+                                        <div
+                                          key={item.key}
+                                          draggable={activeUserRole !== 'EXTERNAL_FIELD_INSTALLER' && activeUserRole !== 'EXTERNAL_SUBCONTRACTOR'}
+                                          onDragStart={() => setDraggedActivity({
+                                            jobId: item.job.id,
+                                            activityId: `act_${item.phase}`,
+                                            activityName: item.job.jobName,
+                                            currentDate: d.formatted,
+                                            phase: item.phase
+                                          })}
+                                          onMouseEnter={(e) => {
+                                            const rect = e.currentTarget.getBoundingClientRect();
+                                            setCalHoverInfo({
+                                              item,
+                                              day: d,
+                                              top: rect.bottom + 6,
+                                              left: Math.max(16, Math.min(rect.left, window.innerWidth - 370))
+                                            });
+                                          }}
+                                          onMouseLeave={() => setCalHoverInfo(null)}
+                                          onClick={() => openJobDetailScreen(item.job, 'calendar')}
+                                          className={`p-2 rounded-lg text-[10px] font-bold shadow-xs cursor-pointer transition-all border flex flex-col space-y-1 group ${item.cardClass}`}
+                                        >
+                                          <div className="flex items-center justify-between">
+                                            <span className={`px-1.5 py-0.5 rounded text-[9px] font-black ${item.badgeClass}`}>
+                                              {item.phaseLabel}
+                                            </span>
+                                            <span className="text-[9px] font-medium opacity-80">Lot {item.job.lotNumber}</span>
+                                          </div>
+                                          <div className="font-bold text-xs truncate leading-tight">
+                                            {item.job.jobName}
+                                          </div>
+                                          <div className="text-[9px] opacity-80 flex items-center justify-between pt-0.5 border-t border-black/10 dark:border-white/10">
+                                            <span className="truncate">{item.crew}</span>
+                                            <ExternalLink className="w-3 h-3 shrink-0 opacity-60 group-hover:opacity-100" />
+                                          </div>
+                                        </div>
+                                      ))
+                                    )}
+                                  </>
+                                )}
+                              </div>
+
+                              {isOvertime && (
+                                <button
+                                  onClick={() => handleToggleOvertimeDay(d.dateStr)}
+                                  className="text-[9px] text-amber-700 dark:text-amber-400 hover:underline font-semibold text-center cursor-pointer mt-2"
+                                >
+                                  Overtime Enabled (Revert)
+                                </button>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* VIEW 2: ASSIGNEE & CREW CAPACITY BOARD */}
+                {calendarViewMode === 'assignees' && (
+                  <div className={`p-4 rounded-lg border space-y-4 text-xs ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-300 shadow-md'}`}>
+                    <div className="flex items-center justify-between border-b pb-3">
+                      <h3 className="font-bold text-sm flex items-center space-x-2 text-slate-800 dark:text-slate-200">
+                        <Truck className="w-4 h-4 text-blue-600" />
+                        <span>Installation & Field Crews Daily Capacity Lanes</span>
+                      </h3>
+                      <span className="text-slate-400 text-xs">Workload balancing for {selectedRegion}</span>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                      {[
+                        { crew: 'Install Truck 1', type: 'FIELD CREW', maxHrs: 8, scheduledHrs: 6, color: 'border-blue-500 bg-blue-500/10' },
+                        { crew: 'Apex Install Crew A', type: 'FIELD CREW', maxHrs: 8, scheduledHrs: 7.5, color: 'border-indigo-500 bg-indigo-500/10' },
+                        { crew: 'Titan Stone Crew 2', type: 'FIELD CREW', maxHrs: 8, scheduledHrs: 5.5, color: 'border-purple-500 bg-purple-500/10' },
+                        { crew: 'Service Warranty Tech 1', type: 'SERVICE', maxHrs: 8, scheduledHrs: 3, color: 'border-amber-500 bg-amber-500/10' },
+                      ].map((lane, idx) => (
+                        <div key={idx} className={`p-3 rounded-xl border-2 ${lane.color} space-y-3`}>
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <div className="font-bold text-sm text-slate-900 dark:text-slate-100">{lane.crew}</div>
+                              <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">{lane.type}</span>
+                            </div>
+                            <div className="text-right">
+                              <span className="font-black text-xs text-blue-600 dark:text-blue-400">{lane.scheduledHrs}h / {lane.maxHrs}h</span>
+                              <div className="w-16 bg-slate-200 dark:bg-slate-800 rounded-full h-1.5 mt-1 overflow-hidden">
+                                <div className="bg-blue-600 h-full rounded-full" style={{ width: `${(lane.scheduledHrs / lane.maxHrs) * 100}%` }}></div>
                               </div>
                             </div>
-                          ))}
+                          </div>
+
+                          {/* Activities in this lane */}
+                          <div className="space-y-2">
+                            {jobsData.filter(j => j.assignedCrew === lane.crew || (idx === 0 && j.id === '1') || (idx === 3 && j.id === '2')).map((j) => (
+                              <div
+                                key={j.id}
+                                onClick={() => openJobDetailScreen(j, 'calendar')}
+                                className="p-2.5 bg-white dark:bg-slate-900 border rounded-lg shadow-xs cursor-pointer hover:border-blue-500 transition-all"
+                              >
+                                <div className="font-bold text-xs text-blue-700 dark:text-blue-400">{j.jobName}</div>
+                                <div className="text-[11px] text-slate-600 dark:text-slate-400 font-medium">{j.communityName} • Lot {j.lotNumber}</div>
+                                <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-100 dark:border-slate-800 text-[10px]">
+                                  <span className="font-bold text-emerald-600">{j.installDate.date}</span>
+                                  <span className="px-1.5 py-0.5 rounded bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300 font-extrabold">{j.status}</span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* ========================================================================= */}
+              {/* FLOATING DESKTOP HOVER TOOLTIP POPUP (PORTAL OVERLAY)                     */}
+              {/* ========================================================================= */}
+              {calHoverInfo && (
+                <div
+                  className={`fixed z-50 pointer-events-none w-88 p-4 rounded-2xl border shadow-2xl space-y-2.5 transition-all animate-in fade-in zoom-in-95 duration-150 ${
+                    isDark ? 'bg-slate-900/98 border-slate-700 text-slate-100' : 'bg-white/98 border-slate-300 text-slate-900 shadow-2xl'
+                  }`}
+                  style={{
+                    top: Math.max(16, Math.min(calHoverInfo.top, window.innerHeight - 280)),
+                    left: Math.max(16, Math.min(calHoverInfo.left, window.innerWidth - 380))
+                  }}
+                >
+                  <div className="flex items-center justify-between border-b pb-2 border-slate-200 dark:border-slate-800">
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase ${calHoverInfo.item.badgeClass}`}>
+                      {calHoverInfo.item.phaseLabel}
+                    </span>
+                    <span className="font-black text-xs text-blue-600 dark:text-blue-400">
+                      Lot {calHoverInfo.item.job.lotNumber}
+                    </span>
+                  </div>
+
+                  <div className="space-y-0.5">
+                    <h4 className="font-black text-sm text-slate-950 dark:text-white leading-tight">
+                      {calHoverInfo.item.job.jobName}
+                    </h4>
+                    <p className="text-xs text-slate-600 dark:text-slate-300 font-semibold">
+                      {calHoverInfo.item.job.accountName} • {calHoverInfo.item.job.communityName}
+                    </p>
+                  </div>
+
+                  <div className="space-y-1 pt-1 text-[11px] border-t border-slate-200 dark:border-slate-800">
+                    <div className="flex items-start space-x-1.5 text-slate-600 dark:text-slate-300">
+                      <MapPin className="w-3.5 h-3.5 text-blue-500 shrink-0 mt-0.5" />
+                      <span className="leading-tight">{calHoverInfo.item.job.streetAddress}, {calHoverInfo.item.job.cityStateZip}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-slate-500 pt-1">
+                      <span>Assigned: <strong className="text-slate-800 dark:text-slate-200">{calHoverInfo.item.crew}</strong></span>
+                      <span>Sales: <strong className="text-slate-800 dark:text-slate-200">{calHoverInfo.item.job.salesperson}</strong></span>
+                    </div>
+                  </div>
+
+                  {calHoverInfo.item.job.installerNotesText && (
+                    <div className="p-2 bg-slate-100 dark:bg-slate-950 rounded-lg text-[10px] text-slate-600 dark:text-slate-400 italic">
+                      Notes: "{calHoverInfo.item.job.installerNotesText}"
+                    </div>
+                  )}
+
+                  <div className="pt-1 border-t border-slate-200 dark:border-slate-800 text-[10px] text-blue-600 dark:text-blue-400 font-bold flex items-center justify-between">
+                    <span>Scheduled: {calHoverInfo.day?.formatted}</span>
+                    <span>Click to open record ↗</span>
                   </div>
                 </div>
               )}
+
             </div>
           )}
 

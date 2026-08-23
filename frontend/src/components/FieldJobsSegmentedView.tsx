@@ -93,6 +93,7 @@ export const FieldJobsSegmentedView: React.FC<FieldJobsSegmentedViewProps> = ({
   const [activeTab, setActiveTab] = useState<'ACTIVE' | 'PAST' | 'FUTURE' | 'CALENDAR'>('ACTIVE');
   const [calendarOffsetDays, setCalendarOffsetDays] = useState<number>(0);
   const [selectedMobileDayIndex, setSelectedMobileDayIndex] = useState<number>(0);
+  const [fieldCalHoverInfo, setFieldCalHoverInfo] = useState<{ job: JobRow; top: number; left: number } | null>(null);
   const isOnline = isDeviceOnline();
 
   // Helper to parse date string
@@ -612,6 +613,15 @@ export const FieldJobsSegmentedView: React.FC<FieldJobsSegmentedViewProps> = ({
                             className={`p-2.5 rounded-xl border text-xs space-y-1.5 cursor-pointer hover:shadow-md transition-all ${
                               isDark ? 'bg-slate-950 border-slate-800 hover:border-slate-700' : 'bg-white border-slate-200'
                             }`}
+                            onMouseEnter={(e) => {
+                              const rect = e.currentTarget.getBoundingClientRect();
+                              setFieldCalHoverInfo({
+                                job,
+                                top: rect.bottom + 6,
+                                left: Math.max(16, Math.min(rect.left, window.innerWidth - 370))
+                              });
+                            }}
+                            onMouseLeave={() => setFieldCalHoverInfo(null)}
                             onClick={() => onSelectJobDetail(job)}
                           >
                             <div className="flex items-center justify-between">
@@ -647,6 +657,53 @@ export const FieldJobsSegmentedView: React.FC<FieldJobsSegmentedViewProps> = ({
                 );
               })}
             </div>
+
+            {/* Desktop Calendar Hover Tooltip */}
+            {fieldCalHoverInfo && (
+              <div
+                className={`fixed z-50 pointer-events-none w-84 p-4 rounded-2xl border shadow-2xl space-y-2 transition-all animate-in fade-in zoom-in-95 duration-150 ${
+                  isDark ? 'bg-slate-900/98 border-slate-700 text-slate-100' : 'bg-white/98 border-slate-300 text-slate-900 shadow-2xl'
+                }`}
+                style={{
+                  top: Math.max(16, Math.min(fieldCalHoverInfo.top, window.innerHeight - 260)),
+                  left: Math.max(16, Math.min(fieldCalHoverInfo.left, window.innerWidth - 360))
+                }}
+              >
+                <div className="flex items-center justify-between border-b pb-1.5 border-slate-200 dark:border-slate-800">
+                  <span className="font-black text-xs text-blue-600 dark:text-blue-400">
+                    Lot {fieldCalHoverInfo.job.lotNumber}
+                  </span>
+                  <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase bg-blue-100 text-blue-900 dark:bg-blue-950 dark:text-blue-300">
+                    {fieldCalHoverInfo.job.status}
+                  </span>
+                </div>
+
+                <div>
+                  <h4 className="font-black text-sm text-slate-950 dark:text-white leading-tight">
+                    {fieldCalHoverInfo.job.jobName}
+                  </h4>
+                  <p className="text-xs text-slate-600 dark:text-slate-400 font-semibold">
+                    {fieldCalHoverInfo.job.accountName} • {fieldCalHoverInfo.job.communityName}
+                  </p>
+                </div>
+
+                <div className="space-y-1 pt-1 text-[11px] border-t border-slate-200 dark:border-slate-800">
+                  <div className="text-slate-600 dark:text-slate-300">
+                    {fieldCalHoverInfo.job.streetAddress}, {fieldCalHoverInfo.job.cityStateZip}
+                  </div>
+                  <div className="flex items-center justify-between text-slate-500 pt-0.5">
+                    <span>Crew: <strong className="text-slate-800 dark:text-slate-200">{fieldCalHoverInfo.job.assignedCrew || 'Install Truck 1'}</strong></span>
+                    <span>Sales: <strong className="text-slate-800 dark:text-slate-200">{fieldCalHoverInfo.job.salesperson}</strong></span>
+                  </div>
+                </div>
+
+                {fieldCalHoverInfo.job.installerNotesText && (
+                  <div className="p-2 bg-slate-100 dark:bg-slate-950 rounded-lg text-[10px] text-slate-600 dark:text-slate-400 italic">
+                    "{fieldCalHoverInfo.job.installerNotesText}"
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
       </div>
