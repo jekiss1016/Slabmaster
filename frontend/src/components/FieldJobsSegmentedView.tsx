@@ -658,11 +658,11 @@ export const FieldJobsSegmentedView: React.FC<FieldJobsSegmentedViewProps> = ({
               })}
             </div>
 
-            {/* Desktop Calendar Hover Tooltip */}
+            {/* Desktop Calendar Hover Tooltip (100% Solid Opaque Background) */}
             {fieldCalHoverInfo && (
               <div
-                className={`fixed z-50 pointer-events-none w-84 p-4 rounded-2xl border shadow-2xl space-y-2 transition-all animate-in fade-in zoom-in-95 duration-150 ${
-                  isDark ? 'bg-slate-900/98 border-slate-700 text-slate-100' : 'bg-white/98 border-slate-300 text-slate-900 shadow-2xl'
+                className={`fixed z-50 pointer-events-none w-84 p-4 rounded-2xl border-2 shadow-2xl space-y-2 transition-all animate-in fade-in zoom-in-95 duration-150 ${
+                  isDark ? 'bg-slate-900 border-slate-700 text-slate-100' : 'bg-white border-slate-400 text-slate-950 shadow-2xl'
                 }`}
                 style={{
                   top: Math.max(16, Math.min(fieldCalHoverInfo.top, window.innerHeight - 260)),

@@ -385,6 +385,15 @@ export default function App() {
   // Desktop Calendar Hover Tooltip & Mobile Daily Stacked State
   const [calHoverInfo, setCalHoverInfo] = useState<{ item: any; day: any; top: number; left: number } | null>(null);
   const [expandedMobileMilestoneKey, setExpandedMobileMilestoneKey] = useState<string | null>(null);
+  const [calTouchStartX, setCalTouchStartX] = useState<number | null>(null);
+  const [calTouchEndX, setCalTouchEndX] = useState<number | null>(null);
+
+  const canUserCreateJobs = (role: string) => {
+    return role !== 'EXTERNAL_FIELD_INSTALLER' && 
+           role !== 'EXTERNAL_SUBCONTRACTOR' && 
+           role !== 'INTERNAL_FIELD_INSTALLER' &&
+           role !== 'INTERNAL_QA_TECH';
+  };
 
   // Form Templates, Packets & Runner State
   const [formTemplates, setFormTemplates] = useState<FormTemplate[]>(DEFAULT_FORM_TEMPLATES);
@@ -3391,6 +3400,9 @@ export default function App() {
       setNewEntityAddress('');
       setActiveModal('create');
     } else if (activeNav === 'jobs') {
+      if (!canUserCreateJobs(activeUserRole)) {
+        return;
+      }
       setCreateScope('job');
       setNewEntityName('');
       setActiveModal('create');
@@ -4635,13 +4647,15 @@ export default function App() {
                     Showing <strong className="text-blue-500">{filteredJobs.length}</strong> of <strong className="text-slate-500">{jobsData.length}</strong> jobs
                   </div>
 
-                  <button
-                    onClick={() => { setCreateScope('job'); setActiveModal('create'); }}
-                    className="flex items-center space-x-1.5 bg-blue-600 hover:bg-blue-500 text-white font-bold px-3.5 py-1.5 rounded-lg text-xs shadow-sm transition-all cursor-pointer"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    <span>+ Create Job</span>
-                  </button>
+                  {canUserCreateJobs(activeUserRole) && (
+                    <button
+                      onClick={() => { setCreateScope('job'); setActiveModal('create'); }}
+                      className="flex items-center space-x-1.5 bg-blue-600 hover:bg-blue-500 text-white font-bold px-3.5 py-1.5 rounded-lg text-xs shadow-sm transition-all cursor-pointer"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>+ Create Job</span>
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -5385,7 +5399,30 @@ export default function App() {
               {/* ========================================================================= */}
               {/* MOBILE DAILY STACKED CALENDAR VIEW (EXCLUSIVELY APPLIED TO MOBILE < md:)  */}
               {/* ========================================================================= */}
-              <div className="block md:hidden space-y-3.5">
+              <div
+                className="block md:hidden space-y-3.5 select-none"
+                onTouchStart={(e) => {
+                  setCalTouchStartX(e.targetTouches[0].clientX);
+                  setCalTouchEndX(null);
+                }}
+                onTouchMove={(e) => {
+                  setCalTouchEndX(e.targetTouches[0].clientX);
+                }}
+                onTouchEnd={() => {
+                  if (calTouchStartX !== null && calTouchEndX !== null) {
+                    const distance = calTouchStartX - calTouchEndX;
+                    if (distance > 45) {
+                      // Swiped Left -> Next Day
+                      shiftCalendarDays(1);
+                    } else if (distance < -45) {
+                      // Swiped Right -> Prior Day
+                      shiftCalendarDays(-1);
+                    }
+                  }
+                  setCalTouchStartX(null);
+                  setCalTouchEndX(null);
+                }}
+              >
                 {/* Mobile Day Navigation Bar */}
                 <div className={`p-3.5 rounded-2xl border flex items-center justify-between shadow-sm ${
                   isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'
@@ -5433,6 +5470,11 @@ export default function App() {
                   </button>
                 </div>
 
+                {/* Mobile Touch Swipe Hint Bar */}
+                <div className="flex items-center justify-center text-[10px] text-slate-400 dark:text-slate-500 font-semibold space-x-1 py-0.5">
+                  <span>👈 Swipe left or right anywhere to switch days 👉</span>
+                </div>
+
                 {/* Mobile Filters & Jump Date Picker */}
                 <div className={`p-3 rounded-xl border flex flex-wrap items-center justify-between gap-2 text-xs ${
                   isDark ? 'bg-slate-900/60 border-slate-800' : 'bg-white border-slate-200 shadow-xs'
@@ -5458,14 +5500,16 @@ export default function App() {
                       <option value="TOLL BROTHERS">Toll</option>
                     </select>
 
-                    <button
-                      type="button"
-                      onClick={() => { setCreateScope('job'); setActiveModal('create'); }}
-                      className="px-2.5 py-1 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg text-[11px] flex items-center space-x-1"
-                    >
-                      <Plus className="w-3 h-3" />
-                      <span>Job</span>
-                    </button>
+                    {canUserCreateJobs(activeUserRole) && (
+                      <button
+                        type="button"
+                        onClick={() => { setCreateScope('job'); setActiveModal('create'); }}
+                        className="px-2.5 py-1 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg text-[11px] flex items-center space-x-1"
+                      >
+                        <Plus className="w-3 h-3" />
+                        <span>Job</span>
+                      </button>
+                    )}
                   </div>
                 </div>
 
@@ -5714,13 +5758,15 @@ export default function App() {
                       </div>
                     )}
 
-                    <button
-                      onClick={() => { setCreateScope('job'); setActiveModal('create'); }}
-                      className="flex items-center space-x-1.5 bg-blue-600 hover:bg-blue-500 text-white font-bold px-3 py-1.5 rounded-lg text-xs shadow-sm transition-all cursor-pointer ml-1"
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                      <span>+ Create Job</span>
-                    </button>
+                    {canUserCreateJobs(activeUserRole) && (
+                      <button
+                        onClick={() => { setCreateScope('job'); setActiveModal('create'); }}
+                        className="flex items-center space-x-1.5 bg-blue-600 hover:bg-blue-500 text-white font-bold px-3 py-1.5 rounded-lg text-xs shadow-sm transition-all cursor-pointer ml-1"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>+ Create Job</span>
+                      </button>
+                    )}
                   </div>
                 </div>
 
@@ -6103,12 +6149,12 @@ export default function App() {
               </div>
 
               {/* ========================================================================= */}
-              {/* FLOATING DESKTOP HOVER TOOLTIP POPUP (PORTAL OVERLAY)                     */}
+              {/* FLOATING DESKTOP HOVER TOOLTIP POPUP (100% SOLID OPAQUE BACKGROUND)       */}
               {/* ========================================================================= */}
               {calHoverInfo && (
                 <div
-                  className={`fixed z-50 pointer-events-none w-88 p-4 rounded-2xl border shadow-2xl space-y-2.5 transition-all animate-in fade-in zoom-in-95 duration-150 ${
-                    isDark ? 'bg-slate-900/98 border-slate-700 text-slate-100' : 'bg-white/98 border-slate-300 text-slate-900 shadow-2xl'
+                  className={`fixed z-50 pointer-events-none w-88 p-4 rounded-2xl border-2 shadow-2xl space-y-2.5 transition-all animate-in fade-in zoom-in-95 duration-150 ${
+                    isDark ? 'bg-slate-900 border-slate-700 text-slate-100' : 'bg-white border-slate-400 text-slate-950 shadow-2xl'
                   }`}
                   style={{
                     top: Math.max(16, Math.min(calHoverInfo.top, window.innerHeight - 280)),
@@ -6128,24 +6174,24 @@ export default function App() {
                     <h4 className="font-black text-sm text-slate-950 dark:text-white leading-tight">
                       {calHoverInfo.item.job.jobName}
                     </h4>
-                    <p className="text-xs text-slate-600 dark:text-slate-300 font-semibold">
+                    <p className="text-xs text-slate-700 dark:text-slate-300 font-bold">
                       {calHoverInfo.item.job.accountName} • {calHoverInfo.item.job.communityName}
                     </p>
                   </div>
 
                   <div className="space-y-1 pt-1 text-[11px] border-t border-slate-200 dark:border-slate-800">
-                    <div className="flex items-start space-x-1.5 text-slate-600 dark:text-slate-300">
-                      <MapPin className="w-3.5 h-3.5 text-blue-500 shrink-0 mt-0.5" />
+                    <div className="flex items-start space-x-1.5 text-slate-700 dark:text-slate-300 font-medium">
+                      <MapPin className="w-3.5 h-3.5 text-blue-600 shrink-0 mt-0.5" />
                       <span className="leading-tight">{calHoverInfo.item.job.streetAddress}, {calHoverInfo.item.job.cityStateZip}</span>
                     </div>
-                    <div className="flex items-center justify-between text-slate-500 pt-1">
-                      <span>Assigned: <strong className="text-slate-800 dark:text-slate-200">{calHoverInfo.item.crew}</strong></span>
-                      <span>Sales: <strong className="text-slate-800 dark:text-slate-200">{calHoverInfo.item.job.salesperson}</strong></span>
+                    <div className="flex items-center justify-between text-slate-600 dark:text-slate-400 pt-1">
+                      <span>Assigned: <strong className="text-slate-900 dark:text-slate-100">{calHoverInfo.item.crew}</strong></span>
+                      <span>Sales: <strong className="text-slate-900 dark:text-slate-100">{calHoverInfo.item.job.salesperson}</strong></span>
                     </div>
                   </div>
 
                   {calHoverInfo.item.job.installerNotesText && (
-                    <div className="p-2 bg-slate-100 dark:bg-slate-950 rounded-lg text-[10px] text-slate-600 dark:text-slate-400 italic">
+                    <div className="p-2 bg-slate-100 dark:bg-slate-950 rounded-lg text-[10px] text-slate-800 dark:text-slate-300 font-medium italic border border-slate-200 dark:border-slate-800">
                       Notes: "{calHoverInfo.item.job.installerNotesText}"
                     </div>
                   )}
