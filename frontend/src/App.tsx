@@ -52,7 +52,6 @@ import {
   Download,
   DollarSign,
   TrendingUp,
-  Wrench,
   Monitor,
   Lock,
   Globe,
@@ -456,10 +455,9 @@ export default function App() {
   });
 
   // Master Settings Hub State
-  const [settingsCategory, setSettingsCategory] = useState<'billing' | 'calendar' | 'job' | 'shop' | 'system' | 'users' | 'branding' | 'regions' | 'leadtimes'>('regions');
+  const [settingsCategory, setSettingsCategory] = useState<'billing' | 'calendar' | 'job' | 'system' | 'users' | 'branding' | 'regions' | 'leadtimes'>('regions');
   const [usersSubSection, setUsersSubSection] = useState<'External Crews & Installers' | 'Internal Users' | 'Roles & Permissions' | 'SSO & Security'>('External Crews & Installers');
   const [systemSubSection, setSystemSubSection] = useState<'Login Locations' | 'Page Styles' | 'Security' | 'Settings'>('Security');
-  const [shopSubSection, setShopSubSection] = useState<'Settings' | 'Users' | 'Views'>('Settings');
 
   // Regions & Operating Facilities State with Dedicated Address Fields
   const [regionsList, setRegionsList] = useState<Array<{
@@ -5209,7 +5207,7 @@ export default function App() {
                   <div className="flex items-center justify-between border-b pb-3">
                     <h3 className="font-bold text-sm flex items-center space-x-2 text-slate-800 dark:text-slate-200">
                       <Truck className="w-4 h-4 text-blue-600" />
-                      <span>Crews & Machine Saw Lines Daily Capacity Lanes</span>
+                      <span>Installation & Field Crews Daily Capacity Lanes</span>
                     </h3>
                     <span className="text-slate-400 text-xs">Workload balancing for {selectedRegion}</span>
                   </div>
@@ -5218,7 +5216,7 @@ export default function App() {
                     {[
                       { crew: 'Install Truck 1', type: 'FIELD CREW', maxHrs: 8, scheduledHrs: 6, color: 'border-blue-500 bg-blue-500/10' },
                       { crew: 'Apex Install Crew A', type: 'FIELD CREW', maxHrs: 8, scheduledHrs: 7.5, color: 'border-indigo-500 bg-indigo-500/10' },
-                      { crew: 'Bridge Saw 1 & CNC 2', type: 'SHOP MACHINE', maxHrs: 16, scheduledHrs: 12, color: 'border-purple-500 bg-purple-500/10' },
+                      { crew: 'Titan Stone Crew 2', type: 'FIELD CREW', maxHrs: 8, scheduledHrs: 5.5, color: 'border-purple-500 bg-purple-500/10' },
                       { crew: 'Service Warranty Tech 1', type: 'SERVICE', maxHrs: 8, scheduledHrs: 3, color: 'border-amber-500 bg-amber-500/10' },
                     ].map((lane, idx) => (
                       <div key={idx} className={`p-3 rounded-xl border-2 ${lane.color} space-y-3`}>
@@ -5505,7 +5503,7 @@ export default function App() {
                     <span>System & Technical Settings</span>
                   </h2>
                   <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                    Manage Machine Queues, Security RBAC, Entra ID SSO, and White-Label Branding. (Builder Accounts are managed via the dedicated Accounts module).
+                    Configure Job Activities, Working Calendars, Lead Times, Security RBAC, Entra ID SSO, and White-Label Branding. (Builder Accounts are managed via the dedicated Accounts module).
                   </p>
                 </div>
               </div>
@@ -5518,9 +5516,8 @@ export default function App() {
                   {[
                     { id: 'regions', label: 'Regions & Locations', icon: MapPin, desc: 'Operating facilities, default location & shutdown status' },
                     { id: 'leadtimes', label: 'Auto-Schedule & Lead Times', icon: Sliders, desc: 'Global & location lead times, dependency offsets & calculations' },
-                    { id: 'job', label: 'Job Settings', icon: Briefcase, desc: 'Activity types, sequence dependencies & forms' },
+                    { id: 'job', label: 'Job Settings & Activities', icon: Briefcase, desc: 'Activity catalog, duration estimates & phase sequencing' },
                     { id: 'calendar', label: 'Calendar & Holidays', icon: CalendarIcon, desc: 'Working days, non-working holidays & map' },
-                    { id: 'shop', label: 'Shop Floor Machines', icon: Wrench, desc: 'Bridge saws, CNC routers & line buffers' },
                     { id: 'users', label: 'Users & Roles', icon: Users, desc: 'Internal roles, external invited users & RBAC' },
                     { id: 'branding', label: 'Branding & Logo', icon: ImageIcon, desc: 'Logo Base64 upload & brand styling' },
                     { id: 'system', label: 'System & Security', icon: Monitor, desc: 'Entra SSO, IP login locations & policies' },
@@ -7758,35 +7755,7 @@ export default function App() {
                     </div>
                   )}
 
-                  {/* MODULE 4: SHOP FLOOR SETTINGS */}
-                  {settingsCategory === 'shop' && (
-                    <div className="space-y-6 text-xs">
-                      <div className="border-b pb-4">
-                        <h3 className="text-lg font-black text-blue-600 dark:text-blue-400">Shop Floor Machine Configuration</h3>
-                        <p className="text-slate-500 mt-1">Configure Bridge Saw lines, CNC router sequencing, and cooldown buffers.</p>
-                      </div>
-
-                      <div className="space-y-4">
-                        <div className="p-4 border rounded-xl bg-slate-50 dark:bg-slate-950 flex items-center justify-between">
-                          <div>
-                            <strong className="block text-sm">Bridge Saw Line 1 Buffer</strong>
-                            <span className="text-slate-500">Automatic scheduled cooldown between slab cuts</span>
-                          </div>
-                          <span className="font-mono font-bold text-blue-600 bg-blue-100 dark:bg-blue-950 p-2 rounded-lg text-sm">15 Mins</span>
-                        </div>
-
-                        <div className="p-4 border rounded-xl bg-slate-50 dark:bg-slate-950 flex items-center justify-between">
-                          <div>
-                            <strong className="block text-sm">CNC Router 2 Queue Mode</strong>
-                            <span className="text-slate-500">Auto-sequence by material hardness & edge profile</span>
-                          </div>
-                          <span className="font-mono font-bold text-emerald-600 bg-emerald-100 dark:bg-emerald-950 p-2 rounded-lg text-sm">Optimized</span>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* MODULE 5: CALENDAR & HOLIDAYS */}
+                  {/* MODULE 4: CALENDAR & HOLIDAYS */}
                   {settingsCategory === 'calendar' && (
                     <div className="space-y-8 text-xs">
                       
