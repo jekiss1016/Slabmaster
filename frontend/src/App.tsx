@@ -1,4 +1,5 @@
 import React, { useState, useEffect, ChangeEvent } from 'react';
+import { DEFAULT_GRANITECRAFT_BANNER_BASE64 } from './brandingAsset';
 import {
   Search,
   Eye,
@@ -352,7 +353,7 @@ export default function App() {
 
   // Subscriber Custom Branding State (Horizontal Banner Style Logo)
   const [subscriberName, setSubscriberName] = useState('GraniteCraft Fabrication Inc.');
-  const [logoBase64, setLogoBase64] = useState<string>('/granitecraft-tight-banner.png');
+  const [logoBase64, setLogoBase64] = useState<string>(DEFAULT_GRANITECRAFT_BANNER_BASE64);
   const [brandColor, setBrandColor] = useState('#2563eb');
 
   // Toolbar Action Modals State
