@@ -826,10 +826,31 @@ export default function App() {
     }
   ]);
 
-  // Helper to generate dynamic dates relative to today
-  const getRelDateStr = (offsetDays: number) => {
+  // Helper to generate dynamic dates relative to today that strictly respect working days (Mon-Fri)
+  const getRelDateStr = (workdayOffset: number) => {
     const d = new Date();
-    d.setDate(d.getDate() + offsetDays);
+    d.setHours(0, 0, 0, 0);
+
+    // If today is a weekend, snap starting anchor to Friday
+    while (d.getDay() === 0 || d.getDay() === 6) {
+      d.setDate(d.getDate() - 1);
+    }
+
+    if (workdayOffset === 0) {
+      return `${d.getMonth() + 1}/${d.getDate()}/${d.getFullYear()}`;
+    }
+
+    const step = workdayOffset > 0 ? 1 : -1;
+    let remaining = Math.abs(workdayOffset);
+
+    while (remaining > 0) {
+      d.setDate(d.getDate() + step);
+      // Only count Monday (1) through Friday (5) as valid workdays
+      if (d.getDay() !== 0 && d.getDay() !== 6) {
+        remaining--;
+      }
+    }
+
     return `${d.getMonth() + 1}/${d.getDate()}/${d.getFullYear()}`;
   };
 
@@ -910,7 +931,7 @@ export default function App() {
       elevationPlan: 'Plan B - Craftsman',
       templateDate: { date: getRelDateStr(-1), status: 'conf' },
       fabDate: { date: getRelDateStr(1), status: 'auto' },
-      installDate: { date: getRelDateStr(4), status: 'calc' },
+      installDate: { date: getRelDateStr(3), status: 'calc' },
       salesperson: 'jason mayes',
       jobIssues: 'Chip Repair Required',
       externalId: 'ERP-JOB-1079',
@@ -930,7 +951,7 @@ export default function App() {
       files: [],
       activities: [
         { id: 'b1', activityName: 'Stone Inspection', phase: 'STONE', status: 'Confirmed', startDate: getRelDateStr(-1), schedTime: '9:00am', duration: '60m', assignedTo: 'Service Crew A' },
-        { id: 'b2', activityName: 'Field Chip Polish & Seal', phase: 'STONE', status: 'Confirmed', startDate: getRelDateStr(4), schedTime: '10:00am', duration: '120m', assignedTo: 'Service Crew A' },
+        { id: 'b2', activityName: 'Field Chip Polish & Seal', phase: 'STONE', status: 'Confirmed', startDate: getRelDateStr(3), schedTime: '10:00am', duration: '120m', assignedTo: 'Service Crew A' },
       ]
     },
     {
@@ -948,8 +969,8 @@ export default function App() {
       cityStateZip: 'ORLANDO, FL 32801',
       elevationPlan: 'Plan A - Modern',
       templateDate: { date: 'No Date', status: 'none' },
-      fabDate: { date: getRelDateStr(5), status: 'auto' },
-      installDate: { date: getRelDateStr(8), status: 'calc' },
+      fabDate: { date: getRelDateStr(3), status: 'auto' },
+      installDate: { date: getRelDateStr(5), status: 'calc' },
       salesperson: 'jason mayes',
       externalId: 'ERP-JOB-0017',
       status: 'Active',
@@ -967,9 +988,9 @@ export default function App() {
       installerNotesText: '',
       files: [],
       activities: [
-        { id: 'c1', activityName: 'Field Templating', phase: 'STONE', status: 'Tentative', startDate: getRelDateStr(3), schedTime: '9:00am', duration: '120m', assignedTo: 'Template Crew' },
-        { id: 'c2', activityName: 'Stone Fabrication', phase: 'STONE', status: 'Auto-Schedule', startDate: getRelDateStr(5), schedTime: '1:00pm', duration: '180m', assignedTo: 'CNC Router 1' },
-        { id: 'c3', activityName: 'Stone Install', phase: 'STONE', status: 'CALCULATED', startDate: getRelDateStr(8), schedTime: '8:00am', duration: '240m', assignedTo: 'Install Truck 2' },
+        { id: 'c1', activityName: 'Field Templating', phase: 'STONE', status: 'Tentative', startDate: getRelDateStr(2), schedTime: '9:00am', duration: '120m', assignedTo: 'Template Crew' },
+        { id: 'c2', activityName: 'Stone Fabrication', phase: 'STONE', status: 'Auto-Schedule', startDate: getRelDateStr(3), schedTime: '1:00pm', duration: '180m', assignedTo: 'CNC Router 1' },
+        { id: 'c3', activityName: 'Stone Install', phase: 'STONE', status: 'CALCULATED', startDate: getRelDateStr(5), schedTime: '8:00am', duration: '240m', assignedTo: 'Install Truck 2' },
       ]
     },
     {
@@ -986,18 +1007,18 @@ export default function App() {
       streetAddress: '55 Palmetto Way',
       cityStateZip: 'TAMPA, FL 33602',
       elevationPlan: 'Plan C - Tuscan',
-      templateDate: { date: getRelDateStr(2), status: 'auto' },
-      fabDate: { date: getRelDateStr(4), status: 'auto' },
-      installDate: { date: getRelDateStr(6), status: 'conf' },
+      templateDate: { date: getRelDateStr(1), status: 'auto' },
+      fabDate: { date: getRelDateStr(2), status: 'auto' },
+      installDate: { date: getRelDateStr(4), status: 'conf' },
       salesperson: 'jason mayes',
       externalId: 'ERP-JOB-0014',
       status: 'Active',
       isArchived: false,
-      assignedCrew: 'Unassigned',
+      assignedCrew: 'Apex Install Crew A',
       materialOrdered: true,
-      materialETA: '10/5/2026',
+      materialETA: getRelDateStr(1),
       materialReceived: true,
-      materialReceivedOn: '10/6/2026',
+      materialReceivedOn: getRelDateStr(1),
       sinksOrdered: false,
       sinksETA: '',
       sinksReceived: false,
@@ -1006,9 +1027,9 @@ export default function App() {
       installerNotesText: '',
       files: [],
       activities: [
-        { id: 'd1', activityName: 'Stone CAD', phase: 'STONE', status: 'Auto-Schedule', startDate: '10/9/2026', schedTime: '10:00am', duration: '60m', assignedTo: 'CAD Team A' },
-        { id: 'd2', activityName: 'Stone Fabrication', phase: 'STONE', status: 'Auto-Schedule', startDate: '10/11/2026', schedTime: '1:00pm', duration: '120m', assignedTo: 'Bridge Saw 1' },
-        { id: 'd3', activityName: 'Stone Install', phase: 'STONE', status: 'Confirmed', startDate: '10/13/2026', schedTime: '8:00am', duration: '180m', assignedTo: 'Install Truck 1' },
+        { id: 'd1', activityName: 'Stone CAD', phase: 'STONE', status: 'Auto-Schedule', startDate: getRelDateStr(1), schedTime: '10:00am', duration: '60m', assignedTo: 'CAD Team A' },
+        { id: 'd2', activityName: 'Stone Fabrication', phase: 'STONE', status: 'Auto-Schedule', startDate: getRelDateStr(2), schedTime: '1:00pm', duration: '120m', assignedTo: 'Bridge Saw 1' },
+        { id: 'd3', activityName: 'Stone Install', phase: 'STONE', status: 'Confirmed', startDate: getRelDateStr(4), schedTime: '8:00am', duration: '180m', assignedTo: 'Apex Install Crew A' },
       ]
     },
     {
@@ -1027,26 +1048,26 @@ export default function App() {
       elevationPlan: 'Plan B - Craftsman',
       templateDate: { date: 'No Date', status: 'none' },
       fabDate: { date: 'No Date', status: 'none' },
-      installDate: { date: '8/14/2026', status: 'conf' },
+      installDate: { date: getRelDateStr(1), status: 'conf' },
       salesperson: 'Sarah Jenkins',
       externalId: 'ERP-JOB-0001',
       status: 'Active',
       isArchived: false,
       assignedCrew: 'Install Truck 1',
       materialOrdered: true,
-      materialETA: '8/01/2026',
+      materialETA: getRelDateStr(-3),
       materialReceived: true,
-      materialReceivedOn: '8/02/2026',
+      materialReceivedOn: getRelDateStr(-2),
       sinksOrdered: true,
-      sinksETA: '8/05/2026',
+      sinksETA: getRelDateStr(-2),
       sinksReceived: true,
-      sinksReceivedOn: '8/06/2026',
+      sinksReceivedOn: getRelDateStr(-1),
       purchasingNotes: 'Sinks in warehouse aisle 3',
       installerNotesText: '',
       files: [],
       activities: [
-        { id: 'e1', activityName: 'Field Templating', phase: 'STONE', status: 'Tentative', startDate: '8/08/2026', schedTime: '11:00am', duration: '90m', assignedTo: 'Template Crew' },
-        { id: 'e2', activityName: 'Stone Install', phase: 'STONE', status: 'Confirmed', startDate: '8/14/2026', schedTime: '8:00am', duration: '240m', assignedTo: 'Install Truck 1' },
+        { id: 'e1', activityName: 'Field Templating', phase: 'STONE', status: 'Tentative', startDate: getRelDateStr(-2), schedTime: '11:00am', duration: '90m', assignedTo: 'Template Crew' },
+        { id: 'e2', activityName: 'Stone Install', phase: 'STONE', status: 'Confirmed', startDate: getRelDateStr(1), schedTime: '8:00am', duration: '240m', assignedTo: 'Install Truck 1' },
       ]
     },
     {
@@ -1065,7 +1086,7 @@ export default function App() {
       elevationPlan: 'Plan D - Estate',
       templateDate: { date: 'No Date', status: 'conf' },
       fabDate: { date: 'No Date', status: 'auto' },
-      installDate: { date: 'No Date', status: 'conf' },
+      installDate: { date: getRelDateStr(2), status: 'conf' },
       salesperson: 'Michael Ross',
       externalId: 'ERP-JOB-0101',
       status: 'Active',
@@ -1083,9 +1104,9 @@ export default function App() {
       installerNotesText: '',
       files: [],
       activities: [
-        { id: 'f1', activityName: 'Stone CAD', phase: 'STONE', status: 'Confirmed', startDate: '8/20/2026', schedTime: '9:00am', duration: '60m', assignedTo: 'CAD Team B' },
-        { id: 'f2', activityName: 'Stone Saw', phase: 'STONE', status: 'Auto-Schedule', startDate: '8/22/2026', schedTime: '1:00pm', duration: '120m', assignedTo: 'Bridge Saw 2' },
-        { id: 'f3', activityName: 'Stone Install', phase: 'STONE', status: 'Confirmed', startDate: '8/26/2026', schedTime: '8:00am', duration: '240m', assignedTo: 'Install Truck 3' },
+        { id: 'f1', activityName: 'Stone CAD', phase: 'STONE', status: 'Confirmed', startDate: getRelDateStr(0), schedTime: '9:00am', duration: '60m', assignedTo: 'CAD Team B' },
+        { id: 'f2', activityName: 'Stone Saw', phase: 'STONE', status: 'Auto-Schedule', startDate: getRelDateStr(1), schedTime: '1:00pm', duration: '120m', assignedTo: 'Bridge Saw 2' },
+        { id: 'f3', activityName: 'Stone Install', phase: 'STONE', status: 'Confirmed', startDate: getRelDateStr(2), schedTime: '8:00am', duration: '240m', assignedTo: 'Install Truck 3' },
       ]
     },
   ]);
