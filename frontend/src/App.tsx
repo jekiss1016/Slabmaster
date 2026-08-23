@@ -352,7 +352,7 @@ export default function App() {
 
   // Subscriber Custom Branding State (Horizontal Banner Style Logo)
   const [subscriberName, setSubscriberName] = useState('GraniteCraft Fabrication Inc.');
-  const [logoBase64, setLogoBase64] = useState<string>('/granitecraft-banner-logo.jpg');
+  const [logoBase64, setLogoBase64] = useState<string>('/granitecraft-banner-logo.png');
   const [brandColor, setBrandColor] = useState('#2563eb');
 
   // Toolbar Action Modals State
@@ -7805,13 +7805,13 @@ export default function App() {
                                 onChange={handleLogoUpload}
                                 className="text-xs cursor-pointer"
                               />
-                              <div className="p-3 bg-blue-50/80 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 rounded-lg text-left text-xs space-y-1.5 text-blue-950 dark:text-blue-200">
-                                <strong className="block font-bold text-blue-900 dark:text-blue-300">📐 Ultra-Wide Banner Style & Size Requirements:</strong>
+                              <div className="p-3.5 bg-blue-50/90 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800 rounded-lg text-left text-xs space-y-2 text-blue-950 dark:text-blue-200">
+                                <strong className="block font-bold text-blue-900 dark:text-blue-300">📐 Ultra-Wide Horizontal Banner Requirements:</strong>
                                 <ul className="list-disc pl-4 space-y-1 text-[11px] text-slate-600 dark:text-slate-300">
-                                  <li><strong>Layout Format:</strong> Ultra-Wide Panoramic Banner (Emblem on left + Wide bold typography stretching to the right).</li>
-                                  <li><strong>Recommended Dimensions:</strong> 1200px × 150px to 1600px × 200px (Wide <strong>8:1 Aspect Ratio</strong>).</li>
-                                  <li><strong>Vertical Profile:</strong> Compact height (~64px to 88px) with wide horizontal span.</li>
-                                  <li><strong>Supported Formats:</strong> PNG (transparent background recommended), SVG, JPG, WebP.</li>
+                                  <li><strong>Layout Format:</strong> Ultra-Wide Horizontal Banner (Emblem on left + Wide company name typography spanning horizontally to the right).</li>
+                                  <li><strong>Recommended Dimensions:</strong> 1200px × 230px to 1600px × 300px (Wide <strong>5:1 to 6:1 Aspect Ratio</strong>).</li>
+                                  <li><strong>Tight Vertical Crop:</strong> Crop all top/bottom whitespace tightly around the logo so typography spans maximum width on screen.</li>
+                                  <li><strong>Supported Formats:</strong> PNG (transparent background recommended), SVG, WebP, JPG.</li>
                                   <li><strong>Max File Size:</strong> 2MB (Converted automatically to high-performance Base64 data in database).</li>
                                 </ul>
                               </div>
@@ -7821,10 +7821,10 @@ export default function App() {
 
                         <div className="p-6 rounded-xl border bg-slate-50 dark:bg-slate-950 flex flex-col justify-between">
                           <div>
-                            <strong className="block text-sm text-slate-500 mb-2">Live Header Ultra-Wide Banner Logo Preview (8:1 Aspect Ratio):</strong>
+                            <strong className="block text-sm text-slate-500 mb-2">Live Header Ultra-Wide Banner Logo Preview (5:1 Aspect Ratio):</strong>
                             <div className="p-5 bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl shadow-lg flex items-center justify-start">
                               {logoBase64 ? (
-                                <img src={logoBase64} alt="Uploaded Logo Preview" className="h-16 md:h-20 max-h-[85px] max-w-[700px] object-contain border-2 border-white/40 p-1.5 rounded-xl bg-white/95 shadow-xl" />
+                                <img src={logoBase64} alt="Uploaded Logo Preview" className="h-16 md:h-20 max-h-[85px] w-auto max-w-[700px] object-contain border-2 border-white/40 p-1.5 rounded-xl bg-white/95 shadow-xl" />
                               ) : (
                                 <div className="h-16 px-8 bg-white/20 rounded-xl flex items-center justify-center font-black text-white text-2xl shadow-sm border border-white/30 tracking-tight">
                                   {subscriberName}
@@ -7832,7 +7832,7 @@ export default function App() {
                               )}
                             </div>
                           </div>
-                          <span className="text-[11px] text-slate-400 mt-4">Ultra-wide 8:1 banner format ensures maximum legibility while keeping the application header compact.</span>
+                          <span className="text-[11px] text-slate-400 mt-4">Tightly cropped wide banner format guarantees maximum horizontal reach and crisp typography across the app header.</span>
                         </div>
                       </div>
                     </div>
