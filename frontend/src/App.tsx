@@ -352,7 +352,7 @@ export default function App() {
 
   // Subscriber Custom Branding State (Horizontal Banner Style Logo)
   const [subscriberName, setSubscriberName] = useState('GraniteCraft Fabrication Inc.');
-  const [logoBase64, setLogoBase64] = useState<string>('/granitecraft-banner-logo.png');
+  const [logoBase64, setLogoBase64] = useState<string>('/granitecraft-tight-banner.png');
   const [brandColor, setBrandColor] = useState('#2563eb');
 
   // Toolbar Action Modals State
@@ -3570,16 +3570,18 @@ export default function App() {
       <header className={`border-b shadow-md ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-gradient-to-r from-blue-600 to-indigo-700 text-white border-blue-700'}`}>
         <div className="px-6 py-2.5 flex flex-wrap lg:flex-nowrap items-center justify-between gap-5 min-h-[72px]">
           
-          {/* Logo / Subscriber Branding Display (Ultra-Wide 8:1 Banner) */}
+          {/* Logo / Subscriber Branding Display (Tight-Fit White Card) */}
           <div className="flex items-center shrink-0">
             {logoBase64 ? (
-              <img
-                src={logoBase64}
-                alt="Subscriber Banner Logo"
-                className="h-16 sm:h-18 md:h-20 lg:h-22 max-h-[90px] max-w-[550px] sm:max-w-[750px] md:max-w-[950px] lg:max-w-[1200px] w-auto object-contain rounded-xl bg-white/95 px-4 py-1.5 shadow-xl border-2 border-white/50"
-              />
+              <div className="bg-white rounded-xl px-2.5 py-1 shadow-xl border-2 border-white/60 flex items-center justify-center">
+                <img
+                  src={logoBase64}
+                  alt="Subscriber Banner Logo"
+                  className="h-12 sm:h-14 md:h-16 w-auto max-h-[68px] max-w-[420px] sm:max-w-[550px] md:max-w-[680px] object-contain block"
+                />
+              </div>
             ) : (
-              <div className="h-16 px-6 bg-white/20 rounded-xl flex items-center justify-center font-black text-white text-2xl shadow-xl border border-white/30 tracking-tight">
+              <div className="h-14 px-6 bg-white/20 rounded-xl flex items-center justify-center font-black text-white text-2xl shadow-xl border border-white/30 tracking-tight">
                 {subscriberName}
               </div>
             )}
@@ -7805,14 +7807,13 @@ export default function App() {
                                 onChange={handleLogoUpload}
                                 className="text-xs cursor-pointer"
                               />
-                              <div className="p-3.5 bg-blue-50/90 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800 rounded-lg text-left text-xs space-y-2 text-blue-950 dark:text-blue-200">
-                                <strong className="block font-bold text-blue-900 dark:text-blue-300">📐 Ultra-Wide Horizontal Banner Requirements:</strong>
-                                <ul className="list-disc pl-4 space-y-1 text-[11px] text-slate-600 dark:text-slate-300">
-                                  <li><strong>Layout Format:</strong> Ultra-Wide Horizontal Banner (Emblem on left + Wide company name typography spanning horizontally to the right).</li>
-                                  <li><strong>Recommended Dimensions:</strong> 1200px × 230px to 1600px × 300px (Wide <strong>5:1 to 6:1 Aspect Ratio</strong>).</li>
-                                  <li><strong>Tight Vertical Crop:</strong> Crop all top/bottom whitespace tightly around the logo so typography spans maximum width on screen.</li>
-                                  <li><strong>Supported Formats:</strong> PNG (transparent background recommended), SVG, WebP, JPG.</li>
-                                  <li><strong>Max File Size:</strong> 2MB (Converted automatically to high-performance Base64 data in database).</li>
+                              <div className="p-4 bg-blue-50/90 dark:bg-blue-950/50 border-2 border-blue-200 dark:border-blue-800 rounded-xl text-left text-xs space-y-2 text-blue-950 dark:text-blue-200">
+                                <strong className="block font-bold text-blue-900 dark:text-blue-300 text-sm">📐 Guidelines to Fill the Header Card Box Completely:</strong>
+                                <ul className="list-disc pl-4 space-y-1.5 text-[11px] text-slate-700 dark:text-slate-300">
+                                  <li><strong>Crop Empty Margins (Critical):</strong> Tightly crop all empty white or transparent space around your logo. If an image file has large margins, the logo will appear small inside the card.</li>
+                                  <li><strong>Horizontal Banner Ratio:</strong> Use a wide horizontal banner format with an aspect ratio of approximately <strong>5:1 to 6:1</strong> (e.g. <code>1200px × 230px</code>, <code>1400px × 260px</code>, or <code>1600px × 300px</code>).</li>
+                                  <li><strong>Transparent Background:</strong> PNG or SVG format with transparent background is recommended for highest quality.</li>
+                                  <li><strong>Supported Formats & Size:</strong> PNG, SVG, WebP, JPG. Max file size: 2MB.</li>
                                 </ul>
                               </div>
                             </div>
@@ -7821,18 +7822,20 @@ export default function App() {
 
                         <div className="p-6 rounded-xl border bg-slate-50 dark:bg-slate-950 flex flex-col justify-between">
                           <div>
-                            <strong className="block text-sm text-slate-500 mb-2">Live Header Ultra-Wide Banner Logo Preview (5:1 Aspect Ratio):</strong>
+                            <strong className="block text-sm text-slate-500 mb-2">Live Header Banner Logo Preview (Filled Card Display):</strong>
                             <div className="p-5 bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl shadow-lg flex items-center justify-start">
                               {logoBase64 ? (
-                                <img src={logoBase64} alt="Uploaded Logo Preview" className="h-16 md:h-20 max-h-[85px] w-auto max-w-[700px] object-contain border-2 border-white/40 p-1.5 rounded-xl bg-white/95 shadow-xl" />
+                                <div className="bg-white rounded-xl px-2.5 py-1 shadow-xl border-2 border-white/60 flex items-center justify-center">
+                                  <img src={logoBase64} alt="Uploaded Logo Preview" className="h-12 md:h-14 max-h-[60px] w-auto max-w-[500px] object-contain block" />
+                                </div>
                               ) : (
-                                <div className="h-16 px-8 bg-white/20 rounded-xl flex items-center justify-center font-black text-white text-2xl shadow-sm border border-white/30 tracking-tight">
+                                <div className="h-14 px-6 bg-white/20 rounded-xl flex items-center justify-center font-black text-white text-2xl shadow-sm border border-white/30 tracking-tight">
                                   {subscriberName}
                                 </div>
                               )}
                             </div>
                           </div>
-                          <span className="text-[11px] text-slate-400 mt-4">Tightly cropped wide banner format guarantees maximum horizontal reach and crisp typography across the app header.</span>
+                          <span className="text-[11px] text-slate-400 mt-4">Header card automatically contours to the cropped logo boundaries so the artwork fills the entire box.</span>
                         </div>
                       </div>
                     </div>
