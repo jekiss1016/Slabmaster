@@ -1,6 +1,14 @@
 import React, { useState, useEffect, ChangeEvent } from 'react';
 import { DEFAULT_GRANITECRAFT_BANNER_BASE64 } from './brandingAsset';
 import { APP_VERSION } from './version';
+import { FormTemplate, FormPacket } from './types/forms';
+import { DEFAULT_FORM_TEMPLATES, DEFAULT_FORM_PACKETS } from './defaultForms';
+import { PwaInstallButton } from './components/PwaInstallHelper';
+import { FormRunnerModal } from './components/FormRunnerModal';
+import { CustomFormBuilder } from './components/CustomFormBuilder';
+import { FormPacketBuilderModal } from './components/FormPacketBuilderModal';
+import { FieldJobsSegmentedView } from './components/FieldJobsSegmentedView';
+import { OfflineFormSubmission, getOfflineFormForJob, saveOfflineSubmission, getOfflineSubmissions } from './offlineStorage';
 import {
   Search,
   Eye,
@@ -235,6 +243,8 @@ interface CommunityRow {
   name: string;
   cityState: string;
   superintendent: string;
+  defaultQaTechId?: string;
+  defaultQaTechName?: string;
   lots: LotRow[];
   isArchived: boolean;
 }
@@ -340,8 +350,23 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState('');
 
   // Active Role Simulator (RBAC)
-  const [activeUserRole, setActiveUserRole] = useState<'SUBSCRIBER_ADMIN' | 'INTERNAL_OFFICE_USER' | 'INTERNAL_ESTIMATOR' | 'INTERNAL_FIELD_INSTALLER' | 'EXTERNAL_CREW_ADMIN' | 'EXTERNAL_FIELD_INSTALLER' | 'EXTERNAL_SUBCONTRACTOR' | 'SYSTEM_ADMIN'>('SUBSCRIBER_ADMIN');
+  const [activeUserRole, setActiveUserRole] = useState<'SUBSCRIBER_ADMIN' | 'INTERNAL_OFFICE_USER' | 'INTERNAL_ESTIMATOR' | 'INTERNAL_QA_SUPERVISOR' | 'INTERNAL_QA_TECH' | 'INTERNAL_FIELD_INSTALLER' | 'EXTERNAL_CREW_ADMIN' | 'EXTERNAL_FIELD_INSTALLER' | 'EXTERNAL_SUBCONTRACTOR' | 'SYSTEM_ADMIN'>('SUBSCRIBER_ADMIN');
   const [activeAssigneeName, setActiveAssigneeName] = useState('Apex Install Crew A');
+
+  // Form Templates, Packets & Runner State
+  const [formTemplates, setFormTemplates] = useState<FormTemplate[]>(DEFAULT_FORM_TEMPLATES);
+  const [formPackets, setFormPackets] = useState<FormPacket[]>(DEFAULT_FORM_PACKETS);
+  const [activeFormRunner, setActiveFormRunner] = useState<{
+    formTemplate: FormTemplate;
+    job: any;
+    activity?: any;
+    packetId?: string;
+  } | null>(null);
+  const [editingFormTemplate, setEditingFormTemplate] = useState<FormTemplate | null>(null);
+  const [isCreatingFormTemplate, setIsCreatingFormTemplate] = useState(false);
+  const [editingFormPacket, setEditingFormPacket] = useState<FormPacket | null>(null);
+  const [isCreatingFormPacket, setIsCreatingFormPacket] = useState(false);
+  const [formPacketsTab, setFormPacketsTab] = useState<'packets' | 'templates' | 'submissions'>('packets');
 
   // Microsoft Entra ID Authentication & Session Gate
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
@@ -662,6 +687,8 @@ export default function App() {
           name: 'STAR FARMS LWR 90\'S',
           cityState: 'Lakewood Ranch, FL',
           superintendent: 'Mark Stevens',
+          defaultQaTechId: 'u_qa_tech_1',
+          defaultQaTechName: 'Marcus Vance',
           isArchived: false,
           lots: [
             { id: 'lot1', communityId: 'com1', lotNumber: '001078', streetAddress: '3839 BUTTE TRAIL', planType: 'Plan B - Craftsman', isArchived: false },
@@ -674,6 +701,8 @@ export default function App() {
           name: 'Oakridge Estates',
           cityState: 'Orlando, FL',
           superintendent: 'Jackie Horn',
+          defaultQaTechId: 'u_qa_tech_2',
+          defaultQaTechName: 'Sarah Jenkins',
           isArchived: false,
           lots: [
             { id: 'lot3', communityId: 'com2', lotNumber: 'Lot 15', streetAddress: '108 Oakridge Dr', planType: 'Plan A - Modern', isArchived: false },
@@ -1069,6 +1098,7 @@ export default function App() {
   const [newEntityContact, setNewEntityContact] = useState('');
   const [newEntityPhone, setNewEntityPhone] = useState('');
   const [newEntityEmail, setNewEntityEmail] = useState('');
+  const [newCommunityDefaultQaTechId, setNewCommunityDefaultQaTechId] = useState('');
   const [newEntityAccount, setNewEntityAccount] = useState('PERRY HOMES OF FLORIDA LLC - 129495');
   const [newEntityCommunity, setNewEntityCommunity] = useState('STAR FARMS LWR 90\'S');
   const [newJobCategory, setNewJobCategory] = useState<'INITIAL_INSTALL' | 'ADD_ON' | 'REWORK_WARRANTY'>('INITIAL_INSTALL');
@@ -1373,7 +1403,7 @@ export default function App() {
     fullName: string;
     email: string;
     phone?: string;
-    role: 'SUBSCRIBER_ADMIN' | 'INTERNAL_OFFICE_USER' | 'INTERNAL_ESTIMATOR' | 'INTERNAL_FIELD_INSTALLER' | 'EXTERNAL_CREW_ADMIN' | 'EXTERNAL_FIELD_INSTALLER' | 'EXTERNAL_SUBCONTRACTOR' | 'SYSTEM_ADMIN';
+    role: 'SUBSCRIBER_ADMIN' | 'INTERNAL_OFFICE_USER' | 'INTERNAL_ESTIMATOR' | 'INTERNAL_QA_SUPERVISOR' | 'INTERNAL_QA_TECH' | 'INTERNAL_FIELD_INSTALLER' | 'EXTERNAL_CREW_ADMIN' | 'EXTERNAL_FIELD_INSTALLER' | 'EXTERNAL_SUBCONTRACTOR' | 'SYSTEM_ADMIN';
     companyName?: string; // Company Name for external contractors, or Crew Name for internal installers
     scopedRegions: string[];
     status: 'ACTIVE' | 'INVITED' | 'INACTIVE';
@@ -1410,6 +1440,36 @@ export default function App() {
       scopedRegions: ['GLOBAL'],
       status: 'ACTIVE',
       createdAt: '1/15/2026',
+    },
+    {
+      id: 'u_qa_supervisor_1',
+      fullName: 'David Miller',
+      email: 'dmiller.qa@granitecraft.com',
+      phone: '(813) 555-0150',
+      role: 'INTERNAL_QA_SUPERVISOR',
+      scopedRegions: ['GLOBAL', 'Location 1', 'Tampa Plant (TPA)', 'Phoenix Metro (PHX)', 'Tucson East (TUC)'],
+      status: 'ACTIVE',
+      createdAt: '2/10/2026',
+    },
+    {
+      id: 'u_qa_tech_1',
+      fullName: 'Marcus Vance',
+      email: 'mvance.qa@granitecraft.com',
+      phone: '(813) 555-0151',
+      role: 'INTERNAL_QA_TECH',
+      scopedRegions: ['Phoenix Metro (PHX)', 'Tucson East (TUC)', 'Location 1', 'Tampa Plant (TPA)'],
+      status: 'ACTIVE',
+      createdAt: '2/12/2026',
+    },
+    {
+      id: 'u_qa_tech_2',
+      fullName: 'Sarah Jenkins',
+      email: 'sjenkins.qa@granitecraft.com',
+      phone: '(813) 555-0152',
+      role: 'INTERNAL_QA_TECH',
+      scopedRegions: ['Tampa Plant (TPA)', 'Location 1'],
+      status: 'ACTIVE',
+      createdAt: '2/14/2026',
     },
     {
       id: 'u_scheduler',
@@ -3325,12 +3385,15 @@ export default function App() {
       setAccountsData([newAcc, ...accountsData]);
     } else if (createScope === 'community' && selectedAccount) {
       if (!newEntityName) return;
+      const selectedQaUser = defaultSystemUsers.find(u => u.id === newCommunityDefaultQaTechId);
       const newCom: CommunityRow = {
         id: `com_${Date.now()}`,
         accountId: selectedAccount.id,
         name: newEntityName,
         cityState: newEntityAddress || 'Tampa, FL',
         superintendent: newEntityContact || 'Field Super',
+        defaultQaTechId: selectedQaUser?.id,
+        defaultQaTechName: selectedQaUser?.fullName,
         isArchived: false,
         lots: []
       };
@@ -3340,6 +3403,7 @@ export default function App() {
       };
       setSelectedAccount(updatedAcc);
       setAccountsData(accountsData.map(a => a.id === updatedAcc.id ? updatedAcc : a));
+      setNewCommunityDefaultQaTechId('');
     } else if (createScope === 'lot' && selectedCommunity && selectedAccount) {
       if (!newEntityName) return;
       const newLot: LotRow = {
@@ -3394,7 +3458,8 @@ export default function App() {
         files: [],
         activities: [
           { id: 'n1', activityName: 'Stone CAD', phase: 'STONE', status: 'Auto-Schedule', startDate: 'No Date', schedTime: '9:00am', duration: '60m', assignedTo: 'CAD Team' },
-          { id: 'n2', activityName: 'Stone Install', phase: 'STONE', status: 'Tentative', startDate: 'No Date', schedTime: '8:00am', duration: '180m', assignedTo: 'Install Crew' },
+          { id: 'n2', activityName: 'QA Inspection', phase: 'STONE', status: 'Auto-Schedule', startDate: 'No Date', schedTime: '11:00am', duration: '45m', assignedTo: 'Marcus Vance' },
+          { id: 'n3', activityName: 'Stone Install', phase: 'STONE', status: 'Tentative', startDate: 'No Date', schedTime: '8:00am', duration: '180m', assignedTo: 'None' },
         ]
       };
       setJobsData([newJob, ...jobsData]);
@@ -3631,6 +3696,8 @@ export default function App() {
                   <option value="SYSTEM_ADMIN" className="text-slate-900">🛡️ Global Administrator (Super Admin)</option>
                   <option value="SUBSCRIBER_ADMIN" className="text-slate-900">👑 Subscriber-Level Admin</option>
                   <option value="INTERNAL_OFFICE_USER" className="text-slate-900">🏢 Plant Admin / Office Dispatcher</option>
+                  <option value="INTERNAL_QA_SUPERVISOR" className="text-slate-900">🔍 QA Field Supervisor (David Miller)</option>
+                  <option value="INTERNAL_QA_TECH" className="text-slate-900">🔍 Internal QA Tech (Marcus Vance)</option>
                   <option value="INTERNAL_ESTIMATOR" className="text-slate-900">📐 Estimator</option>
                   <option value="INTERNAL_FIELD_INSTALLER" className="text-slate-900">🚐 In-House Installer (Install Truck 1)</option>
                   <option value="EXTERNAL_CREW_ADMIN" className="text-slate-900">📋 External Crew Lead (Dispatcher)</option>
@@ -3795,16 +3862,18 @@ export default function App() {
               <span>Help</span>
             </button>
 
-            {/* 8. THEME TOGGLE (MOVED BELOW HELP) */}
-            <div className="pt-3 mt-3 border-t border-slate-200 dark:border-slate-800">
+            {/* 8. THEME TOGGLE & PWA INSTALL BUTTON */}
+            <div className="pt-3 mt-3 border-t border-slate-200 dark:border-slate-800 space-y-2">
               <button
                 type="button"
                 onClick={() => setTheme(isDark ? 'light' : 'dark')}
-                className="w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-left transition-all bg-slate-200/70 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 cursor-pointer font-bold"
+                className="w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-left transition-all bg-slate-200/70 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 cursor-pointer font-bold text-xs"
               >
                 {isDark ? <Sun className="w-4 h-4 text-amber-400 shrink-0" /> : <Moon className="w-4 h-4 text-indigo-600 shrink-0" />}
                 <span>{isDark ? 'Light Mode' : 'Dark Mode'}</span>
               </button>
+
+              <PwaInstallButton isDark={isDark} />
             </div>
           </nav>
         </aside>
@@ -4205,8 +4274,25 @@ export default function App() {
             </div>
           )}
 
-          {/* SCREEN 1: JOBS TABLE GRID */}
+          {/* SCREEN 1: JOBS TABLE GRID & FIELD PORTAL */}
           {activeNav === 'jobs' && (
+            (activeUserRole === 'INTERNAL_QA_TECH' || activeUserRole === 'INTERNAL_QA_SUPERVISOR' || activeUserRole === 'INTERNAL_FIELD_INSTALLER' || activeUserRole === 'EXTERNAL_FIELD_INSTALLER' || activeUserRole === 'EXTERNAL_SUBCONTRACTOR') ? (
+              <FieldJobsSegmentedView
+                jobs={filteredJobs}
+                userRole={activeUserRole}
+                currentUser={authenticatedUserFullName || activeAssigneeName}
+                assignedToName={activeAssigneeName}
+                formPackets={formPackets}
+                formTemplates={formTemplates}
+                isDark={isDark}
+                onOpenFormRunner={(tpl, job, act, pktId) => {
+                  setActiveFormRunner({ formTemplate: tpl, job, activity: act, packetId: pktId });
+                }}
+                onSelectJobDetail={(job) => {
+                  openJobDetailScreen(job);
+                }}
+              />
+            ) : (
             <div className="flex-1 flex flex-col overflow-hidden">
               {/* Jobs Views, Location Filter & Action Subheader */}
               <div className={`px-4 py-2.5 border-b flex flex-wrap items-center justify-between gap-3 text-xs ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-300 shadow-xs'}`}>
@@ -4424,6 +4510,7 @@ export default function App() {
               </div>
               </div>
             </div>
+            )
           )}
 
           {/* SCREEN 2: DEDICATED FULL JOB DETAIL VIEW */}
@@ -5562,123 +5649,253 @@ export default function App() {
             </div>
           )}
 
-          {/* SCREEN 6: BUILDER FORM PACKETS */}
+          {/* SCREEN 6: BUILDER FORM PACKETS & CUSTOM FORM BUILDER ENGINE */}
           {activeNav === 'forms' && (
-            <div className="flex-1 overflow-auto p-6 max-w-4xl mx-auto space-y-6">
-              <div className="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-800">
+            <div className="flex-1 overflow-auto p-6 max-w-6xl mx-auto space-y-6">
+              <div className="flex flex-wrap items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-800 gap-4">
                 <div>
-                  <h2 className="text-xl font-bold tracking-tight">Builder Dynamic Form Packet Engine</h2>
+                  <h2 className="text-xl font-bold tracking-tight flex items-center space-x-2">
+                    <FileCheck className="w-6 h-6 text-blue-600" />
+                    <span>Custom Form Builder & Form Packet Engine</span>
+                  </h2>
                   <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                    Fill out, sign, and submit custom sign-off packets and field work orders per Builder Account.
+                    Design custom inspection forms, bundle multi-form packets with CAD/PDF specs, and track digital field sign-offs.
                   </p>
+                </div>
+
+                <div className="flex items-center space-x-2.5">
+                  <button
+                    type="button"
+                    onClick={() => { setEditingFormTemplate(null); setIsCreatingFormTemplate(true); }}
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-xs shadow-md flex items-center space-x-1.5 cursor-pointer transition-all"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>+ Build Custom Form</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => { setEditingFormPacket(null); setIsCreatingFormPacket(true); }}
+                    className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-xl text-xs shadow-md flex items-center space-x-1.5 cursor-pointer transition-all"
+                  >
+                    <Layers className="w-4 h-4" />
+                    <span>+ Assemble Form Packet</span>
+                  </button>
                 </div>
               </div>
 
-              {formSaveSuccess && (
-                <div className="p-3 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded text-xs flex items-center space-x-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                  <span>Form packet data saved and attached to Lot/Job order successfully!</span>
+              {/* Sub-Tabs: Packets vs. Templates vs. Submissions */}
+              <div className="flex flex-wrap items-center justify-between border-b border-slate-200 dark:border-slate-800 gap-3">
+                <div className="flex space-x-3">
+                  <button
+                    type="button"
+                    onClick={() => setFormPacketsTab('packets')}
+                    className={`pb-2.5 px-4 text-xs font-bold border-b-2 flex items-center space-x-2 transition-all cursor-pointer ${
+                      formPacketsTab === 'packets'
+                        ? 'border-purple-600 text-purple-600 dark:text-purple-400'
+                        : 'border-transparent text-slate-500 hover:text-slate-800'
+                    }`}
+                  >
+                    <Layers className="w-4 h-4" />
+                    <span>Form Packets Library ({formPackets.length})</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setFormPacketsTab('templates')}
+                    className={`pb-2.5 px-4 text-xs font-bold border-b-2 flex items-center space-x-2 transition-all cursor-pointer ${
+                      formPacketsTab === 'templates'
+                        ? 'border-blue-600 text-blue-600 dark:text-blue-400'
+                        : 'border-transparent text-slate-500 hover:text-slate-800'
+                    }`}
+                  >
+                    <FileText className="w-4 h-4" />
+                    <span>Custom Form Templates ({formTemplates.length})</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setFormPacketsTab('submissions')}
+                    className={`pb-2.5 px-4 text-xs font-bold border-b-2 flex items-center space-x-2 transition-all cursor-pointer ${
+                      formPacketsTab === 'submissions'
+                        ? 'border-emerald-600 text-emerald-600 dark:text-emerald-400'
+                        : 'border-transparent text-slate-500 hover:text-slate-800'
+                    }`}
+                  >
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span>Field Submissions & Audit</span>
+                  </button>
+                </div>
+
+                {/* Status Legend */}
+                <div className="flex items-center space-x-3 text-[11px] text-slate-500 pb-2">
+                  <span className="font-semibold text-slate-400">Status Legend:</span>
+                  <span className="flex items-center space-x-1"><span className="w-2 h-2 rounded-full bg-slate-400"></span><span>Not Started</span></span>
+                  <span className="flex items-center space-x-1"><span className="w-2 h-2 rounded-full bg-blue-500"></span><span>In Progress</span></span>
+                  <span className="flex items-center space-x-1"><span className="w-2 h-2 rounded-full bg-emerald-500"></span><span>Completed</span></span>
+                </div>
+              </div>
+
+              {/* TAB 1: FORM PACKETS */}
+              {formPacketsTab === 'packets' && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {formPackets.map((pkt) => (
+                    <div
+                      key={pkt.id}
+                      className={`p-5 rounded-2xl border transition-all space-y-4 ${
+                        isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200 shadow-sm hover:shadow-md'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="space-y-1">
+                          <div className="flex items-center space-x-2">
+                            <span className="px-2 py-0.5 rounded text-[10px] font-black bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300">
+                              SCOPE: {pkt.targetScope}
+                            </span>
+                            <h3 className="font-bold text-sm text-slate-900 dark:text-slate-100">{pkt.name}</h3>
+                          </div>
+                          <p className="text-xs text-slate-500">{pkt.description}</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => { setEditingFormPacket(pkt); setIsCreatingFormPacket(true); }}
+                          className="p-1.5 text-slate-400 hover:text-purple-600 rounded-lg hover:bg-purple-50 dark:hover:bg-purple-950/40 cursor-pointer"
+                          title="Edit Packet"
+                        >
+                          <Edit3 className="w-4 h-4" />
+                        </button>
+                      </div>
+
+                      {/* Bundled Forms */}
+                      <div className="space-y-1.5">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">Bundled Form Templates ({pkt.formTemplates.length}):</span>
+                        <div className="flex flex-wrap gap-1.5">
+                          {pkt.formTemplates.map((t) => (
+                            <span key={t.id} className="px-2.5 py-1 bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs font-semibold flex items-center space-x-1">
+                              <FileText className="w-3 h-3 text-blue-500" />
+                              <span>{t.title}</span>
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Static Attachments */}
+                      {pkt.staticAttachments.length > 0 && (
+                        <div className="space-y-1.5 pt-2 border-t border-slate-100 dark:border-slate-800">
+                          <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">Static Reference CAD / Specs:</span>
+                          <div className="flex flex-wrap gap-1.5">
+                            {pkt.staticAttachments.map((att) => (
+                              <span key={att.id} className="px-2 py-1 bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 rounded text-[11px] font-bold text-blue-700 dark:text-blue-300 flex items-center space-x-1">
+                                <Paperclip className="w-3 h-3 text-blue-500" />
+                                <span>{att.name}</span>
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
                 </div>
               )}
 
-              <div className="flex space-x-3 border-b">
-                <button
-                  onClick={() => setActiveFormBuilder('toll')}
-                  className={`pb-2.5 px-4 text-xs font-bold border-b-2 flex items-center space-x-2 transition-all ${
-                    activeFormBuilder === 'toll'
-                      ? 'border-blue-600 text-blue-600 dark:text-blue-400'
-                      : 'border-transparent text-slate-500 hover:text-slate-800'
-                  }`}
-                >
-                  <FileCheck className="w-4 h-4" />
-                  <span>Toll Brothers Installation Sign-off Packet</span>
-                </button>
-
-                <button
-                  onClick={() => setActiveFormBuilder('lennar')}
-                  className={`pb-2.5 px-4 text-xs font-bold border-b-2 flex items-center space-x-2 transition-all ${
-                    activeFormBuilder === 'lennar'
-                      ? 'border-blue-600 text-blue-600 dark:text-blue-400'
-                      : 'border-transparent text-slate-500 hover:text-slate-800'
-                  }`}
-                >
-                  <FileText className="w-4 h-4" />
-                  <span>Lennar Standard Work Order Packet</span>
-                </button>
-              </div>
-
-              <form onSubmit={handleSaveFormPacket} className={`p-6 rounded-lg border space-y-4 text-xs ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-300 shadow-md'}`}>
-                <div className="font-bold text-sm text-blue-600 border-b pb-2 flex items-center justify-between">
-                  <span>{activeFormBuilder === 'toll' ? 'Toll Brothers Sign-off Form' : 'Lennar Work Order Form'}</span>
-                  <span className="text-xs bg-blue-100 text-blue-800 font-mono px-2 py-0.5 rounded">Job #1078 Attached</span>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block font-bold mb-1">Site Superintendent Name</label>
-                    <input
-                      type="text"
-                      value={formSuperintendent}
-                      onChange={(e) => setFormSuperintendent(e.target.value)}
-                      className="w-full p-2.5 border rounded text-slate-900 dark:bg-slate-950 dark:text-slate-100 dark:border-slate-800"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block font-bold mb-1">Edge Profile Selection</label>
-                    <select
-                      value={formEdgeProfile}
-                      onChange={(e) => setFormEdgeProfile(e.target.value)}
-                      className="w-full p-2.5 border rounded text-slate-900 dark:bg-slate-950 dark:text-slate-100 dark:border-slate-800"
+              {/* TAB 2: CUSTOM FORM TEMPLATES */}
+              {formPacketsTab === 'templates' && (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {formTemplates.map((tpl) => (
+                    <div
+                      key={tpl.id}
+                      className={`p-5 rounded-2xl border transition-all space-y-3.5 flex flex-col justify-between ${
+                        isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200 shadow-sm hover:shadow-md'
+                      }`}
                     >
-                      <option value="Eased 1.5 inch">Eased 1.5 inch</option>
-                      <option value="Bevel 45 deg">Bevel 45 deg</option>
-                      <option value="Full Bullnose">Full Bullnose</option>
-                      <option value="Ogee Premium">Ogee Premium</option>
-                    </select>
+                      <div className="space-y-2">
+                        <div className="flex items-start justify-between gap-2">
+                          <span className="px-2 py-0.5 rounded text-[10px] font-black bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300">
+                            {tpl.category}
+                          </span>
+                          <div className="flex items-center space-x-1">
+                            <button
+                              type="button"
+                              onClick={() => { setEditingFormTemplate(tpl); setIsCreatingFormTemplate(true); }}
+                              className="p-1.5 text-slate-400 hover:text-blue-600 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-950/40 cursor-pointer"
+                              title="Edit Form Template"
+                            >
+                              <Edit3 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+
+                        <h3 className="font-bold text-sm text-slate-900 dark:text-slate-100">{tpl.title}</h3>
+                        <p className="text-xs text-slate-500 line-clamp-2">{tpl.description}</p>
+                      </div>
+
+                      <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs">
+                        <span className="font-bold text-slate-500">{tpl.fields.length} Field Questions</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const demoJob = jobsData[0];
+                            setActiveFormRunner({ formTemplate: tpl, job: demoJob, activity: demoJob.activities?.[0], packetId: 'pkt_preview' });
+                          }}
+                          className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 dark:bg-blue-950 dark:hover:bg-blue-900 text-blue-600 dark:text-blue-400 font-bold rounded-lg text-xs cursor-pointer transition-all flex items-center space-x-1"
+                        >
+                          <Eye className="w-3.5 h-3.5" />
+                          <span>Preview Runner</span>
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* TAB 3: FIELD SUBMISSIONS */}
+              {formPacketsTab === 'submissions' && (
+                <div className={`rounded-2xl border overflow-hidden shadow-sm ${
+                  isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'
+                }`}>
+                  <div className="p-4 bg-slate-50 dark:bg-slate-950 border-b flex items-center justify-between">
+                    <h3 className="font-bold text-sm">Field Submissions & Verification Trail</h3>
+                    <span className="text-xs text-slate-500">Live sync from field devices</span>
+                  </div>
+
+                  <div className="divide-y divide-slate-200 dark:divide-slate-800 text-xs">
+                    {getOfflineSubmissions().length === 0 ? (
+                      <div className="p-12 text-center text-slate-400">
+                        No field submissions recorded yet. Fill out forms in the field or click 'Preview Runner' to create submissions.
+                      </div>
+                    ) : (
+                      getOfflineSubmissions().map((sub, sIdx) => (
+                        <div key={sIdx} className="p-4 flex flex-wrap items-center justify-between gap-3 hover:bg-slate-50/50 dark:hover:bg-slate-800/40">
+                          <div className="space-y-1">
+                            <div className="flex items-center space-x-2">
+                              <span className="font-bold text-slate-900 dark:text-slate-100">{sub.formTitle}</span>
+                              <span className="text-slate-400">• Job #{sub.jobId}</span>
+                              {sub.activityId && <span className="bg-indigo-100 text-indigo-800 text-[10px] font-bold px-1.5 py-0.2 rounded">Activity ID: {sub.activityId}</span>}
+                            </div>
+                            <div className="text-[11px] text-slate-500">
+                              Submitted by <strong>{sub.submittedBy}</strong> on {new Date(sub.savedAt).toLocaleString()}
+                            </div>
+                          </div>
+
+                          <div className="flex items-center space-x-3">
+                            {sub.status === 'COMPLETED' ? (
+                              <span className="px-2.5 py-1 rounded-full text-xs font-black bg-emerald-100 text-emerald-800 border border-emerald-300 flex items-center space-x-1">
+                                <CheckCircle2 className="w-3.5 h-3.5" />
+                                <span>COMPLETED</span>
+                              </span>
+                            ) : (
+                              <span className="px-2.5 py-1 rounded-full text-xs font-black bg-blue-100 text-blue-800 border border-blue-300 flex items-center space-x-1">
+                                <Clock className="w-3.5 h-3.5" />
+                                <span>IN PROGRESS</span>
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      ))
+                    )}
                   </div>
                 </div>
-
-                <div className="pt-2 border-t flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    id="sinkCheck"
-                    checked={formSinkCutoutVerified}
-                    onChange={(e) => setFormSinkCutoutVerified(e.target.checked)}
-                    className="rounded text-blue-600"
-                  />
-                  <label htmlFor="sinkCheck" className="font-bold cursor-pointer">
-                    Sink Cutout & Faucet Hole Dimensions Verified On-Site
-                  </label>
-                </div>
-
-                <div>
-                  <label className="block font-bold mb-1">Field Installer Notes & Seam Verification</label>
-                  <textarea
-                    rows={3}
-                    value={formInstallerNotes}
-                    onChange={(e) => setFormInstallerNotes(e.target.value)}
-                    className="w-full p-2.5 border rounded text-slate-900 dark:bg-slate-950 dark:text-slate-100 dark:border-slate-800 font-mono"
-                  ></textarea>
-                </div>
-
-                <div>
-                  <label className="block font-bold mb-1">Customer / Super Sign-off Signature</label>
-                  <input
-                    type="text"
-                    value={formCustomerSignature}
-                    onChange={(e) => setFormCustomerSignature(e.target.value)}
-                    placeholder="Type name to sign digitally"
-                    className="w-full p-2.5 border rounded text-slate-900 dark:bg-slate-950 dark:text-slate-100 dark:border-slate-800 font-serif font-bold text-sm text-blue-700 dark:text-blue-400"
-                  />
-                </div>
-
-                <div className="pt-4 flex justify-end">
-                  <button type="submit" className="bg-blue-600 hover:bg-blue-500 text-white font-bold px-5 py-2.5 rounded text-xs shadow-md cursor-pointer">
-                    Save & Submit Form Packet
-                  </button>
-                </div>
-              </form>
+              )}
             </div>
           )}
 
@@ -9231,6 +9448,21 @@ export default function App() {
                       />
                     </div>
                   </div>
+
+                  <div>
+                    <label className="block font-bold mb-1">Default Field QA Technician</label>
+                    <select
+                      value={newCommunityDefaultQaTechId}
+                      onChange={(e) => setNewCommunityDefaultQaTechId(e.target.value)}
+                      className="w-full p-2.5 border rounded text-slate-900 dark:bg-slate-950 dark:text-slate-100 dark:border-slate-800 font-semibold text-xs"
+                    >
+                      <option value="">-- None (Manual Assignment per Job) --</option>
+                      {defaultSystemUsers.filter(u => u.role === 'INTERNAL_QA_TECH' && u.status === 'ACTIVE').map(u => (
+                        <option key={u.id} value={u.id}>{u.fullName} ({u.email})</option>
+                      ))}
+                    </select>
+                    <span className="text-[10px] text-slate-400 mt-0.5 block">Newly created jobs in this subdivision will automatically assign this technician to QA inspection activities.</span>
+                  </div>
                 </>
               )}
 
@@ -9953,6 +10185,110 @@ export default function App() {
             </form>
           </div>
         </div>
+      )}
+
+      {/* 6. CUSTOM FORM BUILDER MODAL */}
+      {isCreatingFormTemplate && (
+        <CustomFormBuilder
+          initialTemplate={editingFormTemplate}
+          isDark={isDark}
+          onSave={(newTpl) => {
+            if (editingFormTemplate) {
+              setFormTemplates(formTemplates.map(t => t.id === newTpl.id ? newTpl : t));
+            } else {
+              setFormTemplates([...formTemplates, newTpl]);
+            }
+            setIsCreatingFormTemplate(false);
+            setEditingFormTemplate(null);
+          }}
+          onCancel={() => {
+            setIsCreatingFormTemplate(false);
+            setEditingFormTemplate(null);
+          }}
+        />
+      )}
+
+      {/* 7. FORM PACKET BUILDER MODAL */}
+      {isCreatingFormPacket && (
+        <FormPacketBuilderModal
+          initialPacket={editingFormPacket}
+          availableTemplates={formTemplates}
+          isDark={isDark}
+          onSave={(newPkt) => {
+            if (editingFormPacket) {
+              setFormPackets(formPackets.map(p => p.id === newPkt.id ? newPkt : p));
+            } else {
+              setFormPackets([...formPackets, newPkt]);
+            }
+            setIsCreatingFormPacket(false);
+            setEditingFormPacket(null);
+          }}
+          onCancel={() => {
+            setIsCreatingFormPacket(false);
+            setEditingFormPacket(null);
+          }}
+        />
+      )}
+
+      {/* 8. INTERACTIVE FORM RUNNER MODAL */}
+      {activeFormRunner && (
+        <FormRunnerModal
+          formTemplate={activeFormRunner.formTemplate}
+          jobId={activeFormRunner.job.id}
+          jobName={activeFormRunner.job.jobName}
+          lotNumber={activeFormRunner.job.lotNumber}
+          communityName={activeFormRunner.job.communityName}
+          activityId={activeFormRunner.activity?.id}
+          activityName={activeFormRunner.activity?.activityName}
+          packetId={activeFormRunner.packetId || 'pkt_default'}
+          currentUser={authenticatedUserFullName || activeAssigneeName}
+          isDark={isDark}
+          initialSubmission={getOfflineFormForJob(activeFormRunner.job.id, activeFormRunner.formTemplate.id, activeFormRunner.activity?.id)}
+          onSaveDraft={(sub) => {
+            // Update local change log audit trail
+            const newLog: ChangeLogEntry = {
+              id: `cl_${Date.now()}`,
+              timestamp: new Date().toISOString(),
+              changedBy: authenticatedUserFullName || activeAssigneeName,
+              summary: `Draft saved for form: ${sub.formTitle}`,
+              diffs: [{ field: 'Status', from: 'Not Started', to: 'In Progress' }]
+            };
+            setChangeLogs([newLog, ...changeLogs]);
+          }}
+          onComplete={(sub) => {
+            // If attached to activity, auto-mark activity Complete
+            if (activeFormRunner.activity) {
+              const updatedJobs = jobsData.map((j) => {
+                if (j.id === activeFormRunner.job.id) {
+                  const updatedActs = j.activities.map((a) =>
+                    a.id === activeFormRunner.activity.id ? { ...a, status: 'Complete' as const } : a
+                  );
+                  return { ...j, activities: updatedActs };
+                }
+                return j;
+              });
+              setJobsData(updatedJobs);
+              if (selectedJob && selectedJob.id === activeFormRunner.job.id) {
+                setSelectedJob({
+                  ...selectedJob,
+                  activities: selectedJob.activities.map((a) =>
+                    a.id === activeFormRunner.activity.id ? { ...a, status: 'Complete' as const } : a
+                  )
+                });
+              }
+            }
+            const newLog: ChangeLogEntry = {
+              id: `cl_${Date.now()}`,
+              timestamp: new Date().toISOString(),
+              changedBy: authenticatedUserFullName || activeAssigneeName,
+              summary: `Completed and signed form: ${sub.formTitle}`,
+              diffs: [{ field: 'Form Validation', from: 'In Progress', to: 'Completed & Signed' }]
+            };
+            setChangeLogs([newLog, ...changeLogs]);
+            setActiveFormRunner(null);
+          }}
+          onClose={() => setActiveFormRunner(null)}
+        />
       )}
 
     </div>

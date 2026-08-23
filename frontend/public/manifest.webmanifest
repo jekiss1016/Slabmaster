@@ -1,0 +1,24 @@
+{
+  "name": "SlabMaster Enterprise",
+  "short_name": "SlabMaster",
+  "description": "Enterprise Stone Fabrication & Countertop Field Dispatch Portal",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#2563eb",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/granitecraft-tight-banner.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/granitecraft-tight-banner.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
