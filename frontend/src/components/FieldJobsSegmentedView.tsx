@@ -18,7 +18,9 @@ import {
   Filter,
   CheckSquare,
   ArrowRight,
-  Sparkles
+  Sparkles,
+  Navigation,
+  Phone
 } from 'lucide-react';
 
 interface JobRow {
@@ -90,6 +92,7 @@ export const FieldJobsSegmentedView: React.FC<FieldJobsSegmentedViewProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<'ACTIVE' | 'PAST' | 'FUTURE' | 'CALENDAR'>('ACTIVE');
   const [calendarOffsetDays, setCalendarOffsetDays] = useState<number>(0);
+  const [selectedMobileDayIndex, setSelectedMobileDayIndex] = useState<number>(0);
   const isOnline = isDeviceOnline();
 
   // Helper to parse date string
@@ -114,7 +117,7 @@ export const FieldJobsSegmentedView: React.FC<FieldJobsSegmentedViewProps> = ({
     return false;
   };
 
-  // Filter jobs by assigned user (Supervisor sees all assigned plant facilities; Tech/Crew sees theirs)
+  // Filter jobs by assigned user
   const scopedJobs = useMemo(() => {
     if (userRole === 'INTERNAL_QA_SUPERVISOR' || userRole === 'SUBSCRIBER_ADMIN' || userRole === 'SYSTEM_ADMIN') {
       return jobs;
@@ -122,7 +125,7 @@ export const FieldJobsSegmentedView: React.FC<FieldJobsSegmentedViewProps> = ({
     return jobs.filter((j) => {
       if (assignedToName && j.assignedCrew === assignedToName) return true;
       if (j.activities?.some((a: any) => a.assignedTo === assignedToName || a.assignedTo === currentUser)) return true;
-      return true; // Fallback to allow exploration in simulator
+      return true; // Simulator fallback
     });
   }, [jobs, userRole, currentUser, assignedToName]);
 
@@ -153,10 +156,8 @@ export const FieldJobsSegmentedView: React.FC<FieldJobsSegmentedViewProps> = ({
           // Scheduled in the past but NOT completed -> Active per user rule!
           active.push(job);
         } else if (jobDate.getTime() === today.getTime()) {
-          // Today's jobs
           active.push(job);
         } else {
-          // Future dates
           future.push(job);
         }
       }
@@ -167,7 +168,7 @@ export const FieldJobsSegmentedView: React.FC<FieldJobsSegmentedViewProps> = ({
 
   // 7-Day Rolling Calendar calculation (Infinite ±7 days pagination from Today)
   const calendarDays = useMemo(() => {
-    const days: { date: Date; dateStr: string; label: string; jobs: JobRow[] }[] = [];
+    const days: { date: Date; dateStr: string; label: string; shortDay: string; jobs: JobRow[] }[] = [];
     const startDate = new Date(today);
     startDate.setDate(startDate.getDate() + calendarOffsetDays);
 
@@ -179,6 +180,7 @@ export const FieldJobsSegmentedView: React.FC<FieldJobsSegmentedViewProps> = ({
       const dd = String(current.getDate()).padStart(2, '0');
       const dateStr = mm + '/' + dd + '/' + yyyy;
       const label = current.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+      const shortDay = current.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric' });
 
       const matchingJobs = scopedJobs.filter((job) => {
         const dStr = getJobPrimaryDate(job);
@@ -189,7 +191,7 @@ export const FieldJobsSegmentedView: React.FC<FieldJobsSegmentedViewProps> = ({
         return jd.getTime() === current.getTime();
       });
 
-      days.push({ date: current, dateStr, label, jobs: matchingJobs });
+      days.push({ date: current, dateStr, label, shortDay, jobs: matchingJobs });
     }
 
     return days;
@@ -202,7 +204,7 @@ export const FieldJobsSegmentedView: React.FC<FieldJobsSegmentedViewProps> = ({
 
     if (formStatus === 'COMPLETED') {
       return (
-        <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 flex items-center space-x-1">
+        <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 flex items-center space-x-1 shrink-0">
           <CheckCircle2 className="w-3 h-3" />
           <span>COMPLETED</span>
         </span>
@@ -210,14 +212,14 @@ export const FieldJobsSegmentedView: React.FC<FieldJobsSegmentedViewProps> = ({
     }
     if (formStatus === 'IN_PROGRESS') {
       return (
-        <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-blue-100 text-blue-800 dark:bg-blue-950/80 dark:text-blue-300 border border-blue-300 dark:border-blue-800 flex items-center space-x-1">
+        <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-blue-100 text-blue-800 dark:bg-blue-950/80 dark:text-blue-300 border border-blue-300 dark:border-blue-800 flex items-center space-x-1 shrink-0">
           <Clock className="w-3 h-3" />
           <span>IN PROGRESS</span>
         </span>
       );
     }
     return (
-      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-300 dark:border-slate-700 flex items-center space-x-1">
+      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-300 dark:border-slate-700 flex items-center space-x-1 shrink-0">
         <span>⚪</span>
         <span>NOT STARTED</span>
       </span>
@@ -225,16 +227,18 @@ export const FieldJobsSegmentedView: React.FC<FieldJobsSegmentedViewProps> = ({
   };
 
   const renderJobCard = (job: JobRow) => {
+    const mapUrl = `https://maps.google.com/?q=${encodeURIComponent(`${job.streetAddress}, ${job.cityStateZip}`)}`;
+
     return (
       <div
         key={job.id}
-        className={`p-4 sm:p-5 rounded-2xl border transition-all space-y-4 ${
+        className={`p-4 sm:p-5 rounded-2xl border transition-all space-y-3.5 ${
           isDark ? 'bg-slate-900 border-slate-800 hover:border-slate-700' : 'bg-white border-slate-200 shadow-sm hover:shadow-md'
         }`}
       >
-        <div className="flex items-start justify-between gap-3">
-          <div className="space-y-1">
-            <div className="flex items-center space-x-2">
+        <div className="flex items-start justify-between gap-2.5">
+          <div className="space-y-1 flex-1 min-w-0">
+            <div className="flex flex-wrap items-center gap-1.5">
               <span className="px-2 py-0.5 rounded text-[10px] font-black bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300">
                 {job.accountName}
               </span>
@@ -242,73 +246,79 @@ export const FieldJobsSegmentedView: React.FC<FieldJobsSegmentedViewProps> = ({
             </div>
             <h3
               onClick={() => onSelectJobDetail(job)}
-              className="font-bold text-base text-blue-600 dark:text-blue-400 hover:underline cursor-pointer tracking-tight"
+              className="font-bold text-sm sm:text-base text-blue-600 dark:text-blue-400 hover:underline cursor-pointer tracking-tight truncate block"
             >
               {job.jobName}
             </h3>
-            <p className="text-xs text-slate-500 flex items-center space-x-1">
-              <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-              <span>{job.streetAddress}, {job.cityStateZip}</span>
-            </p>
+            <div className="flex flex-wrap items-center gap-2 pt-0.5">
+              <a
+                href={mapUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="text-xs text-slate-500 hover:text-blue-600 flex items-center space-x-1 underline cursor-pointer"
+              >
+                <MapPin className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+                <span className="truncate">{job.streetAddress}, {job.cityStateZip}</span>
+              </a>
+            </div>
           </div>
 
-          <div className="text-right space-y-1">
-            <span className={`px-2.5 py-1 rounded-full text-[11px] font-black block ${
+          <div className="text-right space-y-1 shrink-0">
+            <span className={`px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-black block ${
               isJobCompleted(job)
                 ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
                 : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
             }`}>
               {isJobCompleted(job) ? 'COMPLETED' : 'ACTIVE DISPATCH'}
             </span>
-            <span className="text-[11px] text-slate-400 font-mono block">
-              Sched: {getJobPrimaryDate(job)}
+            <span className="text-[10px] sm:text-[11px] text-slate-400 font-mono block">
+              {getJobPrimaryDate(job)}
             </span>
           </div>
         </div>
 
         {/* Milestone Activities & Linked Form Packets */}
         <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
-          <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">Assigned Activities & Sign-Off Packets:</span>
+          <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">Assigned Activities & Forms:</span>
 
           <div className="space-y-2">
             {(job.activities || [
               { id: 'act_default', activityName: 'Stone Install & QA Walk', phase: 'STONE', status: 'Auto-Schedule', startDate: getJobPrimaryDate(job), schedTime: '8:00am', duration: '120m', assignedTo: currentUser }
             ]).map((act) => {
-              // Find bundled form templates for this activity or default QA forms
               const relevantTemplates = formTemplates.slice(0, 2);
 
               return (
                 <div
                   key={act.id}
-                  className={`p-3 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+                  className={`p-3 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 ${
                     isDark ? 'bg-slate-950/60 border-slate-800' : 'bg-slate-50 border-slate-200'
                   }`}
                 >
                   <div className="space-y-1">
                     <div className="flex items-center space-x-2">
                       <span className="font-bold text-xs text-slate-900 dark:text-slate-100">{act.activityName}</span>
-                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300 font-semibold">{act.phase}</span>
+                      <span className="text-[9px] px-1.5 py-0.2 rounded bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300 font-semibold">{act.phase}</span>
                     </div>
-                    <div className="text-[11px] text-slate-500 flex items-center space-x-2">
-                      <User className="w-3 h-3" />
-                      <span>Assigned: <strong>{act.assignedTo || 'Unassigned'}</strong></span>
+                    <div className="text-[10px] sm:text-[11px] text-slate-500 flex flex-wrap items-center gap-1.5">
+                      <User className="w-3 h-3 text-slate-400" />
+                      <span>{act.assignedTo || 'Unassigned'}</span>
                       <span>•</span>
-                      <span>Time: {act.schedTime} ({act.duration})</span>
+                      <span>{act.schedTime} ({act.duration})</span>
                     </div>
                   </div>
 
-                  {/* Form Action Buttons with 3-State Badges */}
-                  <div className="flex flex-wrap items-center gap-2">
+                  {/* Form Action Buttons */}
+                  <div className="flex flex-wrap items-center gap-1.5 pt-1 sm:pt-0">
                     {relevantTemplates.map((tpl) => (
                       <button
                         key={tpl.id}
                         type="button"
                         onClick={() => onOpenFormRunner(tpl, job, act, 'pkt_default')}
-                        className="px-3 py-1.5 rounded-lg border text-xs font-bold flex items-center space-x-2 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 shadow-2xs cursor-pointer transition-all"
+                        className="px-2.5 py-2 sm:py-1.5 rounded-lg border text-xs font-bold flex items-center space-x-1.5 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 shadow-2xs cursor-pointer transition-all active:scale-95 min-h-[38px] sm:min-h-0"
                         title={'Open ' + tpl.title}
                       >
-                        <FileCheck className="w-3.5 h-3.5 text-blue-500" />
-                        <span className="truncate max-w-[120px]">{tpl.title.split(' ')[0]} Form</span>
+                        <FileCheck className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+                        <span className="truncate max-w-[110px]">{tpl.title.split(' ')[0]}</span>
                         {renderFormStatusBadge(job, tpl, act.id)}
                       </button>
                     ))}
@@ -325,97 +335,97 @@ export const FieldJobsSegmentedView: React.FC<FieldJobsSegmentedViewProps> = ({
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
       {/* Field Top Bar & Online/Offline Indicator */}
-      <div className={`px-4 sm:px-6 py-3 border-b flex flex-wrap items-center justify-between gap-3 ${
+      <div className={`px-3.5 sm:px-6 py-2.5 sm:py-3 border-b flex flex-wrap items-center justify-between gap-2.5 ${
         isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200 shadow-xs'
       }`}>
-        <div className="flex items-center space-x-3">
-          <div className="p-2 rounded-xl bg-blue-600 text-white">
-            <Smartphone className="w-5 h-5" />
+        <div className="flex items-center space-x-2.5">
+          <div className="p-2 rounded-xl bg-blue-600 text-white shrink-0">
+            <Smartphone className="w-4 h-4 sm:w-5 sm:h-5" />
           </div>
           <div>
-            <div className="flex items-center space-x-2">
-              <h2 className="text-base font-black tracking-tight">Field Technician & QA Dispatch Hub</h2>
-              <span className="px-2 py-0.5 rounded text-[10px] font-black bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300">
-                {userRole === 'INTERNAL_QA_SUPERVISOR' ? 'QA Supervisor Mode' : userRole === 'INTERNAL_QA_TECH' ? 'Field QA Tech Mode' : 'Field Installer Mode'}
+            <div className="flex items-center space-x-1.5">
+              <h2 className="text-sm sm:text-base font-black tracking-tight">Field Technician Dispatch</h2>
+              <span className="px-1.5 py-0.2 rounded text-[9px] font-black bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300">
+                {userRole === 'INTERNAL_QA_SUPERVISOR' ? 'Supervisor' : userRole === 'INTERNAL_QA_TECH' ? 'QA Tech' : 'Installer'}
               </span>
             </div>
-            <p className="text-xs text-slate-500">Live field dispatching, digital touch sign-offs, and photo documentation</p>
+            <p className="text-[10px] sm:text-xs text-slate-500">Live dispatching, touch signatures, and offline sync</p>
           </div>
         </div>
 
         {/* Offline Cache Indicator */}
-        <div className="flex items-center space-x-3">
-          <div className={`px-3 py-1 rounded-full text-xs font-bold flex items-center space-x-1.5 border ${
+        <div className="flex items-center space-x-2">
+          <div className={`px-2.5 py-1 rounded-full text-[10px] sm:text-xs font-bold flex items-center space-x-1 border ${
             isOnline
               ? 'bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800'
               : 'bg-amber-50 text-amber-800 border-amber-300 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800'
           }`}>
-            {isOnline ? <Wifi className="w-3.5 h-3.5" /> : <WifiOff className="w-3.5 h-3.5" />}
-            <span>{isOnline ? 'Online & Synced' : 'Offline Cache Active'}</span>
+            {isOnline ? <Wifi className="w-3 h-3 text-emerald-600" /> : <WifiOff className="w-3 h-3 text-amber-600" />}
+            <span>{isOnline ? 'Online' : 'Offline Mode'}</span>
           </div>
         </div>
       </div>
 
-      {/* Segmented Tabs Navigation & Legend */}
-      <div className={`px-4 sm:px-6 py-2.5 border-b flex flex-wrap items-center justify-between gap-3 ${
+      {/* Segmented Tabs Navigation (Smooth Horizontal Touch Scroll on Phones) */}
+      <div className={`px-3 sm:px-6 py-2 border-b flex items-center justify-between gap-2 overflow-x-auto no-scrollbar scroll-smooth ${
         isDark ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'
       }`}>
-        <div className="flex space-x-2">
+        <div className="flex space-x-1.5 shrink-0">
           <button
             type="button"
             onClick={() => setActiveTab('ACTIVE')}
-            className={`px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center space-x-2 cursor-pointer ${
+            className={`px-3 py-2 rounded-xl text-xs font-black transition-all flex items-center space-x-1.5 cursor-pointer shrink-0 ${
               activeTab === 'ACTIVE'
                 ? 'bg-blue-600 text-white shadow-md'
                 : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800'
             }`}
           >
-            <Clock className="w-4 h-4" />
-            <span>Active Jobs ({activeJobs.length})</span>
+            <Clock className="w-3.5 h-3.5" />
+            <span>Active ({activeJobs.length})</span>
           </button>
 
           <button
             type="button"
             onClick={() => setActiveTab('PAST')}
-            className={`px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center space-x-2 cursor-pointer ${
+            className={`px-3 py-2 rounded-xl text-xs font-black transition-all flex items-center space-x-1.5 cursor-pointer shrink-0 ${
               activeTab === 'PAST'
                 ? 'bg-blue-600 text-white shadow-md'
                 : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800'
             }`}
           >
-            <CheckCircle2 className="w-4 h-4" />
-            <span>Past / Completed ({pastJobs.length})</span>
+            <CheckCircle2 className="w-3.5 h-3.5" />
+            <span>Past ({pastJobs.length})</span>
           </button>
 
           <button
             type="button"
             onClick={() => setActiveTab('FUTURE')}
-            className={`px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center space-x-2 cursor-pointer ${
+            className={`px-3 py-2 rounded-xl text-xs font-black transition-all flex items-center space-x-1.5 cursor-pointer shrink-0 ${
               activeTab === 'FUTURE'
                 ? 'bg-blue-600 text-white shadow-md'
                 : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800'
             }`}
           >
-            <CalendarIcon className="w-4 h-4" />
-            <span>Future Scheduled ({futureJobs.length})</span>
+            <CalendarIcon className="w-3.5 h-3.5" />
+            <span>Future ({futureJobs.length})</span>
           </button>
 
           <button
             type="button"
             onClick={() => setActiveTab('CALENDAR')}
-            className={`px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center space-x-2 cursor-pointer ${
+            className={`px-3 py-2 rounded-xl text-xs font-black transition-all flex items-center space-x-1.5 cursor-pointer shrink-0 ${
               activeTab === 'CALENDAR'
                 ? 'bg-purple-600 text-white shadow-md'
                 : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800'
             }`}
           >
-            <CalendarIcon className="w-4 h-4" />
-            <span>7-Day Field Calendar</span>
+            <CalendarIcon className="w-3.5 h-3.5" />
+            <span>7-Day Calendar</span>
           </button>
         </div>
 
         {/* Legend */}
-        <div className="flex items-center space-x-3 text-[11px] text-slate-500">
+        <div className="hidden lg:flex items-center space-x-3 text-[11px] text-slate-500 shrink-0">
           <span className="font-semibold text-slate-400">Legend:</span>
           <span className="flex items-center space-x-1"><span className="w-2 h-2 rounded-full bg-slate-400"></span><span>Not Started</span></span>
           <span className="flex items-center space-x-1"><span className="w-2 h-2 rounded-full bg-blue-500"></span><span>In Progress</span></span>
@@ -424,16 +434,16 @@ export const FieldJobsSegmentedView: React.FC<FieldJobsSegmentedViewProps> = ({
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
+      <div className="flex-1 overflow-y-auto p-3.5 sm:p-6 space-y-4">
         {/* TAB 1: ACTIVE JOBS */}
         {activeTab === 'ACTIVE' && (
-          <div className="space-y-4 max-w-5xl mx-auto">
+          <div className="space-y-3.5 max-w-5xl mx-auto">
             <div className="p-3 bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 rounded-xl text-xs text-blue-800 dark:text-blue-300 flex items-center justify-between">
               <div className="flex items-center space-x-2">
-                <Sparkles className="w-4 h-4 text-blue-600" />
-                <span>Showing jobs scheduled for <strong>Today</strong> plus all uncompleted active milestones from prior days.</span>
+                <Sparkles className="w-4 h-4 text-blue-600 shrink-0" />
+                <span className="text-[11px] sm:text-xs">Jobs scheduled for <strong>Today</strong> + uncompleted active milestones.</span>
               </div>
-              <span className="font-black font-mono">{activeJobs.length} active job(s)</span>
+              <span className="font-black font-mono shrink-0 ml-2">{activeJobs.length}</span>
             </div>
 
             {activeJobs.length === 0 ? (
@@ -448,7 +458,7 @@ export const FieldJobsSegmentedView: React.FC<FieldJobsSegmentedViewProps> = ({
 
         {/* TAB 2: PAST JOBS */}
         {activeTab === 'PAST' && (
-          <div className="space-y-4 max-w-5xl mx-auto">
+          <div className="space-y-3.5 max-w-5xl mx-auto">
             {pastJobs.length === 0 ? (
               <div className="p-12 text-center text-slate-400 border border-dashed rounded-2xl dark:border-slate-800">
                 No past completed jobs found.
@@ -461,7 +471,7 @@ export const FieldJobsSegmentedView: React.FC<FieldJobsSegmentedViewProps> = ({
 
         {/* TAB 3: FUTURE JOBS */}
         {activeTab === 'FUTURE' && (
-          <div className="space-y-4 max-w-5xl mx-auto">
+          <div className="space-y-3.5 max-w-5xl mx-auto">
             {futureJobs.length === 0 ? (
               <div className="p-12 text-center text-slate-400 border border-dashed rounded-2xl dark:border-slate-800">
                 No future jobs scheduled beyond today.
@@ -476,31 +486,30 @@ export const FieldJobsSegmentedView: React.FC<FieldJobsSegmentedViewProps> = ({
         {activeTab === 'CALENDAR' && (
           <div className="space-y-4 max-w-7xl mx-auto">
             {/* Calendar Controls & Infinite ±7 Days Pagination */}
-            <div className={`p-4 rounded-2xl border flex flex-wrap items-center justify-between gap-3 ${
+            <div className={`p-3 sm:p-4 rounded-2xl border flex flex-wrap items-center justify-between gap-2.5 ${
               isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200 shadow-xs'
             }`}>
               <div className="flex items-center space-x-2">
-                <CalendarIcon className="w-5 h-5 text-purple-600" />
-                <h3 className="font-bold text-sm">7-Day Field Dispatch Calendar</h3>
-                <span className="text-xs text-slate-400">({calendarDays[0].label} – {calendarDays[6].label})</span>
+                <CalendarIcon className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600" />
+                <h3 className="font-bold text-xs sm:text-sm">7-Day Dispatch Calendar</h3>
+                <span className="text-[10px] sm:text-xs text-slate-400">({calendarDays[0].shortDay} – {calendarDays[6].shortDay})</span>
               </div>
 
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-1.5">
                 <button
                   type="button"
                   onClick={() => setCalendarOffsetDays((prev) => prev - 7)}
-                  className="px-3 py-1.5 rounded-lg border text-xs font-bold flex items-center space-x-1 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer shadow-2xs"
-                  title="Move back 7 days"
+                  className="px-2.5 py-1.5 rounded-lg border text-xs font-bold flex items-center space-x-1 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer shadow-2xs"
                 >
-                  <ChevronLeft className="w-4 h-4" />
-                  <span>Prior 7 Days</span>
+                  <ChevronLeft className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Prior 7 Days</span>
                 </button>
 
                 {calendarOffsetDays !== 0 && (
                   <button
                     type="button"
                     onClick={() => setCalendarOffsetDays(0)}
-                    className="px-3 py-1.5 rounded-lg text-xs font-black bg-blue-600 text-white hover:bg-blue-500 cursor-pointer"
+                    className="px-2.5 py-1.5 rounded-lg text-xs font-black bg-blue-600 text-white hover:bg-blue-500 cursor-pointer"
                   >
                     Today
                   </button>
@@ -509,17 +518,61 @@ export const FieldJobsSegmentedView: React.FC<FieldJobsSegmentedViewProps> = ({
                 <button
                   type="button"
                   onClick={() => setCalendarOffsetDays((prev) => prev + 7)}
-                  className="px-3 py-1.5 rounded-lg border text-xs font-bold flex items-center space-x-1 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer shadow-2xs"
-                  title="Move forward 7 days"
+                  className="px-2.5 py-1.5 rounded-lg border text-xs font-bold flex items-center space-x-1 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer shadow-2xs"
                 >
-                  <span>Next 7 Days</span>
-                  <ChevronRight className="w-4 h-4" />
+                  <span className="hidden sm:inline">Next 7 Days</span>
+                  <ChevronRight className="w-3.5 h-3.5" />
                 </button>
               </div>
             </div>
 
-            {/* 7-Day Columns Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-7 gap-3">
+            {/* MOBILE DAY SELECTOR CHIPS (PHONES - GALAXY S26+ / IPHONE 17 MAX) */}
+            <div className="flex md:hidden space-x-1.5 overflow-x-auto no-scrollbar py-1">
+              {calendarDays.map((colDay, cIdx) => {
+                const isSelected = selectedMobileDayIndex === cIdx;
+                const isDayToday = colDay.date.getTime() === today.getTime();
+
+                return (
+                  <button
+                    key={cIdx}
+                    type="button"
+                    onClick={() => setSelectedMobileDayIndex(cIdx)}
+                    className={`flex flex-col items-center justify-center px-3 py-2 rounded-xl text-xs font-bold transition-all shrink-0 min-w-[72px] cursor-pointer ${
+                      isSelected
+                        ? 'bg-purple-600 text-white shadow-md scale-105'
+                        : isDayToday
+                        ? 'bg-blue-100 dark:bg-blue-950/80 text-blue-700 dark:text-blue-300 border border-blue-400'
+                        : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300'
+                    }`}
+                  >
+                    <span className="text-[10px] uppercase font-semibold">{colDay.shortDay.split(' ')[0]}</span>
+                    <span className="text-sm font-black">{colDay.shortDay.split(' ')[1]}</span>
+                    <span className={`text-[9px] px-1 rounded-full mt-0.5 ${isSelected ? 'bg-white/20' : 'bg-slate-100 dark:bg-slate-800'}`}>
+                      {colDay.jobs.length} jobs
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* MOBILE SELECTED DAY JOBS DISPLAY */}
+            <div className="block md:hidden space-y-3">
+              <div className="font-bold text-xs text-slate-500 px-1 flex items-center justify-between">
+                <span>{calendarDays[selectedMobileDayIndex].label}</span>
+                <span className="font-mono">{calendarDays[selectedMobileDayIndex].jobs.length} job(s) scheduled</span>
+              </div>
+
+              {calendarDays[selectedMobileDayIndex].jobs.length === 0 ? (
+                <div className="p-8 text-center text-slate-400 border border-dashed rounded-2xl dark:border-slate-800 text-xs">
+                  No jobs scheduled for {calendarDays[selectedMobileDayIndex].label}.
+                </div>
+              ) : (
+                calendarDays[selectedMobileDayIndex].jobs.map(renderJobCard)
+              )}
+            </div>
+
+            {/* DESKTOP 7-DAY COLUMNS GRID (MD AND UP) */}
+            <div className="hidden md:grid md:grid-cols-7 gap-3">
               {calendarDays.map((colDay, cIdx) => {
                 const isDayToday = colDay.date.getTime() === today.getTime();
 

@@ -79,6 +79,7 @@ import {
   ArrowDown,
   EyeOff,
   Sparkles,
+  Menu,
 } from 'lucide-react';
 
 export const US_STATES = [
@@ -348,6 +349,8 @@ export default function App() {
   const [selectedRegion, setSelectedRegion] = useState('All');
   const [searchCategory, setSearchCategory] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
 
   // Active Role Simulator (RBAC)
   const [activeUserRole, setActiveUserRole] = useState<'SUBSCRIBER_ADMIN' | 'INTERNAL_OFFICE_USER' | 'INTERNAL_ESTIMATOR' | 'INTERNAL_QA_SUPERVISOR' | 'INTERNAL_QA_TECH' | 'INTERNAL_FIELD_INSTALLER' | 'EXTERNAL_CREW_ADMIN' | 'EXTERNAL_FIELD_INSTALLER' | 'EXTERNAL_SUBCONTRACTOR' | 'SYSTEM_ADMIN'>('SUBSCRIBER_ADMIN');
@@ -3633,11 +3636,11 @@ export default function App() {
   return (
     <div className={`min-h-screen flex flex-col font-sans transition-colors duration-200 ${isDark ? 'bg-slate-950 text-slate-100' : 'bg-slate-100 text-slate-900'}`}>
       
-      {/* 1. TOP TOOLBAR & MODULE HEADER (ULTRA-WIDE 8:1 BANNER BRANDING) */}
+      {/* 1. TOP TOOLBAR & MODULE HEADER */}
       <header className={`border-b shadow-md ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-gradient-to-r from-blue-600 to-indigo-700 text-white border-blue-700'}`}>
-        <div className="px-6 py-2.5 flex flex-wrap lg:flex-nowrap items-center justify-between gap-5 min-h-[72px]">
-          
-          {/* Logo / Subscriber Branding Display (Tight-Fit White Card) */}
+        {/* DESKTOP HEADER (MD AND UP - 100% UNCHANGED) */}
+        <div className="hidden md:flex px-6 py-2.5 items-center justify-between gap-5 min-h-[72px]">
+          {/* Logo / Subscriber Branding Display */}
           <div className="flex items-center shrink-0">
             {logoBase64 ? (
               <div className="bg-white rounded-xl px-2.5 py-1 shadow-xl border-2 border-white/60 flex items-center justify-center">
@@ -3681,7 +3684,6 @@ export default function App() {
 
           {/* Right Utilities (Super Admin Simulator & Authenticated User Status) */}
           <div className="flex items-center space-x-3 text-xs shrink-0">
-            {/* Global Admin Role Simulator / Impersonation Tool (Strictly restricted to SYSTEM_ADMIN) */}
             {isGlobalSuperAdmin && (
               <div className="flex items-center space-x-1.5 bg-white/10 px-3 py-1.5 rounded-lg border border-white/20 shadow-xs">
                 <span title="Super Admin Impersonation: In production, role switching is strictly restricted to Global Administrators (Super Admins).">
@@ -3717,7 +3719,7 @@ export default function App() {
               </div>
             )}
 
-            {/* Authenticated User Status & Sign Out (Displays Full Name Value) */}
+            {/* Authenticated User Status & Sign Out */}
             {isAuthenticated ? (
               <div className="flex items-center space-x-2 bg-emerald-500/20 border border-emerald-400/30 px-3 py-1.5 rounded-lg text-[11px]">
                 <span className="font-bold text-emerald-200 flex items-center space-x-1.5" title={`Signed in as ${authenticatedUserEmail}`}>
@@ -3744,32 +3746,258 @@ export default function App() {
             ) : null}
           </div>
         </div>
+
+        {/* MOBILE HEADER (PHONES - OPTIMIZED FOR GALAXY S26+ & IPHONE 17 MAX) */}
+        <div className="flex md:hidden flex-col w-full px-3.5 py-2.5 space-y-2">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2.5">
+              <button
+                type="button"
+                onClick={() => setIsMobileMenuOpen(true)}
+                className="p-2 rounded-xl bg-white/15 hover:bg-white/25 active:scale-95 transition-all text-white cursor-pointer"
+                title="Open Navigation Menu"
+              >
+                <Menu className="w-5 h-5" />
+              </button>
+
+              <div className="flex items-center space-x-2">
+                <img src="/icon-192.png" alt="SlabMaster" className="w-7 h-7 rounded-lg shadow-sm" />
+                <div>
+                  <span className="font-black text-sm text-white tracking-tight block leading-tight">SlabMaster</span>
+                  <span className="text-[9px] text-blue-200 uppercase font-bold tracking-wider block">Field Dispatch</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center space-x-1.5">
+              <button
+                type="button"
+                onClick={() => setIsMobileSearchOpen(!isMobileSearchOpen)}
+                className="p-2 rounded-xl bg-white/15 hover:bg-white/25 text-white cursor-pointer"
+                title="Search"
+              >
+                <Search className="w-4 h-4" />
+              </button>
+
+              {/* Mobile Role Switcher */}
+              <div className="flex items-center bg-white/15 border border-white/25 rounded-lg px-2 py-1">
+                <Shield className="w-3 h-3 text-amber-300 mr-1 shrink-0" />
+                <select
+                  value={activeUserRole}
+                  onChange={(e) => setActiveUserRole(e.target.value as any)}
+                  className="bg-transparent text-[10px] font-bold text-white focus:outline-none cursor-pointer max-w-[90px] truncate"
+                >
+                  <option value="INTERNAL_QA_TECH" className="text-slate-900">QA Tech</option>
+                  <option value="INTERNAL_QA_SUPERVISOR" className="text-slate-900">QA Super</option>
+                  <option value="INTERNAL_FIELD_INSTALLER" className="text-slate-900">Installer</option>
+                  <option value="EXTERNAL_FIELD_INSTALLER" className="text-slate-900">Ext Crew</option>
+                  <option value="INTERNAL_OFFICE_USER" className="text-slate-900">Office</option>
+                  <option value="SUBSCRIBER_ADMIN" className="text-slate-900">Admin</option>
+                  <option value="SYSTEM_ADMIN" className="text-slate-900">Super Admin</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* Expandable Mobile Search Bar */}
+          {isMobileSearchOpen && (
+            <div className="flex items-center space-x-1 bg-white rounded-xl p-1 shadow-md text-slate-900 animate-in fade-in slide-in-from-top-2 duration-200">
+              <select
+                value={searchCategory}
+                onChange={(e) => setSearchCategory(e.target.value)}
+                className="bg-white text-[11px] font-bold px-2 py-1 text-slate-800 rounded"
+              >
+                <option value="All">All</option>
+                <option value="Jobs">Jobs</option>
+                <option value="Lots">Lots</option>
+                <option value="Accounts">Accounts</option>
+              </select>
+              <input
+                type="text"
+                placeholder="Search jobs, lots, accounts..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="flex-1 bg-transparent text-xs p-1.5 text-slate-900 focus:outline-none"
+              />
+              <button
+                type="button"
+                onClick={() => setIsMobileSearchOpen(false)}
+                className="p-1 text-slate-400 hover:text-slate-600"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+        </div>
       </header>
 
       {/* Field Installer Role Banner */}
       {(activeUserRole === 'EXTERNAL_FIELD_INSTALLER' || activeUserRole === 'INTERNAL_FIELD_INSTALLER' || activeUserRole === 'EXTERNAL_SUBCONTRACTOR') && (
-        <div className="bg-amber-500 text-slate-950 font-black text-xs px-6 py-2 flex items-center justify-between shadow-inner">
+        <div className="bg-amber-500 text-slate-950 font-black text-xs px-4 sm:px-6 py-2 flex items-center justify-between shadow-inner">
           <div className="flex items-center space-x-2">
             <span className="text-base">🚐</span>
-            <span>FIELD PORTAL ACTIVE: Scoped strictly to tasks assigned to <span className="underline">{activeAssigneeName}</span>. Milestone dates are read-only; financial records and other crew tasks are hidden.</span>
+            <span className="text-[11px] sm:text-xs">FIELD PORTAL: Scoped to tasks for <span className="underline font-bold">{activeAssigneeName}</span>.</span>
           </div>
           <button
             onClick={() => setActiveUserRole('SUBSCRIBER_ADMIN')}
-            className="px-2.5 py-0.5 bg-slate-950 text-white rounded text-[10px] hover:bg-slate-800 cursor-pointer"
+            className="px-2.5 py-0.5 bg-slate-950 text-white rounded text-[10px] hover:bg-slate-800 cursor-pointer shrink-0 ml-2"
           >
-            Switch to Admin Mode
+            Admin Mode
           </button>
+        </div>
+      )}
+
+      {/* MOBILE SLIDE-OUT DRAWER OVERLAY */}
+      {isMobileMenuOpen && (
+        <div className="fixed inset-0 z-50 flex md:hidden animate-in fade-in duration-200">
+          <div
+            className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity"
+            onClick={() => setIsMobileMenuOpen(false)}
+          />
+          <aside className={`relative w-72 max-w-[85vw] h-full flex flex-col justify-between shadow-2xl p-4 z-10 transition-transform ${
+            isDark ? 'bg-slate-900 text-slate-100' : 'bg-white text-slate-900'
+          }`}>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
+                <div className="flex items-center space-x-2">
+                  <img src="/icon-192.png" alt="SlabMaster" className="w-8 h-8 rounded-xl shadow-md" />
+                  <div>
+                    <h2 className="font-black text-sm tracking-tight text-blue-600 dark:text-blue-400">SlabMaster</h2>
+                    <span className="text-[10px] text-slate-400 font-semibold">{subscriberName}</span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <nav className="space-y-1.5 text-xs font-bold">
+                <button
+                  onClick={() => { setActiveNav('accounts'); setIsMobileMenuOpen(false); }}
+                  className={`w-full flex items-center space-x-3 px-3 py-3 rounded-xl text-left transition-all ${
+                    activeNav === 'accounts' || activeNav === 'account_detail' || activeNav === 'community_detail'
+                      ? 'bg-blue-600 text-white shadow-md'
+                      : isDark ? 'text-slate-300 hover:bg-slate-800' : 'text-slate-700 hover:bg-slate-100'
+                  }`}
+                >
+                  <Building2 className="w-4 h-4" />
+                  <span>Accounts & Communities</span>
+                </button>
+
+                <button
+                  onClick={() => { setActiveNav('jobs'); setIsMobileMenuOpen(false); }}
+                  className={`w-full flex items-center space-x-3 px-3 py-3 rounded-xl text-left transition-all ${
+                    activeNav === 'jobs' || activeNav === 'job_detail' || activeNav === 'change_log'
+                      ? 'bg-blue-600 text-white shadow-md'
+                      : isDark ? 'text-slate-300 hover:bg-slate-800' : 'text-slate-700 hover:bg-slate-100'
+                  }`}
+                >
+                  <Briefcase className="w-4 h-4" />
+                  <span>Jobs & Field Dispatch</span>
+                </button>
+
+                <button
+                  onClick={() => { setActiveNav('calendar'); setIsMobileMenuOpen(false); }}
+                  className={`w-full flex items-center space-x-3 px-3 py-3 rounded-xl text-left transition-all ${
+                    activeNav === 'calendar'
+                      ? 'bg-blue-600 text-white shadow-md'
+                      : isDark ? 'text-slate-300 hover:bg-slate-800' : 'text-slate-700 hover:bg-slate-100'
+                  }`}
+                >
+                  <CalendarIcon className="w-4 h-4" />
+                  <span>Production Calendar</span>
+                </button>
+
+                <button
+                  onClick={() => { setActiveNav('forms'); setIsMobileMenuOpen(false); }}
+                  className={`w-full flex items-center space-x-3 px-3 py-3 rounded-xl text-left transition-all ${
+                    activeNav === 'forms'
+                      ? 'bg-blue-600 text-white shadow-md'
+                      : isDark ? 'text-slate-300 hover:bg-slate-800' : 'text-slate-700 hover:bg-slate-100'
+                  }`}
+                >
+                  <FileCheck className="w-4 h-4" />
+                  <span>Form Packets & Builder</span>
+                </button>
+
+                <button
+                  onClick={() => { setActiveNav('reports'); setIsMobileMenuOpen(false); }}
+                  className={`w-full flex items-center space-x-3 px-3 py-3 rounded-xl text-left transition-all ${
+                    activeNav === 'reports'
+                      ? 'bg-blue-600 text-white shadow-md'
+                      : isDark ? 'text-slate-300 hover:bg-slate-800' : 'text-slate-700 hover:bg-slate-100'
+                  }`}
+                >
+                  <BarChart3 className="w-4 h-4" />
+                  <span>Analytics & Reports</span>
+                </button>
+
+                {isActualAdmin && (
+                  <button
+                    onClick={() => { setActiveNav('settings'); setIsMobileMenuOpen(false); }}
+                    className={`w-full flex items-center space-x-3 px-3 py-3 rounded-xl text-left transition-all ${
+                      activeNav === 'settings'
+                        ? 'bg-blue-600 text-white shadow-md'
+                        : isDark ? 'text-slate-300 hover:bg-slate-800' : 'text-slate-700 hover:bg-slate-100'
+                    }`}
+                  >
+                    <Settings className="w-4 h-4" />
+                    <span>Settings & Users</span>
+                  </button>
+                )}
+
+                <button
+                  onClick={() => { setActiveNav('help'); setIsMobileMenuOpen(false); }}
+                  className={`w-full flex items-center space-x-3 px-3 py-3 rounded-xl text-left transition-all ${
+                    activeNav === 'help'
+                      ? 'bg-blue-600 text-white shadow-md'
+                      : isDark ? 'text-slate-300 hover:bg-slate-800' : 'text-slate-700 hover:bg-slate-100'
+                  }`}
+                >
+                  <HelpCircle className="w-4 h-4" />
+                  <span>Help & Documentation</span>
+                </button>
+              </nav>
+            </div>
+
+            {/* Bottom Utilities in Mobile Drawer */}
+            <div className="space-y-3 pt-3 border-t border-slate-200 dark:border-slate-800">
+              <button
+                type="button"
+                onClick={() => setTheme(isDark ? 'light' : 'dark')}
+                className="w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-left font-bold text-xs bg-slate-100 dark:bg-slate-800"
+              >
+                {isDark ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-indigo-600" />}
+                <span>{isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}</span>
+              </button>
+
+              <PwaInstallButton isDark={isDark} />
+
+              {isAuthenticated && (
+                <a
+                  href="/.auth/logout?post_logout_redirect_uri=/"
+                  className="w-full py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-xl font-bold text-xs text-center block"
+                >
+                  Sign Out
+                </a>
+              )}
+            </div>
+          </aside>
         </div>
       )}
 
       {/* 2. BODY LAYOUT (SIDEBAR + MAIN CONTENT) */}
       <div className="flex-1 flex overflow-hidden">
         
-        {/* LEFT NAVIGATION SIDEBAR */}
-        <aside className={`w-52 border-r flex flex-col justify-between shrink-0 shadow-sm ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-300'}`}>
+        {/* DESKTOP LEFT NAVIGATION SIDEBAR (HIDDEN ON MOBILE, 100% UNCHANGED ON DESKTOP) */}
+        <aside className={`hidden md:flex w-52 border-r flex-col justify-between shrink-0 shadow-sm ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-300'}`}>
           <nav className="p-2 space-y-1 text-xs font-semibold">
             
-            {/* 1. ACCOUNTS (POSITIONED ABOVE JOBS) */}
+            {/* 1. ACCOUNTS */}
             <button
               onClick={() => setActiveNav('accounts')}
               className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-md text-left transition-all ${
@@ -3878,8 +4106,8 @@ export default function App() {
           </nav>
         </aside>
 
-        {/* MAIN CONTENT CANVAS */}
-        <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        {/* MAIN CONTENT CANVAS (PADDED ON BOTTOM FOR MOBILE THUMB BAR) */}
+        <main className="flex-1 flex flex-col min-w-0 overflow-hidden pb-16 md:pb-0">
           
           {/* SCREEN 0: ACCOUNTS LIST / GRID VIEW */}
           {activeNav === 'accounts' && (
@@ -8873,6 +9101,72 @@ export default function App() {
 
         </main>
       </div>
+
+      {/* MOBILE THUMB NAVIGATION BAR (STICKY BOTTOM ON PHONES) */}
+      <nav className={`md:hidden fixed bottom-0 left-0 right-0 z-40 border-t flex items-center justify-around px-2 py-1.5 shadow-2xl backdrop-blur-md transition-colors ${
+        isDark ? 'bg-slate-950/95 border-slate-800 text-slate-400' : 'bg-white/95 border-slate-200 text-slate-600'
+      }`}>
+        <button
+          type="button"
+          onClick={() => setActiveNav('jobs')}
+          className={`flex flex-col items-center justify-center p-1.5 rounded-xl transition-all cursor-pointer ${
+            activeNav === 'jobs' || activeNav === 'job_detail'
+              ? 'text-blue-600 dark:text-blue-400 font-black scale-105'
+              : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+          }`}
+        >
+          <Briefcase className="w-5 h-5" />
+          <span className="text-[10px] mt-0.5 font-bold">Jobs</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveNav('calendar')}
+          className={`flex flex-col items-center justify-center p-1.5 rounded-xl transition-all cursor-pointer ${
+            activeNav === 'calendar'
+              ? 'text-blue-600 dark:text-blue-400 font-black scale-105'
+              : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+          }`}
+        >
+          <CalendarIcon className="w-5 h-5" />
+          <span className="text-[10px] mt-0.5 font-bold">Calendar</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveNav('forms')}
+          className={`flex flex-col items-center justify-center p-1.5 rounded-xl transition-all cursor-pointer ${
+            activeNav === 'forms'
+              ? 'text-blue-600 dark:text-blue-400 font-black scale-105'
+              : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+          }`}
+        >
+          <FileCheck className="w-5 h-5" />
+          <span className="text-[10px] mt-0.5 font-bold">Forms</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveNav('accounts')}
+          className={`flex flex-col items-center justify-center p-1.5 rounded-xl transition-all cursor-pointer ${
+            activeNav === 'accounts' || activeNav === 'account_detail' || activeNav === 'community_detail'
+              ? 'text-blue-600 dark:text-blue-400 font-black scale-105'
+              : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+          }`}
+        >
+          <Building2 className="w-5 h-5" />
+          <span className="text-[10px] mt-0.5 font-bold">Accounts</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setIsMobileMenuOpen(true)}
+          className="flex flex-col items-center justify-center p-1.5 rounded-xl text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 transition-all cursor-pointer"
+        >
+          <Menu className="w-5 h-5" />
+          <span className="text-[10px] mt-0.5 font-bold">Menu</span>
+        </button>
+      </nav>
 
       {/* 3. DATE EDITOR MODAL */}
       {editingDateJob && (
