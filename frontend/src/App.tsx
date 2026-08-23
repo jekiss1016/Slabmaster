@@ -5451,9 +5451,9 @@ export default function App() {
                   <button
                     type="button"
                     onClick={() => shiftCalendarDays(-1)}
-                    className="p-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 font-bold text-xs flex items-center space-x-1 active:scale-95 cursor-pointer shadow-2xs"
+                    className="px-3 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs flex items-center space-x-1.5 active:scale-95 cursor-pointer shadow-md transition-all"
                   >
-                    <ChevronLeft className="w-4 h-4" />
+                    <ChevronLeft className="w-4 h-4 text-white stroke-[2.5]" />
                     <span>Prior</span>
                   </button>
 
@@ -5484,10 +5484,10 @@ export default function App() {
                   <button
                     type="button"
                     onClick={() => shiftCalendarDays(1)}
-                    className="p-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 font-bold text-xs flex items-center space-x-1 active:scale-95 cursor-pointer shadow-2xs"
+                    className="px-3 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs flex items-center space-x-1.5 active:scale-95 cursor-pointer shadow-md transition-all"
                   >
                     <span>Next</span>
-                    <ChevronRight className="w-4 h-4" />
+                    <ChevronRight className="w-4 h-4 text-white stroke-[2.5]" />
                   </button>
                 </div>
 
