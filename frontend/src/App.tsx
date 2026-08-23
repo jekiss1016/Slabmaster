@@ -3381,6 +3381,21 @@ export default function App() {
     return false;
   };
 
+  const parseTimeToMinutes = (timeStr?: string): number => {
+    if (!timeStr) return 9999;
+    const clean = timeStr.trim().toLowerCase();
+    const isPm = clean.includes('pm');
+    const isAm = clean.includes('am');
+    const timeOnly = clean.replace(/[ap]m/g, '').trim();
+    const parts = timeOnly.split(':');
+    let hours = parseInt(parts[0], 10);
+    const minutes = parts.length > 1 ? parseInt(parts[1], 10) : 0;
+    if (isNaN(hours)) return 9999;
+    if (isPm && hours < 12) hours += 12;
+    if (isAm && hours === 12) hours = 0;
+    return hours * 60 + (isNaN(minutes) ? 0 : minutes);
+  };
+
   const getCalendarMilestonesForDay = (calDay: { dateStr: string; formatted: string }) => {
     const results: Array<{
       key: string;
@@ -3388,6 +3403,7 @@ export default function App() {
       phase: 'template' | 'fab' | 'install';
       phaseLabel: string;
       crew: string;
+      schedTime: string;
       badgeClass: string;
       cardClass: string;
     }> = [];
@@ -3401,12 +3417,15 @@ export default function App() {
     filtered.forEach(j => {
       // 1. Laser Template Milestone
       if (isDateMatch(j.templateDate?.date, calDay)) {
+        const act = j.activities?.find(a => a.phase === 'STONE' && (a.activityName.toLowerCase().includes('temp') || a.activityName.toLowerCase().includes('cad')));
+        const time = act?.schedTime || '8:00am';
         results.push({
           key: `${j.id}_template_${calDay.dateStr}`,
           job: j,
           phase: 'template',
           phaseLabel: 'Template',
-          crew: 'Laser Templater 1',
+          crew: act?.assignedTo || 'Laser Templater 1',
+          schedTime: time,
           badgeClass: 'bg-blue-600 text-white',
           cardClass: 'bg-blue-50/90 hover:bg-blue-100/90 text-blue-900 border-blue-300 dark:bg-blue-950/80 dark:text-blue-200 dark:border-blue-800'
         });
@@ -3414,12 +3433,15 @@ export default function App() {
 
       // 2. Fabrication Milestone
       if (isDateMatch(j.fabDate?.date, calDay)) {
+        const act = j.activities?.find(a => a.phase === 'STONE' && (a.activityName.toLowerCase().includes('fab') || a.activityName.toLowerCase().includes('saw') || a.activityName.toLowerCase().includes('cnc')));
+        const time = act?.schedTime || '1:00pm';
         results.push({
           key: `${j.id}_fab_${calDay.dateStr}`,
           job: j,
           phase: 'fab',
           phaseLabel: 'Fab',
-          crew: 'Bridge Saw 1 & CNC',
+          crew: act?.assignedTo || 'Bridge Saw 1 & CNC',
+          schedTime: time,
           badgeClass: 'bg-purple-600 text-white',
           cardClass: 'bg-purple-50/90 hover:bg-purple-100/90 text-purple-900 border-purple-300 dark:bg-purple-950/80 dark:text-purple-200 dark:border-purple-800'
         });
@@ -3428,12 +3450,15 @@ export default function App() {
       // 3. Field Installation Milestone
       if (isDateMatch(j.installDate?.date, calDay)) {
         const isWarranty = j.jobCategory === 'REWORK_WARRANTY';
+        const act = j.activities?.find(a => a.activityName.toLowerCase().includes('install') || a.activityName.toLowerCase().includes('chip') || a.activityName.toLowerCase().includes('seal'));
+        const time = act?.schedTime || '8:00am';
         results.push({
           key: `${j.id}_install_${calDay.dateStr}`,
           job: j,
           phase: 'install',
           phaseLabel: isWarranty ? 'Warranty Rework' : 'Install',
-          crew: j.assignedCrew || 'Install Truck 1',
+          crew: j.assignedCrew || act?.assignedTo || 'Install Truck 1',
+          schedTime: time,
           badgeClass: isWarranty ? 'bg-rose-600 text-white' : 'bg-emerald-600 text-white',
           cardClass: isWarranty 
             ? 'bg-rose-50/90 hover:bg-rose-100/90 text-rose-900 border-rose-300 dark:bg-rose-950/80 dark:text-rose-200 dark:border-rose-800' 
@@ -3441,6 +3466,9 @@ export default function App() {
         });
       }
     });
+
+    // Sort milestones chronologically by scheduled time
+    results.sort((a, b) => parseTimeToMinutes(a.schedTime) - parseTimeToMinutes(b.schedTime));
 
     return results;
   };
@@ -5687,9 +5715,14 @@ export default function App() {
                             <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1 border-t border-slate-100 dark:border-slate-800">
                               <span className="flex items-center space-x-1">
                                 <Users className="w-3 h-3 text-slate-400" />
-                                <span className="font-semibold text-slate-700 dark:text-slate-300 truncate max-w-[160px]">{item.crew}</span>
+                                <span className="font-semibold text-slate-700 dark:text-slate-300 truncate max-w-[150px]">{item.crew}</span>
                               </span>
-                              <span className="font-bold text-slate-600 dark:text-slate-400">{mobileDayObj.formatted}</span>
+                              <div className="flex items-center space-x-2">
+                                <span className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 font-bold text-[10px]">
+                                  ⏰ {item.schedTime}
+                                </span>
+                                <span className="font-bold text-slate-600 dark:text-slate-400">{mobileDayObj.formatted}</span>
+                              </div>
                             </div>
                           </div>
 
@@ -6004,7 +6037,7 @@ export default function App() {
                                             {item.job.jobName}
                                           </div>
                                           <div className="text-[9px] opacity-80 flex items-center justify-between pt-0.5 border-t border-black/10 dark:border-white/10">
-                                            <span className="truncate">{item.crew}</span>
+                                            <span className="truncate">{item.schedTime ? `${item.schedTime} • ` : ''}{item.crew}</span>
                                             <ExternalLink className="w-3 h-3 shrink-0 opacity-60 group-hover:opacity-100" />
                                           </div>
                                         </div>
@@ -6142,7 +6175,7 @@ export default function App() {
                                             {item.job.jobName}
                                           </div>
                                           <div className="text-[9px] opacity-80 flex items-center justify-between pt-0.5 border-t border-black/10 dark:border-white/10">
-                                            <span className="truncate">{item.crew}</span>
+                                            <span className="truncate">{item.schedTime ? `${item.schedTime} • ` : ''}{item.crew}</span>
                                             <ExternalLink className="w-3 h-3 shrink-0 opacity-60 group-hover:opacity-100" />
                                           </div>
                                         </div>
