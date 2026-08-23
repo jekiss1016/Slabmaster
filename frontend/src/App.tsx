@@ -354,7 +354,33 @@ export default function App() {
 
   // Active Role Simulator (RBAC)
   const [activeUserRole, setActiveUserRole] = useState<'SUBSCRIBER_ADMIN' | 'INTERNAL_OFFICE_USER' | 'INTERNAL_ESTIMATOR' | 'INTERNAL_QA_SUPERVISOR' | 'INTERNAL_QA_TECH' | 'INTERNAL_FIELD_INSTALLER' | 'EXTERNAL_CREW_ADMIN' | 'EXTERNAL_FIELD_INSTALLER' | 'EXTERNAL_SUBCONTRACTOR' | 'SYSTEM_ADMIN'>('SUBSCRIBER_ADMIN');
-  const [activeAssigneeName, setActiveAssigneeName] = useState('Apex Install Crew A');
+  const [activeAssigneeName, setActiveAssigneeName] = useState('David Miller');
+
+  const handleRoleChange = (newRole: any) => {
+    setActiveUserRole(newRole);
+    if (newRole === 'INTERNAL_QA_TECH') {
+      setActiveAssigneeName('Marcus Vance');
+      setActiveNav('jobs');
+    } else if (newRole === 'INTERNAL_QA_SUPERVISOR') {
+      setActiveAssigneeName('David Miller');
+      setActiveNav('jobs');
+    } else if (newRole === 'INTERNAL_FIELD_INSTALLER') {
+      setActiveAssigneeName('Install Truck 1');
+      setActiveNav('jobs');
+    } else if (newRole === 'EXTERNAL_FIELD_INSTALLER') {
+      setActiveAssigneeName('Apex Install Crew A');
+      setActiveNav('jobs');
+    } else if (newRole === 'EXTERNAL_SUBCONTRACTOR') {
+      setActiveAssigneeName('Precision Stone Pros');
+      setActiveNav('jobs');
+    } else if (newRole === 'INTERNAL_ESTIMATOR') {
+      setActiveAssigneeName('Lead Estimator');
+    } else if (newRole === 'INTERNAL_OFFICE_USER') {
+      setActiveAssigneeName('Plant Admin');
+    } else {
+      setActiveAssigneeName('System Administrator');
+    }
+  };
 
   // Form Templates, Packets & Runner State
   const [formTemplates, setFormTemplates] = useState<FormTemplate[]>(DEFAULT_FORM_TEMPLATES);
@@ -3691,7 +3717,7 @@ export default function App() {
                 </span>
                 <select
                   value={activeUserRole}
-                  onChange={(e) => setActiveUserRole(e.target.value as any)}
+                  onChange={(e) => handleRoleChange(e.target.value as any)}
                   className="bg-transparent text-[11px] font-bold text-white focus:outline-none cursor-pointer"
                   title="Super Admin Impersonation Mode: Test UI across roles (Global Admin Only)"
                 >
@@ -3709,7 +3735,7 @@ export default function App() {
                 {activeUserRole !== 'SYSTEM_ADMIN' && activeUserRole !== 'SUBSCRIBER_ADMIN' && (
                   <button
                     type="button"
-                    onClick={() => setActiveUserRole('SYSTEM_ADMIN')}
+                    onClick={() => handleRoleChange('SYSTEM_ADMIN')}
                     className="px-2 py-0.5 bg-amber-400 text-slate-950 hover:bg-amber-300 rounded text-[10px] font-black cursor-pointer ml-1 transition-all"
                     title="Return to Global Administrator clearance"
                   >
@@ -3784,7 +3810,7 @@ export default function App() {
                 <Shield className="w-3 h-3 text-amber-300 mr-1 shrink-0" />
                 <select
                   value={activeUserRole}
-                  onChange={(e) => setActiveUserRole(e.target.value as any)}
+                  onChange={(e) => handleRoleChange(e.target.value as any)}
                   className="bg-transparent text-[10px] font-bold text-white focus:outline-none cursor-pointer max-w-[90px] truncate"
                 >
                   <option value="INTERNAL_QA_TECH" className="text-slate-900">QA Tech</option>
@@ -3831,15 +3857,23 @@ export default function App() {
         </div>
       </header>
 
-      {/* Field Installer Role Banner */}
-      {(activeUserRole === 'EXTERNAL_FIELD_INSTALLER' || activeUserRole === 'INTERNAL_FIELD_INSTALLER' || activeUserRole === 'EXTERNAL_SUBCONTRACTOR') && (
-        <div className="bg-amber-500 text-slate-950 font-black text-xs px-4 sm:px-6 py-2 flex items-center justify-between shadow-inner">
+      {/* Field Installer & QA Role Banner */}
+      {(activeUserRole === 'EXTERNAL_FIELD_INSTALLER' || activeUserRole === 'INTERNAL_FIELD_INSTALLER' || activeUserRole === 'EXTERNAL_SUBCONTRACTOR' || activeUserRole === 'INTERNAL_QA_TECH' || activeUserRole === 'INTERNAL_QA_SUPERVISOR') && (
+        <div className={`font-black text-xs px-4 sm:px-6 py-2 flex items-center justify-between shadow-inner ${
+          activeUserRole.startsWith('INTERNAL_QA') ? 'bg-purple-600 text-white' : 'bg-amber-500 text-slate-950'
+        }`}>
           <div className="flex items-center space-x-2">
-            <span className="text-base">🚐</span>
-            <span className="text-[11px] sm:text-xs">FIELD PORTAL: Scoped to tasks for <span className="underline font-bold">{activeAssigneeName}</span>.</span>
+            <span className="text-base">{activeUserRole.startsWith('INTERNAL_QA') ? '🔍' : '🚐'}</span>
+            <span className="text-[11px] sm:text-xs">
+              {activeUserRole === 'INTERNAL_QA_SUPERVISOR'
+                ? `QA SUPERVISOR PORTAL: Scoped to all plant QA walkthroughs & supervisor sign-offs (${activeAssigneeName}).`
+                : activeUserRole === 'INTERNAL_QA_TECH'
+                ? `QA TECH PORTAL: Scoped to QA inspections assigned to ${activeAssigneeName}.`
+                : `FIELD PORTAL: Scoped to tasks assigned to ${activeAssigneeName}.`}
+            </span>
           </div>
           <button
-            onClick={() => setActiveUserRole('SUBSCRIBER_ADMIN')}
+            onClick={() => handleRoleChange('SUBSCRIBER_ADMIN')}
             className="px-2.5 py-0.5 bg-slate-950 text-white rounded text-[10px] hover:bg-slate-800 cursor-pointer shrink-0 ml-2"
           >
             Admin Mode
