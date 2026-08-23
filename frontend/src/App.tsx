@@ -345,13 +345,14 @@ export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [authLoading, setAuthLoading] = useState<boolean>(true);
   const [authenticatedUserEmail, setAuthenticatedUserEmail] = useState<string | null>(null);
+  const [authenticatedUserFullName, setAuthenticatedUserFullName] = useState<string | null>(null);
   const [authenticatedUserActualRole, setAuthenticatedUserActualRole] = useState<AppUser['role'] | null>(null);
   const [unauthorizedError, setUnauthorizedError] = useState<string | null>(null);
   const [isDemoBypass, setIsDemoBypass] = useState<boolean>(false);
 
-  // Subscriber Custom Branding State
+  // Subscriber Custom Branding State (Horizontal Banner Style Logo)
   const [subscriberName, setSubscriberName] = useState('GraniteCraft Fabrication Inc.');
-  const [logoBase64, setLogoBase64] = useState<string>('/granitecraft-logo.jpg');
+  const [logoBase64, setLogoBase64] = useState<string>('/granitecraft-banner-logo.jpg');
   const [brandColor, setBrandColor] = useState('#2563eb');
 
   // Toolbar Action Modals State
@@ -1568,6 +1569,7 @@ export default function App() {
                 setUnauthorizedError(`Your SlabMaster account (${userEmail}) is currently deactivated. Please contact your Plant Administrator.`);
                 setIsAuthenticated(false);
               } else {
+                setAuthenticatedUserFullName(matchedUser.fullName || matchedUser.email);
                 setAuthenticatedUserActualRole(matchedUser.role);
                 setActiveUserRole(matchedUser.role);
                 setActiveAssigneeName(getInstallerDisplayName(matchedUser));
@@ -1593,6 +1595,22 @@ export default function App() {
     }
     checkAuthSession();
   }, []);
+
+  // Authenticated User Display Name Helper (Displays User's Full Name)
+  const getLoggedInUserDisplayName = (): string => {
+    if (authenticatedUserFullName && authenticatedUserFullName.trim()) {
+      return authenticatedUserFullName.trim();
+    }
+    const matchedUser = systemUsersList.find(u => u.email.toLowerCase() === (authenticatedUserEmail || '').toLowerCase());
+    if (matchedUser && matchedUser.fullName && matchedUser.fullName.trim()) {
+      return matchedUser.fullName.trim();
+    }
+    if (authenticatedUserEmail) {
+      const cleanEmail = authenticatedUserEmail.split('@')[0].split('#')[0].replace(/_/g, '.');
+      return cleanEmail;
+    }
+    return 'Dev Admin';
+  };
 
   const isDark = theme === 'dark';
 
@@ -3548,20 +3566,20 @@ export default function App() {
   return (
     <div className={`min-h-screen flex flex-col font-sans transition-colors duration-200 ${isDark ? 'bg-slate-950 text-slate-100' : 'bg-slate-100 text-slate-900'}`}>
       
-      {/* 1. TOP TOOLBAR & MODULE HEADER */}
-      <header className={`border-b shadow-md ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-gradient-to-r from-blue-600 to-indigo-700 text-white border-blue-700'}`}>
-        <div className="px-6 py-3 flex items-center justify-between gap-4">
+      {/* 1. TOP TOOLBAR & MODULE HEADER (COMPACT BANNER STYLE) */}
+      <header className={`border-b shadow-xs ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-gradient-to-r from-blue-600 to-indigo-700 text-white border-blue-700'}`}>
+        <div className="px-6 py-2 flex items-center justify-between gap-4 min-h-[56px]">
           
-          {/* Logo / Subscriber Branding Display (4x Prominent Display) */}
+          {/* Logo / Subscriber Branding Display (Horizontal Banner Style) */}
           <div className="flex items-center space-x-3 shrink-0">
             {logoBase64 ? (
               <img
                 src={logoBase64}
-                alt="Subscriber Logo"
-                className="h-24 md:h-32 max-h-[135px] max-w-[450px] object-contain rounded-xl bg-white/95 p-1.5 shadow-xl border-2 border-white/40"
+                alt="Subscriber Banner Logo"
+                className="h-11 md:h-12 max-h-[48px] max-w-[280px] md:max-w-[340px] object-contain rounded-lg bg-white/95 px-2 py-0.5 shadow-md border border-white/40"
               />
             ) : (
-              <div className="h-24 px-8 bg-white/20 rounded-xl flex items-center justify-center font-black text-white text-3xl shadow-xl border border-white/30 tracking-tight">
+              <div className="h-10 px-4 bg-white/20 rounded-lg flex items-center justify-center font-black text-white text-lg shadow-sm border border-white/30 tracking-tight">
                 {subscriberName}
               </div>
             )}
@@ -3596,7 +3614,7 @@ export default function App() {
           <div className="flex items-center space-x-3 text-xs shrink-0">
             {/* Global Admin Role Simulator / Impersonation Tool (Strictly restricted to SYSTEM_ADMIN) */}
             {isGlobalSuperAdmin && (
-              <div className="flex items-center space-x-1.5 bg-white/10 px-2.5 py-1.5 rounded-md border border-white/20 shadow-xs">
+              <div className="flex items-center space-x-1.5 bg-white/10 px-2.5 py-1 rounded-md border border-white/20 shadow-xs">
                 <span title="Super Admin Impersonation: In production, role switching is strictly restricted to Global Administrators (Super Admins).">
                   <Shield className="w-3.5 h-3.5 text-amber-300" />
                 </span>
@@ -3628,12 +3646,12 @@ export default function App() {
               </div>
             )}
 
-            {/* Authenticated User Status & Sign Out */}
+            {/* Authenticated User Status & Sign Out (Displays Full Name Value) */}
             {isAuthenticated ? (
-              <div className="flex items-center space-x-2 bg-emerald-500/20 border border-emerald-400/30 px-3 py-1.5 rounded-lg text-[11px]">
-                <span className="font-bold text-emerald-200 flex items-center space-x-1">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                  <span className="truncate max-w-[130px]">{authenticatedUserEmail}</span>
+              <div className="flex items-center space-x-2 bg-emerald-500/20 border border-emerald-400/30 px-3 py-1 rounded-lg text-[11px]">
+                <span className="font-bold text-emerald-200 flex items-center space-x-1.5" title={`Signed in as ${authenticatedUserEmail}`}>
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                  <span className="truncate max-w-[160px] font-bold">{getLoggedInUserDisplayName()}</span>
                 </span>
                 <a
                   href="/.auth/logout?post_logout_redirect_uri=/"
@@ -3647,7 +3665,7 @@ export default function App() {
               <button
                 type="button"
                 onClick={() => setIsDemoBypass(false)}
-                className="px-3 py-1.5 bg-amber-500/20 border border-amber-400/40 hover:bg-amber-500/30 text-amber-200 rounded-md text-[11px] font-bold transition-all cursor-pointer flex items-center space-x-1"
+                className="px-3 py-1 bg-amber-500/20 border border-amber-400/40 hover:bg-amber-500/30 text-amber-200 rounded-md text-[11px] font-bold transition-all cursor-pointer flex items-center space-x-1"
                 title="Exit Demo Simulation and return to Entra ID Login Screen"
               >
                 <span>Exit Demo</span>
@@ -7778,17 +7796,23 @@ export default function App() {
                           </div>
 
                           <div>
-                            <label className="block font-bold mb-1.5 text-sm">Upload Header Logo</label>
-                            <div className="p-6 border-2 border-dashed rounded-xl text-center bg-slate-50 dark:bg-slate-950 border-slate-300 dark:border-slate-800">
-                              <Upload className="w-8 h-8 mx-auto text-blue-600 mb-2" />
+                            <label className="block font-bold mb-1.5 text-sm">Upload Header Banner Logo</label>
+                            <div className="p-5 border-2 border-dashed rounded-xl text-center bg-slate-50 dark:bg-slate-950 border-slate-300 dark:border-slate-800 space-y-3">
+                              <Upload className="w-7 h-7 mx-auto text-blue-600 mb-1" />
                               <input
                                 type="file"
-                                accept="image/png, image/jpeg, image/svg+xml"
+                                accept="image/png, image/jpeg, image/svg+xml, image/webp"
                                 onChange={handleLogoUpload}
                                 className="text-xs cursor-pointer"
                               />
-                              <div className="text-slate-500 mt-2">
-                                <strong>Recommended size:</strong> 200x50px PNG or SVG with transparent background (Max 500KB)
+                              <div className="p-3 bg-blue-50/80 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 rounded-lg text-left text-xs space-y-1.5 text-blue-950 dark:text-blue-200">
+                                <strong className="block font-bold text-blue-900 dark:text-blue-300">📐 Banner Style & Size Requirements:</strong>
+                                <ul className="list-disc pl-4 space-y-1 text-[11px] text-slate-600 dark:text-slate-300">
+                                  <li><strong>Format:</strong> Horizontal Banner (Icon on left + Business Name typography to the right).</li>
+                                  <li><strong>Recommended Dimensions:</strong> 600px × 120px to 1200px × 240px (Wide <strong>4:1 to 5:1 Aspect Ratio</strong>).</li>
+                                  <li><strong>Supported Formats:</strong> PNG (transparent background recommended), SVG, JPG, WebP.</li>
+                                  <li><strong>Max File Size:</strong> 2MB (Converted automatically to high-speed Base64 data in database).</li>
+                                </ul>
                               </div>
                             </div>
                           </div>
@@ -7796,16 +7820,18 @@ export default function App() {
 
                         <div className="p-6 rounded-xl border bg-slate-50 dark:bg-slate-950 flex flex-col justify-between">
                           <div>
-                            <strong className="block text-sm text-slate-500 mb-2">Live Header Logo Display Preview:</strong>
-                            {logoBase64 ? (
-                              <img src={logoBase64} alt="Uploaded Logo Preview" className="h-28 max-w-[500px] object-contain border p-2 rounded-lg bg-white shadow-md" />
-                            ) : (
-                              <div className="h-28 px-8 bg-blue-600 rounded-xl flex items-center justify-center font-black text-white text-2xl shadow-md tracking-tight">
-                                {subscriberName}
-                              </div>
-                            )}
+                            <strong className="block text-sm text-slate-500 mb-2">Live Header Banner Logo Preview:</strong>
+                            <div className="p-4 bg-gradient-to-r from-blue-600 to-indigo-700 rounded-xl shadow-md flex items-center justify-start">
+                              {logoBase64 ? (
+                                <img src={logoBase64} alt="Uploaded Logo Preview" className="h-12 max-h-[50px] max-w-[340px] object-contain border border-white/40 p-1 rounded-lg bg-white/95 shadow-md" />
+                              ) : (
+                                <div className="h-10 px-4 bg-white/20 rounded-lg flex items-center justify-center font-black text-white text-lg shadow-sm border border-white/30 tracking-tight">
+                                  {subscriberName}
+                                </div>
+                              )}
+                            </div>
                           </div>
-                          <span className="text-[11px] text-slate-400 mt-4">Header container is scaled to h-28 max-w-[500px] to render high-resolution branding prominently.</span>
+                          <span className="text-[11px] text-slate-400 mt-4">Banner format ensures crisp, human-readable company typography while keeping the application top title bar slim and compact.</span>
                         </div>
                       </div>
                     </div>
