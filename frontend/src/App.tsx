@@ -1168,6 +1168,8 @@ export default function App() {
   const [newActivityName, setNewActivityName] = useState('Stone Quality Walk');
   const [newActivityPhase, setNewActivityPhase] = useState('STONE');
   const [newActivityAssignee, setNewActivityAssignee] = useState('Not Assigned');
+  const [newActivitySchedTime, setNewActivitySchedTime] = useState('8:00am');
+  const [newActivityDurationMinutes, setNewActivityDurationMinutes] = useState(120);
 
   // Self-Service Entra ID Auth Config State
   const [authProvider, setAuthProvider] = useState<'EMAIL_PASSWORD' | 'ENTRA_ID' | 'HYBRID'>('HYBRID');
@@ -1247,6 +1249,42 @@ export default function App() {
     'Tampa Plant (TPA)': {
       inheritFromSubscriber: false,
       workDays: { Sun: false, Mon: true, Tue: true, Wed: true, Thu: true, Fri: true, Sat: true },
+    },
+  });
+
+  // Business Operating Hours Configuration Interface & State
+  interface BusinessHoursConfig {
+    startTime: string;        // 24hr format "HH:MM" e.g. "07:00"
+    endTime: string;          // 24hr format "HH:MM" e.g. "16:30"
+    lunchBreakMinutes: number;// e.g. 30
+  }
+
+  // Subscriber Global Default Business Operating Hours (7:00 AM – 4:30 PM default)
+  const [globalBusinessHours, setGlobalBusinessHours] = useState<BusinessHoursConfig>({
+    startTime: '07:00',
+    endTime: '16:30',
+    lunchBreakMinutes: 30,
+  });
+
+  // Regional / Plant Override Business Operating Hours (Inherits by default)
+  const [regionalBusinessHours, setRegionalBusinessHours] = useState<{
+    [region: string]: { inheritFromSubscriber: boolean; businessHours: BusinessHoursConfig };
+  }>({
+    'Phoenix Metro (PHX)': {
+      inheritFromSubscriber: true,
+      businessHours: { startTime: '07:00', endTime: '16:30', lunchBreakMinutes: 30 },
+    },
+    'Tucson East (TUC)': {
+      inheritFromSubscriber: true,
+      businessHours: { startTime: '07:00', endTime: '16:30', lunchBreakMinutes: 30 },
+    },
+    'Denver North (DEN)': {
+      inheritFromSubscriber: true,
+      businessHours: { startTime: '07:00', endTime: '16:30', lunchBreakMinutes: 30 },
+    },
+    'Tampa Plant (TPA)': {
+      inheritFromSubscriber: false,
+      businessHours: { startTime: '06:00', endTime: '15:00', lunchBreakMinutes: 30 },
     },
   });
 
@@ -2277,6 +2315,102 @@ export default function App() {
     setChangeLogs([newLog, ...changeLogs]);
   };
 
+  const getEffectiveBusinessHours = (regionName?: string): BusinessHoursConfig => {
+    if (regionName && regionalBusinessHours[regionName] && !regionalBusinessHours[regionName].inheritFromSubscriber) {
+      return regionalBusinessHours[regionName].businessHours;
+    }
+    return globalBusinessHours;
+  };
+
+  const formatTime12Hour = (time24: string): string => {
+    if (!time24) return '7:00 AM';
+    const parts = time24.split(':');
+    let hours = parseInt(parts[0], 10);
+    const minutes = parts.length > 1 ? parts[1].padStart(2, '0') : '00';
+    if (isNaN(hours)) return time24;
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12;
+    if (hours === 0) hours = 12;
+    return `${hours}:${minutes} ${ampm}`;
+  };
+
+  const parseDurationToMinutes = (durStr?: string | number): number => {
+    if (durStr === undefined || durStr === null || durStr === '') return 120;
+    if (typeof durStr === 'number') return durStr;
+    const clean = String(durStr).toLowerCase().trim();
+    if (clean.includes('h') && clean.includes('m')) {
+      const h = parseInt(clean.split('h')[0], 10) || 0;
+      const m = parseInt(clean.split('h')[1].replace('m', ''), 10) || 0;
+      return h * 60 + m;
+    }
+    if (clean.includes('h')) {
+      const h = parseFloat(clean.replace('h', '').replace('hrs', '').replace('hr', '').trim());
+      return isNaN(h) ? 120 : Math.round(h * 60);
+    }
+    if (clean.includes('m')) {
+      const m = parseInt(clean.replace('m', '').replace('mins', '').replace('min', '').trim(), 10);
+      return isNaN(m) ? 120 : m;
+    }
+    const val = parseInt(clean, 10);
+    return isNaN(val) ? 120 : val;
+  };
+
+  const calculateEndTime = (startTimeStr?: string, durStrOrMins?: string | number): string => {
+    const startMins = parseTimeToMinutes(startTimeStr || '8:00am');
+    const durMins = parseDurationToMinutes(durStrOrMins);
+    const totalMins = startMins + durMins;
+    const normMins = totalMins % (24 * 60);
+    let hours = Math.floor(normMins / 60);
+    const minutes = normMins % 60;
+    const ampm = hours >= 12 ? 'pm' : 'am';
+    hours = hours % 12;
+    if (hours === 0) hours = 12;
+    const minStr = minutes > 0 ? `:${String(minutes).padStart(2, '0')}` : ':00';
+    return `${hours}${minStr}${ampm}`;
+  };
+
+  const checkActivityOperatingHours = (startTimeStr?: string, durStrOrMins?: string | number, regionName?: string) => {
+    const bh = getEffectiveBusinessHours(regionName);
+    const closeMins = parseTimeToMinutes(bh.endTime);
+    const startMins = parseTimeToMinutes(startTimeStr || '8:00am');
+    const durMins = parseDurationToMinutes(durStrOrMins);
+    const endMins = startMins + durMins;
+    const isExceeding = endMins > closeMins;
+    return {
+      isExceeding,
+      closeFormatted: formatTime12Hour(bh.endTime),
+      openFormatted: formatTime12Hour(bh.startTime),
+      endFormatted: calculateEndTime(startTimeStr, durMins),
+    };
+  };
+
+  const handleUpdateActivityTiming = (jobId: string, activityId: string, schedTime: string, duration: string) => {
+    const targetJob = jobsData.find(j => j.id === jobId);
+    if (!targetJob) return;
+
+    const updatedActivities = targetJob.activities.map(a => 
+      a.id === activityId ? { ...a, schedTime, duration } : a
+    );
+    const updatedJob = { ...targetJob, activities: updatedActivities };
+
+    if (selectedJob && selectedJob.id === jobId) {
+      setSelectedJob(updatedJob);
+    }
+    setJobsData(jobsData.map(j => j.id === jobId ? updatedJob : j));
+
+    const newLog: ChangeLogEntry = {
+      id: String(Date.now()),
+      timestamp: new Date().toISOString(),
+      changedBy: `${activeUserRole === 'SUBSCRIBER_ADMIN' ? 'Admin' : 'Scheduler'} (${activeUserRole})`,
+      summary: `Activity Timing Updated: ${schedTime} (${duration}) on Job ${targetJob.jobName}`,
+      diffs: [
+        { field: 'Schedule Time', from: targetJob.activities.find(a => a.id === activityId)?.schedTime || 'Not Set', to: schedTime },
+        { field: 'Duration', from: targetJob.activities.find(a => a.id === activityId)?.duration || 'Not Set', to: duration }
+      ]
+    };
+    setChangeLogs([newLog, ...changeLogs]);
+  };
+
   // Activity Completion & Form Validation Guardrail
   const handleActivityCompletionCheck = (job: JobRow, activity: JobActivityRow) => {
     const template = builderFormTemplates.find(t => t.accountId === job.accountId) || builderFormTemplates[0];
@@ -2708,6 +2842,45 @@ export default function App() {
           ...currentReg,
           inheritFromSubscriber: shouldInherit,
           workDays: shouldInherit ? { ...globalWorkDays } : { ...currentReg.workDays },
+        },
+      });
+    }
+  };
+
+  const handleToggleBusinessHoursInheritance = (region: string, shouldInherit: boolean) => {
+    const currentReg = regionalBusinessHours[region];
+    if (currentReg) {
+      setRegionalBusinessHours({
+        ...regionalBusinessHours,
+        [region]: {
+          ...currentReg,
+          inheritFromSubscriber: shouldInherit,
+          businessHours: shouldInherit ? { ...globalBusinessHours } : { ...currentReg.businessHours },
+        },
+      });
+    }
+  };
+
+  const handleUpdateBusinessHours = (
+    field: 'startTime' | 'endTime' | 'lunchBreakMinutes',
+    value: any,
+    scope: string
+  ) => {
+    if (scope === 'GLOBAL') {
+      setGlobalBusinessHours(prev => ({ ...prev, [field]: value }));
+    } else {
+      const current = regionalBusinessHours[scope] || {
+        inheritFromSubscriber: false,
+        businessHours: { ...globalBusinessHours },
+      };
+      setRegionalBusinessHours({
+        ...regionalBusinessHours,
+        [scope]: {
+          inheritFromSubscriber: false,
+          businessHours: {
+            ...current.businessHours,
+            [field]: value,
+          },
         },
       });
     }
@@ -3658,8 +3831,7 @@ export default function App() {
 
       const actName = activeCatalogItem ? activeCatalogItem.name : newActivityName;
       const actPhase = activeCatalogItem ? activeCatalogItem.phase : newActivityPhase;
-      const actDuration = activeCatalogItem ? `${activeCatalogItem.defaultDurationMinutes}m` : '60m';
-      const actRole = activeCatalogItem ? activeCatalogItem.assignedRole : 'Plant Team';
+      const actDuration = `${newActivityDurationMinutes || (activeCatalogItem ? activeCatalogItem.defaultDurationMinutes : 120)}m`;
 
       const newAct: JobActivityRow = {
         id: String(Date.now()),
@@ -3667,7 +3839,7 @@ export default function App() {
         phase: actPhase,
         status: 'Auto-Schedule',
         startDate: 'No Date',
-        schedTime: '9:00am',
+        schedTime: newActivitySchedTime || '8:00am',
         duration: actDuration,
         assignedTo: newActivityAssignee || 'Not Assigned',
         notes: `Created from active Activity Catalog [${activeCatalogItem?.shortCode || 'ACT'}]`
@@ -5118,6 +5290,8 @@ export default function App() {
                         <th className="p-3 font-bold border-r border-white/20">Status</th>
                         <th className="p-3 font-bold border-r border-white/20 text-center">Start Date</th>
                         <th className="p-3 font-bold border-r border-white/20 text-center">Sched Time</th>
+                        <th className="p-3 font-bold border-r border-white/20 text-center">Duration</th>
+                        <th className="p-3 font-bold border-r border-white/20">Calculated Time Window</th>
                         <th className="p-3 font-bold border-r border-white/20">Assigned Crew / Installer</th>
                         <th className="p-3 font-bold text-center">Action</th>
                       </tr>
@@ -5133,75 +5307,145 @@ export default function App() {
                           }
                           return true;
                         })
-                        .map((act, i) => (
-                          <tr
-                            key={act.id}
-                            className={`transition-colors ${
-                              i % 2 === 0
-                                ? isDark ? 'bg-slate-900/60' : 'bg-white'
-                                : isDark ? 'bg-slate-950/40' : 'bg-blue-50/40'
-                            } hover:bg-blue-100/50 dark:hover:bg-slate-800/80`}
-                          >
-                            <td className="p-3 font-semibold text-blue-700 dark:text-blue-400">{act.activityName}</td>
-                            <td className="p-3 font-mono text-slate-500">{act.phase}</td>
-                            <td className="p-3">
-                              <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                                act.status === 'Complete' ? 'bg-emerald-100 text-emerald-900 border border-emerald-300' :
-                                act.status === 'In Progress' ? 'bg-amber-100 text-amber-900 border border-amber-300' :
-                                act.status === 'CALCULATED' ? 'bg-purple-100 text-purple-900 border border-purple-300' :
-                                'bg-slate-100 text-slate-800 border border-slate-300'
-                              }`}>
-                                {act.status}
-                              </span>
-                            </td>
-                            <td className="p-3 text-center font-medium">{act.startDate}</td>
-                            <td className="p-3 text-center text-slate-500">{act.schedTime || '--'}</td>
-                            <td className="p-3">
-                              {activeUserRole !== 'EXTERNAL_FIELD_INSTALLER' && activeUserRole !== 'EXTERNAL_SUBCONTRACTOR' ? (
-                                <select
-                                  value={act.assignedTo || 'Not Assigned'}
-                                  onChange={(e) => handleUpdateActivityAssignee(selectedJob.id, act.id, e.target.value)}
-                                  className={`p-1.5 border rounded-lg text-xs font-semibold cursor-pointer transition-colors ${
-                                    act.assignedTo && act.assignedTo !== 'Not Assigned'
-                                      ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700 font-bold'
-                                      : 'bg-white dark:bg-slate-900 text-slate-500 border-slate-300 dark:border-slate-700'
-                                  }`}
-                                  title="Assign installer or crew for this job activity"
-                                >
-                                  <option value="Not Assigned">Not Assigned</option>
-                                  {getAvailableInstallersForRegion(selectedJob.regionName).map((installer) => {
-                                    const dName = getInstallerDisplayName(installer);
-                                    return (
-                                      <option key={installer.id} value={dName}>
-                                        {dName}
-                                      </option>
-                                    );
-                                  })}
-                                  {/* If legacy assignee is present and not matching any current installer */}
-                                  {act.assignedTo && act.assignedTo !== 'Not Assigned' && !getAvailableInstallersForRegion(selectedJob.regionName).some(i => getInstallerDisplayName(i) === act.assignedTo) && (
-                                    <option value={act.assignedTo}>{act.assignedTo} (Legacy)</option>
-                                  )}
-                                </select>
-                              ) : (
-                                <span className="font-semibold text-slate-700 dark:text-slate-300">
-                                  {act.assignedTo || 'Not Assigned'}
+                        .map((act, i) => {
+                          const currentDuration = act.duration || '120m';
+                          const currentSchedTime = act.schedTime || '8:00am';
+                          const check = checkActivityOperatingHours(currentSchedTime, currentDuration, selectedJob.regionName);
+                          const canEdit = activeUserRole !== 'EXTERNAL_FIELD_INSTALLER' && activeUserRole !== 'EXTERNAL_SUBCONTRACTOR';
+
+                          return (
+                            <tr
+                              key={act.id}
+                              className={`transition-colors ${
+                                i % 2 === 0
+                                  ? isDark ? 'bg-slate-900/60' : 'bg-white'
+                                  : isDark ? 'bg-slate-950/40' : 'bg-blue-50/40'
+                              } hover:bg-blue-100/50 dark:hover:bg-slate-800/80`}
+                            >
+                              <td className="p-3 font-semibold text-blue-700 dark:text-blue-400">
+                                {act.activityName}
+                              </td>
+                              <td className="p-3 font-mono text-slate-500">{act.phase}</td>
+                              <td className="p-3">
+                                <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                                  act.status === 'Complete' ? 'bg-emerald-100 text-emerald-900 border border-emerald-300' :
+                                  act.status === 'In Progress' ? 'bg-amber-100 text-amber-900 border border-amber-300' :
+                                  act.status === 'CALCULATED' ? 'bg-purple-100 text-purple-900 border border-purple-300' :
+                                  'bg-slate-100 text-slate-800 border border-slate-300'
+                                }`}>
+                                  {act.status}
                                 </span>
-                              )}
-                            </td>
-                            <td className="p-3 text-center">
-                              {act.status !== 'Complete' ? (
-                                <button
-                                  onClick={() => handleActivityCompletionCheck(selectedJob, act)}
-                                  className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-[11px] font-bold shadow-xs cursor-pointer"
-                                >
-                                  ✓ Mark Complete
-                                </button>
-                              ) : (
-                                <span className="text-emerald-600 font-bold text-xs">Completed</span>
-                              )}
-                            </td>
-                          </tr>
-                        ))}
+                              </td>
+                              <td className="p-3 text-center font-medium">{act.startDate}</td>
+                              
+                              {/* Sched Time Column */}
+                              <td className="p-3 text-center">
+                                {canEdit ? (
+                                  <select
+                                    value={currentSchedTime}
+                                    onChange={(e) => handleUpdateActivityTiming(selectedJob.id, act.id, e.target.value, currentDuration)}
+                                    className="p-1 border rounded text-[11px] font-bold bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 cursor-pointer"
+                                  >
+                                    {['6:00am', '6:30am', '7:00am', '7:30am', '8:00am', '8:30am', '9:00am', '9:30am', '10:00am', '10:30am', '11:00am', '11:30am', '12:00pm', '12:30pm', '1:00pm', '1:30pm', '2:00pm', '2:30pm', '3:00pm', '3:30pm', '4:00pm', '4:30pm'].map(t => (
+                                      <option key={t} value={t}>{t}</option>
+                                    ))}
+                                  </select>
+                                ) : (
+                                  <span className="font-bold text-slate-700 dark:text-slate-300">{currentSchedTime}</span>
+                                )}
+                              </td>
+
+                              {/* Duration Column */}
+                              <td className="p-3 text-center">
+                                {canEdit ? (
+                                  <select
+                                    value={currentDuration}
+                                    onChange={(e) => handleUpdateActivityTiming(selectedJob.id, act.id, currentSchedTime, e.target.value)}
+                                    className="p-1 border rounded text-[11px] font-bold bg-white dark:bg-slate-900 text-blue-700 dark:text-blue-300 cursor-pointer"
+                                  >
+                                    <option value="30m">30m (0.5h)</option>
+                                    <option value="45m">45m</option>
+                                    <option value="60m">60m (1.0h)</option>
+                                    <option value="90m">90m (1.5h)</option>
+                                    <option value="120m">120m (2.0h)</option>
+                                    <option value="180m">180m (3.0h)</option>
+                                    <option value="240m">240m (4.0h)</option>
+                                    <option value="360m">360m (6.0h)</option>
+                                    <option value="480m">480m (8.0h)</option>
+                                  </select>
+                                ) : (
+                                  <span className="px-2 py-0.5 rounded bg-blue-50 dark:bg-blue-950 font-bold text-blue-600 dark:text-blue-400">
+                                    {currentDuration}
+                                  </span>
+                                )}
+                              </td>
+
+                              {/* Calculated Time Window Column */}
+                              <td className="p-3">
+                                <div className="space-y-1">
+                                  <div className="flex items-center space-x-1.5 font-mono text-[11px] font-bold text-slate-800 dark:text-slate-200">
+                                    <Clock className="w-3 h-3 text-blue-600 shrink-0" />
+                                    <span>{currentSchedTime} ➔ {check.endFormatted}</span>
+                                  </div>
+                                  {check.isExceeding && (
+                                    <div className="text-[10px] font-bold text-amber-700 dark:text-amber-400 flex items-center space-x-1">
+                                      <AlertTriangle className="w-3 h-3 shrink-0" />
+                                      <span>Past closing ({check.closeFormatted})</span>
+                                    </div>
+                                  )}
+                                </div>
+                              </td>
+
+                              {/* Assignee Column */}
+                              <td className="p-3">
+                                {canEdit ? (
+                                  <select
+                                    value={act.assignedTo || 'Not Assigned'}
+                                    onChange={(e) => handleUpdateActivityAssignee(selectedJob.id, act.id, e.target.value)}
+                                    className={`p-1.5 border rounded-lg text-xs font-semibold cursor-pointer transition-colors ${
+                                      act.assignedTo && act.assignedTo !== 'Not Assigned'
+                                        ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700 font-bold'
+                                        : 'bg-white dark:bg-slate-900 text-slate-500 border-slate-300 dark:border-slate-700'
+                                    }`}
+                                    title="Assign installer or crew for this job activity"
+                                  >
+                                    <option value="Not Assigned">Not Assigned</option>
+                                    {getAvailableInstallersForRegion(selectedJob.regionName).map((installer) => {
+                                      const dName = getInstallerDisplayName(installer);
+                                      return (
+                                        <option key={installer.id} value={dName}>
+                                          {dName}
+                                        </option>
+                                      );
+                                    })}
+                                    {/* If legacy assignee is present and not matching any current installer */}
+                                    {act.assignedTo && act.assignedTo !== 'Not Assigned' && !getAvailableInstallersForRegion(selectedJob.regionName).some(i => getInstallerDisplayName(i) === act.assignedTo) && (
+                                      <option value={act.assignedTo}>{act.assignedTo} (Legacy)</option>
+                                    )}
+                                  </select>
+                                ) : (
+                                  <span className="font-semibold text-slate-700 dark:text-slate-300">
+                                    {act.assignedTo || 'Not Assigned'}
+                                  </span>
+                                )}
+                              </td>
+
+                              {/* Action Column */}
+                              <td className="p-3 text-center">
+                                {act.status !== 'Complete' ? (
+                                  <button
+                                    onClick={() => handleActivityCompletionCheck(selectedJob, act)}
+                                    className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-[11px] font-bold shadow-xs cursor-pointer"
+                                  >
+                                    ✓ Mark Complete
+                                  </button>
+                                ) : (
+                                  <span className="text-emerald-600 font-bold text-xs">Completed</span>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
                     </tbody>
                   </table>
                 </div>
@@ -9098,6 +9342,138 @@ export default function App() {
                         </div>
                       </div>
 
+                      {/* 2.5 BUSINESS OPERATING HOURS & SHIFT CAPACITY */}
+                      <div className={`p-6 rounded-xl border space-y-5 shadow-sm ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-300'}`}>
+                        <div className="flex items-center justify-between border-b pb-3">
+                          <div>
+                            <h4 className="font-bold text-sm text-slate-800 dark:text-slate-200 flex items-center space-x-2">
+                              <Clock className="w-4 h-4 text-blue-600" />
+                              <span>
+                                Facility Business Operating Hours: {calendarConfigScope === 'GLOBAL' ? 'Subscriber Level (Global Default)' : calendarConfigScope}
+                              </span>
+                            </h4>
+                            <span className="text-slate-500 text-[11px]">
+                              Defines daily shop and field operating windows. Individual plants can inherit from global or override with localized operating hours.
+                            </span>
+                          </div>
+
+                          {calendarConfigScope !== 'GLOBAL' && (
+                            <label className="flex items-center space-x-2 font-bold cursor-pointer bg-slate-50 dark:bg-slate-950 px-3 py-1.5 rounded-lg border text-xs">
+                              <input
+                                type="checkbox"
+                                checked={regionalBusinessHours[calendarConfigScope]?.inheritFromSubscriber ?? true}
+                                onChange={(e) => handleToggleBusinessHoursInheritance(calendarConfigScope, e.target.checked)}
+                                className="rounded text-blue-600 cursor-pointer"
+                              />
+                              <span>Inherit Hours from Subscriber Level</span>
+                            </label>
+                          )}
+                        </div>
+
+                        {/* Inheritance banner */}
+                        {calendarConfigScope !== 'GLOBAL' && (regionalBusinessHours[calendarConfigScope]?.inheritFromSubscriber ?? true) && (
+                          <div className="p-3 bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 rounded-lg text-blue-800 dark:text-blue-300 text-xs flex items-center justify-between">
+                            <span>Currently inheriting operating hours ({formatTime12Hour(globalBusinessHours.startTime)} – {formatTime12Hour(globalBusinessHours.endTime)}) from Subscriber Global Default. Uncheck the "Inherit" box above to configure custom plant hours.</span>
+                            <span className="font-bold text-xs uppercase tracking-wider">Inherited</span>
+                          </div>
+                        )}
+
+                        {/* Time Inputs Grid */}
+                        {(() => {
+                          const activeHours = getEffectiveBusinessHours(calendarConfigScope === 'GLOBAL' ? undefined : calendarConfigScope);
+                          const isInherited = calendarConfigScope !== 'GLOBAL' && (regionalBusinessHours[calendarConfigScope]?.inheritFromSubscriber ?? true);
+                          const startMins = parseTimeToMinutes(activeHours.startTime);
+                          const endMins = parseTimeToMinutes(activeHours.endTime);
+                          const totalSpanMins = Math.max(0, endMins - startMins);
+                          const netWorkMins = Math.max(0, totalSpanMins - (activeHours.lunchBreakMinutes || 0));
+                          const totalHours = Math.round((totalSpanMins / 60) * 10) / 10;
+                          const netHours = Math.round((netWorkMins / 60) * 10) / 10;
+
+                          return (
+                            <div className="space-y-4">
+                              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                <div className="p-3.5 rounded-xl border bg-slate-50 dark:bg-slate-950 space-y-1.5">
+                                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
+                                    Shift Opening / Start Time
+                                  </label>
+                                  <input
+                                    type="time"
+                                    disabled={isInherited}
+                                    value={activeHours.startTime}
+                                    onChange={(e) => handleUpdateBusinessHours('startTime', e.target.value, calendarConfigScope)}
+                                    className={`w-full p-2 border rounded-lg font-mono font-bold text-sm bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 ${
+                                      isInherited ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'
+                                    }`}
+                                  />
+                                  <span className="text-[10px] text-slate-400 block font-semibold">
+                                    Formatted: {formatTime12Hour(activeHours.startTime)}
+                                  </span>
+                                </div>
+
+                                <div className="p-3.5 rounded-xl border bg-slate-50 dark:bg-slate-950 space-y-1.5">
+                                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
+                                    Shift Closing / End Time
+                                  </label>
+                                  <input
+                                    type="time"
+                                    disabled={isInherited}
+                                    value={activeHours.endTime}
+                                    onChange={(e) => handleUpdateBusinessHours('endTime', e.target.value, calendarConfigScope)}
+                                    className={`w-full p-2 border rounded-lg font-mono font-bold text-sm bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 ${
+                                      isInherited ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'
+                                    }`}
+                                  />
+                                  <span className="text-[10px] text-slate-400 block font-semibold">
+                                    Formatted: {formatTime12Hour(activeHours.endTime)}
+                                  </span>
+                                </div>
+
+                                <div className="p-3.5 rounded-xl border bg-slate-50 dark:bg-slate-950 space-y-1.5">
+                                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
+                                    Lunch / Rest Break Duration
+                                  </label>
+                                  <select
+                                    disabled={isInherited}
+                                    value={activeHours.lunchBreakMinutes}
+                                    onChange={(e) => handleUpdateBusinessHours('lunchBreakMinutes', parseInt(e.target.value, 10), calendarConfigScope)}
+                                    className={`w-full p-2 border rounded-lg font-bold text-sm bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 ${
+                                      isInherited ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'
+                                    }`}
+                                  >
+                                    <option value={0}>No Scheduled Break (0m)</option>
+                                    <option value={30}>30 Minutes Standard Break</option>
+                                    <option value={45}>45 Minutes Break</option>
+                                    <option value={60}>60 Minutes (1 Hour Break)</option>
+                                  </select>
+                                  <span className="text-[10px] text-slate-400 block font-semibold">
+                                    Deducted from gross daily capacity
+                                  </span>
+                                </div>
+                              </div>
+
+                              {/* Capacity Metrics Summary Pill Banner */}
+                              <div className="p-4 rounded-xl border bg-blue-50/70 dark:bg-blue-950/40 border-blue-200 dark:border-blue-900 flex flex-wrap items-center justify-between gap-3 text-xs">
+                                <div className="flex items-center space-x-2">
+                                  <CheckCircle2 className="w-4 h-4 text-blue-600 shrink-0" />
+                                  <span className="font-bold text-blue-950 dark:text-blue-200">
+                                    Active Facility Window: {formatTime12Hour(activeHours.startTime)} – {formatTime12Hour(activeHours.endTime)}
+                                  </span>
+                                </div>
+
+                                <div className="flex items-center space-x-3 text-[11px] font-mono">
+                                  <span className="px-2.5 py-1 rounded-md bg-white dark:bg-slate-900 border font-bold text-slate-700 dark:text-slate-300">
+                                    {totalHours} hrs Total Operating Window
+                                  </span>
+                                  <span className="px-2.5 py-1 rounded-md bg-blue-600 text-white font-black">
+                                    {netHours} hrs Net Production Capacity / Day
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })()}
+                      </div>
+
                       {/* 3. COMPANY & REGIONAL HOLIDAYS */}
                       <div className={`p-6 rounded-xl border space-y-6 shadow-sm ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-300'}`}>
                         <div className="flex items-center justify-between border-b pb-3">
@@ -10412,7 +10788,7 @@ export default function App() {
                             <div className="p-3 rounded-lg border bg-slate-50 dark:bg-slate-950/60 space-y-1.5 text-[11px]">
                               <div className="flex items-center justify-between">
                                 <span className="font-bold text-slate-700 dark:text-slate-300">Phase: <strong>{selectedCatItem.phase}</strong></span>
-                                <span className="font-bold text-blue-600 dark:text-blue-400">Est Duration: {selectedCatItem.defaultDurationMinutes} mins</span>
+                                <span className="font-bold text-blue-600 dark:text-blue-400">Catalog Default: {selectedCatItem.defaultDurationMinutes} mins</span>
                               </div>
                               <div className="text-slate-500">
                                 Default Assignee: <strong>{selectedCatItem.assignedRole}</strong>
@@ -10431,6 +10807,82 @@ export default function App() {
                         </div>
                       );
                     })()}
+
+                    {/* Task Timing & Duration Configuration */}
+                    <div className="p-3.5 rounded-xl border bg-blue-50/50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-xs text-blue-900 dark:text-blue-200 flex items-center space-x-1.5">
+                          <Clock className="w-3.5 h-3.5 text-blue-600" />
+                          <span>Appointment Time & Task Duration</span>
+                        </span>
+                        <span className="text-[10px] font-mono text-slate-500">
+                          Facility Hours: {formatTime12Hour(getEffectiveBusinessHours(selectedJob?.regionName).startTime)} – {formatTime12Hour(getEffectiveBusinessHours(selectedJob?.regionName).endTime)}
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-[11px] font-bold mb-1">
+                            Scheduled Start Time
+                          </label>
+                          <select
+                            value={newActivitySchedTime}
+                            onChange={(e) => setNewActivitySchedTime(e.target.value)}
+                            className="w-full p-2 border rounded-lg font-bold text-xs text-slate-900 dark:bg-slate-950 dark:text-slate-100 dark:border-slate-800 cursor-pointer"
+                          >
+                            {['6:00am', '6:30am', '7:00am', '7:30am', '8:00am', '8:30am', '9:00am', '9:30am', '10:00am', '10:30am', '11:00am', '11:30am', '12:00pm', '12:30pm', '1:00pm', '1:30pm', '2:00pm', '2:30pm', '3:00pm', '3:30pm', '4:00pm', '4:30pm'].map(t => (
+                              <option key={t} value={t}>{t}</option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <div>
+                          <label className="block text-[11px] font-bold mb-1">
+                            Task Duration
+                          </label>
+                          <select
+                            value={newActivityDurationMinutes}
+                            onChange={(e) => setNewActivityDurationMinutes(parseInt(e.target.value, 10))}
+                            className="w-full p-2 border rounded-lg font-bold text-xs text-slate-900 dark:bg-slate-950 dark:text-slate-100 dark:border-slate-800 cursor-pointer"
+                          >
+                            <option value={30}>30 mins (0.5 hr)</option>
+                            <option value={45}>45 mins</option>
+                            <option value={60}>60 mins (1.0 hr)</option>
+                            <option value={90}>90 mins (1.5 hrs)</option>
+                            <option value={120}>120 mins (2.0 hrs)</option>
+                            <option value={180}>180 mins (3.0 hrs)</option>
+                            <option value={240}>240 mins (4.0 hrs)</option>
+                            <option value={360}>360 mins (6.0 hrs)</option>
+                            <option value={480}>480 mins (Full Day 8.0 hrs)</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      {/* Calculated End Time & Operating Window Banner */}
+                      {(() => {
+                        const check = checkActivityOperatingHours(newActivitySchedTime, newActivityDurationMinutes, selectedJob?.regionName);
+                        return (
+                          <div className={`p-2.5 rounded-lg border text-xs flex items-center justify-between ${
+                            check.isExceeding
+                              ? 'bg-amber-50 dark:bg-amber-950/50 border-amber-300 dark:border-amber-800 text-amber-900 dark:text-amber-200'
+                              : 'bg-white dark:bg-slate-900 border-blue-200 dark:border-blue-900 text-slate-800 dark:text-slate-200'
+                          }`}>
+                            <div className="flex items-center space-x-2">
+                              <span className="font-bold">Calculated Time Window:</span>
+                              <span className="font-mono font-black text-blue-600 dark:text-blue-400">
+                                {newActivitySchedTime} ➔ {check.endFormatted} ({newActivityDurationMinutes}m)
+                              </span>
+                            </div>
+                            {check.isExceeding && (
+                              <span className="text-[10px] font-bold text-amber-700 dark:text-amber-400 flex items-center space-x-1">
+                                <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                                <span>Extends past facility closing ({check.closeFormatted})</span>
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })()}
+                    </div>
 
                     <div>
                       <label className="block font-bold mb-1">
