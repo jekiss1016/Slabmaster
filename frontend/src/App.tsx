@@ -10150,6 +10150,137 @@ export default function App() {
             />
           )}
 
+          {/* SCREEN 11: HELP & DOCUMENTATION HUB */}
+          {activeNav === 'help' && (
+            <div className="flex-1 overflow-auto p-6 space-y-6">
+              <div className="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-800">
+                <div>
+                  <h2 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white flex items-center space-x-2.5">
+                    <HelpCircle className="w-6 h-6 text-blue-600" />
+                    <span>Help & Knowledge Center</span>
+                  </h2>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                    Comprehensive operational manuals, architectural guides, and interactive reference documentation for SlabMaster.
+                  </p>
+                </div>
+                <a
+                  href="/help.html"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-bold text-xs flex items-center space-x-2 shadow-sm transition-all cursor-pointer"
+                >
+                  <ExternalLink className="w-4 h-4" />
+                  <span>Open Full User Guide (help.html)</span>
+                </a>
+              </div>
+
+              {/* Quick Jump Grid to Documentation Sections */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {[
+                  {
+                    title: 'Slab Inventory & Remnants',
+                    desc: 'Track serialized slabs, SQFT math, remnant parent links, rack locations, and thermal barcode labels.',
+                    anchor: '/help.html#inventory',
+                    icon: Sparkles,
+                    badge: 'Moraware Parity'
+                  },
+                  {
+                    title: 'Purchasing & PO Dock Receiving',
+                    desc: 'Manage vendor purchase orders, delivery date tracking, and instant dock-receiving into inventory.',
+                    anchor: '/help.html#purchasing',
+                    icon: Truck,
+                    badge: 'Moraware Parity'
+                  },
+                  {
+                    title: 'Shop Floor Kiosk View',
+                    desc: 'Touch-optimized machine station queues (Sawjet, CNC, Polish) with one-tap status advancement.',
+                    anchor: '/help.html#shop-kiosk',
+                    icon: Monitor,
+                    badge: 'Touch Kiosk'
+                  },
+                  {
+                    title: 'Dynamic Custom Attributes',
+                    desc: 'Runtime schema customization for Jobs, Accounts, Activities, and Slabs with plant scoping.',
+                    anchor: '/help.html#custom-attributes',
+                    icon: Tag,
+                    badge: 'Extensibility'
+                  },
+                  {
+                    title: 'Table Matrix & SAP Sheets',
+                    desc: 'Embedded multi-row, multi-column sub-tables inside forms with automatic column summation math.',
+                    anchor: '/help.html#table-matrix',
+                    icon: FileSpreadsheet,
+                    badge: 'Config Sheets'
+                  },
+                  {
+                    title: 'Accounts & Communities',
+                    desc: '3-Tier corporate builder hierarchy: Account ➔ Community / Subdivision ➔ Lot / Unit.',
+                    anchor: '/help.html#accounts',
+                    icon: Building2,
+                    badge: 'Core Architecture'
+                  },
+                  {
+                    title: 'Jobs & Operational Dispatch',
+                    desc: 'Laser template, CAD/CAM, shop fabrication, and installation scheduling with contractor data shielding.',
+                    anchor: '/help.html#jobs',
+                    icon: Briefcase,
+                    badge: 'Dispatch'
+                  },
+                  {
+                    title: 'Production Calendar & Engine',
+                    desc: '14-day auto-scheduling engine with working-day enforcement, holiday skips, and crew assignment.',
+                    anchor: '/help.html#calendar',
+                    icon: CalendarIcon,
+                    badge: 'Auto-Scheduling'
+                  },
+                  {
+                    title: 'Offline Form Packets (PWA)',
+                    desc: 'Offline form runner with digital stylus sign-off, photo attachments, and IndexedDB sync.',
+                    anchor: '/help.html#forms',
+                    icon: FileCheck,
+                    badge: 'Offline PWA'
+                  },
+                  {
+                    title: 'Multi-Plant & Security Settings',
+                    desc: 'Regional facility isolation, lead time configurations, Entra ID SSO, and user RBAC security.',
+                    anchor: '/help.html#settings',
+                    icon: Settings,
+                    badge: 'Administration'
+                  },
+                ].map((item) => (
+                  <a
+                    key={item.title}
+                    href={item.anchor}
+                    target="_blank"
+                    rel="noreferrer"
+                    className={`p-4 rounded-xl border transition-all flex flex-col justify-between hover:shadow-md ${
+                      isDark
+                        ? 'bg-slate-800/60 border-slate-700 hover:border-blue-500 text-slate-200'
+                        : 'bg-white border-slate-200 hover:border-blue-500 text-slate-800'
+                    }`}
+                  >
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-300">
+                          <item.icon className="w-5 h-5" />
+                        </div>
+                        <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
+                          {item.badge}
+                        </span>
+                      </div>
+                      <h3 className="font-bold text-sm text-slate-900 dark:text-white mt-1">{item.title}</h3>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">{item.desc}</p>
+                    </div>
+                    <div className="mt-4 pt-3 border-t border-slate-200 dark:border-slate-700 flex items-center justify-between text-xs font-semibold text-blue-600 dark:text-blue-400">
+                      <span>Read Documentation Section</span>
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </div>
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* CENTER DETAIL SECTION FOOTER */}
           <footer className={`py-2 px-4 border-t text-center text-[11px] font-medium transition-colors shrink-0 ${
             isDark ? 'bg-slate-900/90 border-slate-800 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'
