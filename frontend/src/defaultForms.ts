@@ -176,6 +176,48 @@ export const DEFAULT_FORM_TEMPLATES: FormTemplate[] = [
         required: true
       }
     ]
+  },
+  {
+    id: 'ft_sap_config_sheet',
+    title: 'SAP / Builder Room Takeoff & Config Sheet',
+    description: 'Detailed room-by-room countertop takeoff grid with square footage, material species, edge profiles, and sink cutout formulas.',
+    category: 'GENERAL',
+    version: 1,
+    createdAt: '2026-06-01',
+    updatedAt: '2026-06-01',
+    fields: [
+      {
+        id: 'f_sap_project_no',
+        label: 'Project Reference Number',
+        type: 'text',
+        required: true,
+        placeholder: 'e.g. 0001001532'
+      },
+      {
+        id: 'f_sap_matrix',
+        label: 'Room-by-Room Countertop Takeoff Grid',
+        type: 'table_matrix',
+        required: true,
+        helpText: 'Specify countertop and backsplash square footages, edge profiles, and sink cutouts for each room in this unit.',
+        defaultMatrixRows: ['Kitchen Perimeter', 'Kitchen Island', 'Primary Bath', 'Secondary Bath', 'Powder Room', 'Laundry'],
+        matrixColumns: [
+          { id: 'room', label: 'Room Name', type: 'text' },
+          { id: 'ctop_type', label: 'Ctop Type', type: 'select', options: ['Quartz 3cm', 'Quartz 2cm', 'Granite 3cm', 'Marble 3cm', 'Porcelain Slab'] },
+          { id: 'material', label: 'Material Species / Color', type: 'text' },
+          { id: 'ctop_sqft', label: 'CTOP SQFT', type: 'number', isSummable: true },
+          { id: 'splash_sqft', label: 'Splash SQFT', type: 'number', isSummable: true },
+          { id: 'sink_model', label: 'Sink Model', type: 'text' },
+          { id: 'edge_profile', label: 'Edge Profile', type: 'select', options: ['Eased Standard', '1/4" Bevel', 'Full Bullnose', 'Demi Bullnose', 'Ogee Edge', 'Mitered 2" Apron', 'Waterfall 3"'] }
+        ]
+      },
+      {
+        id: 'f_sap_special_notes',
+        label: 'Special Fabrication & Seam Notes',
+        type: 'textarea',
+        required: false,
+        placeholder: 'Note any bookmatch vein alignment requirements, waterfall seam details, or cooktop downdraft clearances...'
+      }
+    ]
   }
 ];
 

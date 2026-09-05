@@ -11,9 +11,18 @@ export type FormFieldType =
   | 'checkbox'          // Checkbox Toggle
   | 'photo'             // Photo Upload / Camera Capture
   | 'signature'         // Digital Touch Signature
-  | 'datetime';         // Date & Time Picker
+  | 'datetime'          // Date & Time Picker
+  | 'table_matrix';     // Repeatable Multi-Room Takeoff Grid (e.g. SAP Config Sheet)
 
 export type UOMType = 'SF' | 'LF' | 'EA' | 'HR';
+
+export interface MatrixColumn {
+  id: string;
+  label: string;
+  type: 'text' | 'number' | 'select';
+  options?: string[];
+  isSummable?: boolean;
+}
 
 export interface FormField {
   id: string;
@@ -26,6 +35,8 @@ export interface FormField {
   defaultUom?: UOMType;
   options?: string[];     // Applicable for dropdown_single / dropdown_multi
   defaultValue?: any;
+  matrixColumns?: MatrixColumn[]; // Applicable for table_matrix
+  defaultMatrixRows?: string[];  // Preset room rows (e.g. Kitchen, Island, Master Bath)
 }
 
 export interface FormTemplate {

@@ -9,6 +9,11 @@ import { CustomFormBuilder } from './components/CustomFormBuilder';
 import { FormPacketBuilderModal } from './components/FormPacketBuilderModal';
 import { FieldJobsSegmentedView } from './components/FieldJobsSegmentedView';
 import { OfflineFormSubmission, getOfflineFormForJob, saveOfflineSubmission, getOfflineSubmissions } from './offlineStorage';
+import { CustomFieldsModal } from './components/CustomFieldsModal';
+import { ShopFloorView } from './components/ShopFloorView';
+import { SlabInventoryView } from './components/SlabInventoryView';
+import { PurchasingView } from './components/PurchasingView';
+import { DEFAULT_CUSTOM_FIELDS, CustomFieldDefinition } from './types/customAttributes';
 import {
   Search,
   Eye,
@@ -344,7 +349,9 @@ export default function App() {
   });
 
   // Navigation & Theme State (Accounts is now positioned ABOVE Jobs!)
-  const [activeNav, setActiveNav] = useState<'accounts' | 'account_detail' | 'community_detail' | 'jobs' | 'job_detail' | 'change_log' | 'calendar' | 'reports' | 'forms' | 'settings' | 'help'>('accounts');
+  const [activeNav, setActiveNav] = useState<'accounts' | 'account_detail' | 'community_detail' | 'jobs' | 'job_detail' | 'change_log' | 'calendar' | 'inventory' | 'purchasing' | 'shop' | 'reports' | 'forms' | 'settings' | 'help'>('accounts');
+  const [customFields, setCustomFields] = useState<CustomFieldDefinition[]>(DEFAULT_CUSTOM_FIELDS);
+  const [isCustomFieldsModalOpen, setIsCustomFieldsModalOpen] = useState(false);
   const [theme, setTheme] = useState<'dark' | 'light'>('light');
   const [selectedRegion, setSelectedRegion] = useState('All');
   const [searchCategory, setSearchCategory] = useState('All');
@@ -596,7 +603,7 @@ export default function App() {
   });
 
   // Master Settings Hub State
-  const [settingsCategory, setSettingsCategory] = useState<'billing' | 'calendar' | 'job' | 'system' | 'users' | 'branding' | 'regions' | 'leadtimes'>('regions');
+  const [settingsCategory, setSettingsCategory] = useState<'billing' | 'calendar' | 'job' | 'system' | 'users' | 'branding' | 'regions' | 'leadtimes' | 'custom_fields'>('regions');
   const [usersSubSection, setUsersSubSection] = useState<'External Crews & Installers' | 'Internal Users' | 'Roles & Permissions' | 'SSO & Security'>('External Crews & Installers');
   const [systemSubSection, setSystemSubSection] = useState<'Login Locations' | 'Page Styles' | 'Security' | 'Settings'>('Security');
 
@@ -4273,6 +4280,42 @@ export default function App() {
                 </button>
 
                 <button
+                  onClick={() => { setActiveNav('inventory'); setIsMobileMenuOpen(false); }}
+                  className={`w-full flex items-center space-x-3 px-3 py-3 rounded-xl text-left transition-all ${
+                    activeNav === 'inventory'
+                      ? 'bg-blue-600 text-white shadow-md'
+                      : isDark ? 'text-slate-300 hover:bg-slate-800' : 'text-slate-700 hover:bg-slate-100'
+                  }`}
+                >
+                  <Sparkles className="w-4 h-4" />
+                  <span>Slab Inventory & Remnants</span>
+                </button>
+
+                <button
+                  onClick={() => { setActiveNav('purchasing'); setIsMobileMenuOpen(false); }}
+                  className={`w-full flex items-center space-x-3 px-3 py-3 rounded-xl text-left transition-all ${
+                    activeNav === 'purchasing'
+                      ? 'bg-blue-600 text-white shadow-md'
+                      : isDark ? 'text-slate-300 hover:bg-slate-800' : 'text-slate-700 hover:bg-slate-100'
+                  }`}
+                >
+                  <Truck className="w-4 h-4" />
+                  <span>Purchasing & POs</span>
+                </button>
+
+                <button
+                  onClick={() => { setActiveNav('shop'); setIsMobileMenuOpen(false); }}
+                  className={`w-full flex items-center space-x-3 px-3 py-3 rounded-xl text-left transition-all ${
+                    activeNav === 'shop'
+                      ? 'bg-blue-600 text-white shadow-md'
+                      : isDark ? 'text-slate-300 hover:bg-slate-800' : 'text-slate-700 hover:bg-slate-100'
+                  }`}
+                >
+                  <Monitor className="w-4 h-4" />
+                  <span>Shop Floor Kiosk</span>
+                </button>
+
+                <button
                   onClick={() => { setActiveNav('forms'); setIsMobileMenuOpen(false); }}
                   className={`w-full flex items-center space-x-3 px-3 py-3 rounded-xl text-left transition-all ${
                     activeNav === 'forms'
@@ -4394,6 +4437,45 @@ export default function App() {
             >
               <CalendarIcon className="w-4 h-4" />
               <span>Calendar</span>
+            </button>
+
+            {/* 3B. SLAB INVENTORY */}
+            <button
+              onClick={() => setActiveNav('inventory')}
+              className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-md text-left transition-all ${
+                activeNav === 'inventory'
+                  ? isDark ? 'bg-blue-900/60 text-blue-300 font-bold border-l-4 border-blue-500' : 'bg-blue-600 text-white font-bold shadow-sm'
+                  : isDark ? 'text-slate-300 hover:bg-slate-800' : 'text-slate-700 hover:bg-slate-200'
+              }`}
+            >
+              <Sparkles className="w-4 h-4" />
+              <span>Slab Inventory</span>
+            </button>
+
+            {/* 3C. PURCHASING & POS */}
+            <button
+              onClick={() => setActiveNav('purchasing')}
+              className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-md text-left transition-all ${
+                activeNav === 'purchasing'
+                  ? isDark ? 'bg-blue-900/60 text-blue-300 font-bold border-l-4 border-blue-500' : 'bg-blue-600 text-white font-bold shadow-sm'
+                  : isDark ? 'text-slate-300 hover:bg-slate-800' : 'text-slate-700 hover:bg-slate-200'
+              }`}
+            >
+              <Truck className="w-4 h-4" />
+              <span>Purchasing / POs</span>
+            </button>
+
+            {/* 3D. SHOP FLOOR KIOSK */}
+            <button
+              onClick={() => setActiveNav('shop')}
+              className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-md text-left transition-all ${
+                activeNav === 'shop'
+                  ? isDark ? 'bg-blue-900/60 text-blue-300 font-bold border-l-4 border-blue-500' : 'bg-blue-600 text-white font-bold shadow-sm'
+                  : isDark ? 'text-slate-300 hover:bg-slate-800' : 'text-slate-700 hover:bg-slate-200'
+              }`}
+            >
+              <Monitor className="w-4 h-4" />
+              <span>Shop Floor Kiosk</span>
             </button>
 
             {/* 4. FORM PACKETS */}
@@ -6942,6 +7024,7 @@ export default function App() {
                     { id: 'calendar', label: 'Calendar & Holidays', icon: CalendarIcon, desc: 'Working days, non-working holidays & map' },
                     { id: 'users', label: 'Users & Roles', icon: Users, desc: 'Internal roles, external invited users & RBAC' },
                     { id: 'branding', label: 'Branding & Logo', icon: ImageIcon, desc: 'Logo Base64 upload & brand styling' },
+                    { id: 'custom_fields', label: 'Custom Attributes & Fields', icon: Tag, desc: 'Dynamic Job, Account & Lot schema attributes' },
                     { id: 'system', label: 'System & Security', icon: Monitor, desc: 'Entra SSO, IP login locations & policies' },
                     { id: 'billing', label: 'Billing & Plan', icon: DollarSign, desc: 'SaaS subscription & tier management' },
                   ].map((cat) => (
@@ -9986,10 +10069,85 @@ export default function App() {
                     </div>
                   )}
 
+                  {/* MODULE 8: CUSTOM SCHEMA ATTRIBUTES */}
+                  {settingsCategory === 'custom_fields' && (
+                    <div className="space-y-6 text-xs">
+                      <div className="border-b pb-4 flex items-center justify-between">
+                        <div>
+                          <h3 className="text-lg font-black text-blue-600 dark:text-blue-400">Custom Schema Attributes</h3>
+                          <p className="text-slate-500 mt-1">Configure tenant-wide custom fields attached to Jobs, Accounts, and Lots (Moraware Custom Fields parity).</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setIsCustomFieldsModalOpen(true)}
+                          className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-bold flex items-center space-x-2 cursor-pointer shadow-sm"
+                        >
+                          <Sliders className="w-4 h-4" />
+                          <span>Configure Attributes</span>
+                        </button>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {customFields.map((field) => (
+                          <div
+                            key={field.id}
+                            className={`p-4 rounded-xl border flex items-center justify-between ${
+                              isDark ? 'bg-slate-800/60 border-slate-700' : 'bg-slate-50 border-slate-200'
+                            }`}
+                          >
+                            <div className="space-y-1">
+                              <div className="flex items-center space-x-2">
+                                <span className="font-bold text-sm text-slate-900 dark:text-white">{field.label}</span>
+                                <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300">
+                                  {field.dataType}
+                                </span>
+                              </div>
+                              <div className="text-[11px] text-slate-500">
+                                Target: <span className="font-semibold uppercase">{field.targetEntity}</span> • Key: <span className="font-mono">{field.name}</span>
+                                {field.isRequired && <span className="ml-2 text-rose-500 font-bold">• Required</span>}
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setIsCustomFieldsModalOpen(true)}
+                              className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-blue-50 dark:bg-slate-700 text-blue-600 dark:text-blue-300 hover:bg-blue-100"
+                            >
+                              Edit
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                 </div>
               </div>
             </div>
             )
+          )}
+
+          {/* SCREEN 8: SLAB INVENTORY & REMNANTS */}
+          {activeNav === 'inventory' && (
+            <SlabInventoryView
+              isDark={isDark}
+              activeRegionCode={selectedRegion === 'All' ? 'ATL' : selectedRegion}
+            />
+          )}
+
+          {/* SCREEN 9: PURCHASING & PURCHASE ORDERS */}
+          {activeNav === 'purchasing' && (
+            <PurchasingView
+              isDark={isDark}
+              activeRegionCode={selectedRegion === 'All' ? 'ATL' : selectedRegion}
+            />
+          )}
+
+          {/* SCREEN 10: SHOP FLOOR KIOSK */}
+          {activeNav === 'shop' && (
+            <ShopFloorView
+              isDark={isDark}
+              onExitKiosk={() => setActiveNav('jobs')}
+            />
           )}
 
           {/* CENTER DETAIL SECTION FOOTER */}
@@ -11558,6 +11716,16 @@ export default function App() {
             setActiveFormRunner(null);
           }}
           onClose={() => setActiveFormRunner(null)}
+        />
+      )}
+
+      {/* 9. DYNAMIC CUSTOM FIELDS CONFIGURATION MODAL */}
+      {isCustomFieldsModalOpen && (
+        <CustomFieldsModal
+          customFields={customFields}
+          isDark={isDark}
+          onSaveCustomFields={(updated: CustomFieldDefinition[]) => setCustomFields(updated)}
+          onClose={() => setIsCustomFieldsModalOpen(false)}
         />
       )}
 

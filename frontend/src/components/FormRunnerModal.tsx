@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { FormTemplate, FormField, UOMType } from '../types/forms';
+import { FormTemplate, FormField, UOMType, MatrixColumn } from '../types/forms';
 import { OfflineFormSubmission, saveOfflineSubmission } from '../offlineStorage';
+import { calculateColumnSum, createDefaultMatrixRows, MatrixRowData } from '../utils/tableMatrixUtils';
 import {
   FileText,
   CheckCircle2,
@@ -15,7 +16,9 @@ import {
   Check,
   Calendar,
   Layers,
-  MapPin
+  MapPin,
+  Plus,
+  Table
 } from 'lucide-react';
 
 interface FormRunnerModalProps {
@@ -517,6 +520,131 @@ export const FormRunnerModal: React.FC<FormRunnerModalProps> = ({
                     className="w-full p-2.5 border rounded-lg text-xs font-bold text-slate-900 dark:bg-slate-900 dark:text-slate-100 dark:border-slate-700 min-h-[42px]"
                   />
                 )}
+
+                {/* Table Matrix Sub-Grid (Repeatable Room Takeoff / SAP Config Sheet) */}
+                {field.type === 'table_matrix' && (() => {
+                  const cols: MatrixColumn[] = field.matrixColumns && field.matrixColumns.length > 0 ? field.matrixColumns : [
+                    { id: 'room', label: 'Room', type: 'text' },
+                    { id: 'ctop_type', label: 'Ctop Type', type: 'select', options: ['Quartz', 'Granite', 'Marble', 'Porcelain'] },
+                    { id: 'material', label: 'Material', type: 'text' },
+                    { id: 'ctop_sqft', label: 'CTOP SQFT', type: 'number', isSummable: true },
+                    { id: 'splash_sqft', label: 'Splash SQFT', type: 'number', isSummable: true },
+                    { id: 'sink_model', label: 'Sink Model', type: 'text' },
+                    { id: 'edge_profile', label: 'Edge Profile', type: 'select', options: ['Eased', 'Bevel', 'Bullnose', 'Ogee', 'Mitered'] }
+                  ];
+
+                  const currentRows: MatrixRowData[] = Array.isArray(answers[field.id]) && answers[field.id].length > 0
+                    ? answers[field.id]
+                    : createDefaultMatrixRows(field.defaultMatrixRows || ['Kitchen', 'Island', 'Master Bath'], cols);
+
+                  const updateRowCell = (rIdx: number, colId: string, val: any) => {
+                    const next = [...currentRows];
+                    next[rIdx] = { ...next[rIdx], [colId]: val };
+                    handleFieldChange(field.id, next);
+                  };
+
+                  const addRow = () => {
+                    const next = [...currentRows];
+                    const newRow: MatrixRowData = { id: `row_${Date.now()}` };
+                    cols.forEach((c) => {
+                      newRow[c.id] = c.type === 'number' ? '' : (c.options?.[0] || '');
+                    });
+                    next.push(newRow);
+                    handleFieldChange(field.id, next);
+                  };
+
+                  const deleteRow = (rIdx: number) => {
+                    const next = currentRows.filter((_, i) => i !== rIdx);
+                    handleFieldChange(field.id, next);
+                  };
+
+                  return (
+                    <div className="space-y-3 pt-1">
+                      <div className="overflow-x-auto border border-slate-200 dark:border-slate-800 rounded-xl">
+                        <table className="w-full text-left text-xs border-collapse">
+                          <thead>
+                            <tr className="bg-slate-100 dark:bg-slate-900/80 text-slate-600 dark:text-slate-300 font-bold border-b border-slate-200 dark:border-slate-800">
+                              <th className="p-2.5 w-8 text-center">#</th>
+                              {cols.map((col) => (
+                                <th key={col.id} className="p-2.5 whitespace-nowrap">{col.label}</th>
+                              ))}
+                              <th className="p-2.5 w-10 text-center">Action</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
+                            {currentRows.map((row, rIdx) => (
+                              <tr key={row.id || rIdx} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/30">
+                                <td className="p-2 text-center text-[11px] text-slate-400 font-bold">{rIdx + 1}</td>
+                                {cols.map((col) => (
+                                  <td key={col.id} className="p-1.5 min-w-[110px]">
+                                    {col.type === 'select' ? (
+                                      <select
+                                        value={row[col.id] || ''}
+                                        onChange={(e) => updateRowCell(rIdx, col.id, e.target.value)}
+                                        className="w-full p-1.5 border border-slate-300 dark:border-slate-700 rounded-md text-xs bg-white dark:bg-slate-900 font-medium text-slate-900 dark:text-slate-100"
+                                      >
+                                        <option value="">-- Select --</option>
+                                        {(col.options || []).map((opt) => (
+                                          <option key={opt} value={opt}>{opt}</option>
+                                        ))}
+                                      </select>
+                                    ) : (
+                                      <input
+                                        type={col.type === 'number' ? 'number' : 'text'}
+                                        step={col.type === 'number' ? 'any' : undefined}
+                                        value={row[col.id] ?? ''}
+                                        onChange={(e) => updateRowCell(rIdx, col.id, e.target.value)}
+                                        placeholder={col.label}
+                                        className="w-full p-1.5 border border-slate-300 dark:border-slate-700 rounded-md text-xs bg-white dark:bg-slate-900 font-medium text-slate-900 dark:text-slate-100"
+                                      />
+                                    )}
+                                  </td>
+                                ))}
+                                <td className="p-2 text-center">
+                                  <button
+                                    type="button"
+                                    onClick={() => deleteRow(rIdx)}
+                                    className="p-1 text-slate-400 hover:text-rose-500 rounded cursor-pointer"
+                                    title="Delete Row"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                          <tfoot>
+                            <tr className="bg-slate-50 dark:bg-slate-900/60 font-bold border-t border-slate-300 dark:border-slate-700 text-xs text-slate-800 dark:text-slate-200">
+                              <td className="p-2 text-center text-[11px] text-slate-400">Total</td>
+                              {cols.map((col) => {
+                                if (col.isSummable) {
+                                  const sum = calculateColumnSum(currentRows, col.id);
+                                  return (
+                                    <td key={col.id} className="p-2 text-emerald-600 dark:text-emerald-400 whitespace-nowrap">
+                                      <span className="bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-800 px-2 py-0.5 rounded font-mono font-black">
+                                        {sum.toFixed(1)} {col.id.includes('sqft') ? 'SF' : ''}
+                                      </span>
+                                    </td>
+                                  );
+                                }
+                                return <td key={col.id} className="p-2"></td>;
+                              })}
+                              <td></td>
+                            </tr>
+                          </tfoot>
+                        </table>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={addRow}
+                        className="px-3 py-1.5 border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold rounded-lg flex items-center space-x-1.5 cursor-pointer shadow-xs transition-all"
+                      >
+                        <Plus className="w-3.5 h-3.5 text-blue-500" />
+                        <span>+ Add Room Row</span>
+                      </button>
+                    </div>
+                  );
+                })()}
 
                 {/* Photo Upload with Native Mobile Camera Trigger */}
                 {field.type === 'photo' && (

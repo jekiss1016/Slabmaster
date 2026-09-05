@@ -16,7 +16,8 @@ import {
   AlertCircle,
   HelpCircle,
   MoveUp,
-  MoveDown
+  MoveDown,
+  Table
 } from 'lucide-react';
 
 interface CustomFormBuilderProps {
@@ -57,14 +58,30 @@ export const CustomFormBuilder: React.FC<CustomFormBuilderProps> = ({
     const id = 'f_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
     const newField: FormField = {
       id,
-      label: type === 'signature' ? 'Digital Signature Sign-Off' : type === 'photo' ? 'Photo Documentation' : 'New Field Question',
+      label: type === 'table_matrix'
+        ? 'Room Takeoff & Countertop Config Matrix'
+        : type === 'signature'
+        ? 'Digital Signature Sign-Off'
+        : type === 'photo'
+        ? 'Photo Documentation'
+        : 'New Field Question',
       type,
       required: true,
       placeholder: '',
-      helpText: '',
+      helpText: type === 'table_matrix' ? 'Document room-by-room countertop dimensions, SQFT, materials, and sink cutouts.' : '',
       uomOptions: type === 'number_uom' ? ['SF', 'LF', 'EA', 'HR'] : undefined,
       defaultUom: type === 'number_uom' ? 'SF' : undefined,
-      options: type === 'dropdown_single' || type === 'dropdown_multi' ? ['Option 1', 'Option 2'] : undefined
+      options: type === 'dropdown_single' || type === 'dropdown_multi' ? ['Option 1', 'Option 2'] : undefined,
+      matrixColumns: type === 'table_matrix' ? [
+        { id: 'room', label: 'Room', type: 'text' },
+        { id: 'ctop_type', label: 'Ctop Type', type: 'select', options: ['Quartz', 'Granite', 'Marble', 'Porcelain'] },
+        { id: 'material', label: 'Material', type: 'text' },
+        { id: 'ctop_sqft', label: 'CTOP SQFT', type: 'number', isSummable: true },
+        { id: 'splash_sqft', label: 'Splash SQFT', type: 'number', isSummable: true },
+        { id: 'sink_model', label: 'Sink Model', type: 'text' },
+        { id: 'edge_profile', label: 'Edge Profile', type: 'select', options: ['Eased', 'Bevel', 'Bullnose', 'Ogee', 'Mitered'] }
+      ] : undefined,
+      defaultMatrixRows: type === 'table_matrix' ? ['Kitchen', 'Island', 'Master Bath'] : undefined
     };
     setFields([...fields, newField]);
   };
@@ -290,6 +307,15 @@ export const CustomFormBuilder: React.FC<CustomFormBuilderProps> = ({
               >
                 <PenTool className="w-4 h-4 text-purple-500" />
                 <span>+ Touch Signature</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => addField('table_matrix')}
+                className="p-2.5 rounded-lg border text-xs font-bold flex items-center space-x-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 cursor-pointer transition-all border-blue-400 text-blue-800 dark:text-blue-300"
+              >
+                <Table className="w-4 h-4 text-blue-500" />
+                <span>+ Config Table Grid</span>
               </button>
             </div>
           </div>
