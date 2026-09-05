@@ -1,5 +1,5 @@
+import { PrismaClient } from '@prisma/client';
 import {
-  PrismaClient,
   AuthProvider,
   JobCategory,
   ProcessType,
@@ -7,7 +7,7 @@ import {
   ActivityStatus,
   UserRole,
   ErpSyncStatus,
-} from '@prisma/client';
+} from '../src/types/enums';
 import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();

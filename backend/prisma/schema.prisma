@@ -1,11 +1,11 @@
-// SlabMaster Multi-Tenant Relational Schema (MySQL / SQLite / PostgreSQL compliant)
+// SlabMaster Multi-Tenant Relational Schema (Azure SQL Database / Microsoft SQL Server compliant)
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "mysql"
+  provider = "sqlserver"
   url      = env("DATABASE_URL")
 }
 
@@ -14,8 +14,8 @@ model SubscriberTenant {
   id              String         @id @default(uuid()) @map("tenant_id")
   companyName     String         @map("company_name")
   tenantDomain    String         @unique @map("tenant_domain")
-  logoData        String?        @db.LongText @map("logo_data") // Base64 image data
-  authProvider    AuthProvider   @default(EMAIL_PASSWORD) @map("auth_provider")
+  logoData        String?        @db.NVarChar(Max) @map("logo_data") // Base64 image data
+  authProvider    String         @default("EMAIL_PASSWORD") @map("auth_provider")
   entraTenantId   String?        @map("entra_tenant_id")
   entraClientId   String?        @map("entra_client_id")
   isActive        Boolean        @default(true) @map("is_active")
@@ -39,12 +39,6 @@ model SubscriberTenant {
   @@map("subscriber_tenants")
 }
 
-enum AuthProvider {
-  EMAIL_PASSWORD
-  ENTRA_ID
-  HYBRID
-}
-
 // 2. REGIONS (Geographic operations per subscriber)
 model Region {
   id              String           @id @default(uuid()) @map("region_id")
@@ -54,10 +48,10 @@ model Region {
   timeZone        String           @default("America/Phoenix") @map("time_zone")
   isDefault       Boolean          @default(false) @map("is_default")
   isShutdown      Boolean          @default(false) @map("is_shutdown")
-  status          RegionStatus     @default(ACTIVE) @map("status")
+  status          String           @default("ACTIVE") @map("status")
   createdAt       DateTime         @default(now()) @map("created_at")
 
-  tenant          SubscriberTenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant          SubscriberTenant @relation(fields: [tenantId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   communities     Community[]
   lots            Lot[]
   jobs            Job[]
@@ -65,11 +59,6 @@ model Region {
   assignees       Assignee[]
 
   @@map("regions")
-}
-
-enum RegionStatus {
-  ACTIVE
-  SHUTDOWN
 }
 
 // 3. BUILDER ACCOUNTS (Customer Builders under Subscriber)
@@ -86,7 +75,7 @@ model Account {
   isArchived      Boolean          @default(false) @map("is_archived")
   createdAt       DateTime         @default(now()) @map("created_at")
 
-  tenant          SubscriberTenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant          SubscriberTenant @relation(fields: [tenantId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   communities     Community[]
   lots            Lot[]
   jobs            Job[]
@@ -115,9 +104,9 @@ model Community {
   isArchived          Boolean          @default(false) @map("is_archived")
   createdAt           DateTime         @default(now()) @map("created_at")
 
-  tenant              SubscriberTenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  account             Account          @relation(fields: [accountId], references: [id], onDelete: Cascade)
-  region              Region           @relation(fields: [regionId], references: [id])
+  tenant              SubscriberTenant @relation(fields: [tenantId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  account             Account          @relation(fields: [accountId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  region              Region           @relation(fields: [regionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   lots                Lot[]
   jobs                Job[]
   contacts            Contact[]
@@ -140,10 +129,10 @@ model Lot {
   isArchived      Boolean          @default(false) @map("is_archived")
   createdAt       DateTime         @default(now()) @map("created_at")
 
-  tenant          SubscriberTenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  community       Community        @relation(fields: [communityId], references: [id], onDelete: Cascade)
-  account         Account          @relation(fields: [accountId], references: [id])
-  region          Region           @relation(fields: [regionId], references: [id])
+  tenant          SubscriberTenant @relation(fields: [tenantId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  community       Community        @relation(fields: [communityId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  account         Account          @relation(fields: [accountId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  region          Region           @relation(fields: [regionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   jobs            Job[]
 
   @@index([tenantId, externalId])
@@ -161,9 +150,9 @@ model Job {
   lotId             String           @map("lot_id")
   externalId        String?          @map("external_id")
   jobName           String           @map("job_name")
-  jobCategory       JobCategory      @default(INITIAL_INSTALL) @map("job_category")
-  processType       ProcessType      @default(Lead) @map("process_type")
-  status            JobStatus        @default(Active) @map("status")
+  jobCategory       String           @default("INITIAL_INSTALL") @map("job_category")
+  processType       String           @default("Lead") @map("process_type")
+  status            String           @default("Active") @map("status")
   salespersonUserId String?          @map("salesperson_user_id")
   salespersonName   String?          @map("salesperson_name")
   projectNumber     String?          @map("project_number")
@@ -180,37 +169,17 @@ model Job {
   createdAt         DateTime         @default(now()) @map("created_at")
   closedAt          DateTime?        @map("closed_at")
 
-  tenant            SubscriberTenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  region            Region           @relation(fields: [regionId], references: [id])
-  account           Account          @relation(fields: [accountId], references: [id])
-  community         Community        @relation(fields: [communityId], references: [id], onDelete: Cascade)
-  lot               Lot              @relation(fields: [lotId], references: [id], onDelete: Cascade)
+  tenant            SubscriberTenant @relation(fields: [tenantId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  region            Region           @relation(fields: [regionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  account           Account          @relation(fields: [accountId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  community         Community        @relation(fields: [communityId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  lot               Lot              @relation(fields: [lotId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   activities        JobActivity[]
   files             JobFile[]
   issues            JobIssue[]
 
   @@index([tenantId, externalId])
   @@map("jobs")
-}
-
-enum JobCategory {
-  INITIAL_INSTALL
-  ADD_ON
-  REWORK_WARRANTY
-  CUSTOMER_SERVICE
-}
-
-enum ProcessType {
-  Job
-  Lead
-}
-
-enum JobStatus {
-  Draft
-  Active
-  OnHold
-  Complete
-  Cancelled
 }
 
 // 7. ASSIGNEES (Physical Crews / Trucks / Saw lines)
@@ -222,7 +191,7 @@ model Assignee {
   displayOrder    Int           @default(0) @map("display_order")
   isActive        Boolean       @default(true) @map("is_active")
 
-  region          Region        @relation(fields: [regionId], references: [id], onDelete: Cascade)
+  region          Region        @relation(fields: [regionId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   activities      JobActivity[]
   defaultTypes    ActivityType[]
 
@@ -234,14 +203,14 @@ model ActivityType {
   id                String                 @id @default(uuid()) @map("activity_type_id")
   name              String                 @map("name")
   phase             String                 @default("STONE") @map("phase")
-  processType       ProcessType            @default(Job) @map("process_type")
+  processType       String                 @default("Job") @map("process_type")
   colorHex          String                 @default("#4CAF50") @map("color_hex")
-  defaultStatus     ActivityStatus         @default(Tentative) @map("default_status")
+  defaultStatus     String                 @default("Tentative") @map("default_status")
   defaultDuration   Int                    @default(120) @map("default_duration")
   defaultAssigneeId String?                @map("default_assignee_id")
   sequenceOrder     Int                    @default(0) @map("sequence_order")
 
-  defaultAssignee   Assignee?              @relation(fields: [defaultAssigneeId], references: [id])
+  defaultAssignee   Assignee?              @relation(fields: [defaultAssigneeId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   activities        JobActivity[]
   targetDeps        ActivityDependency[]   @relation("TargetActivity")
   sourceDeps        ActivityDependency[]   @relation("SourceActivity")
@@ -253,19 +222,14 @@ model ActivityDependency {
   id               String       @id @default(uuid()) @map("dependency_id")
   targetActivityId String       @map("target_activity_id")
   sourceActivityId String       @map("source_activity_id")
-  offsetDirection  OffsetDir    @default(After) @map("offset_direction")
+  offsetDirection  String       @default("After") @map("offset_direction")
   offsetWorkdays   Int          @default(1) @map("offset_workdays")
   applyReverse     Boolean      @default(false) @map("apply_reverse")
 
-  targetActivity   ActivityType @relation("TargetActivity", fields: [targetActivityId], references: [id])
-  sourceActivity   ActivityType @relation("SourceActivity", fields: [sourceActivityId], references: [id])
+  targetActivity   ActivityType @relation("TargetActivity", fields: [targetActivityId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  sourceActivity   ActivityType @relation("SourceActivity", fields: [sourceActivityId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@map("activity_dependencies")
-}
-
-enum OffsetDir {
-  Before
-  After
 }
 
 // 9. JOB ACTIVITIES (Instance tasks scheduled per Job with Phase & Sched Time)
@@ -277,28 +241,20 @@ model JobActivity {
   assigneeId     String?        @map("assignee_id")
   externalId     String?        @map("external_id")
   phase          String         @default("STONE") @map("phase")
-  status         ActivityStatus @default(Tentative) @map("status")
+  status         String         @default("Tentative") @map("status")
   startDate      DateTime?      @map("start_date")
   startTime      String?        @map("start_time")
   durationMins   Int            @default(120) @map("duration_mins")
   completedAt    DateTime?      @map("completed_at")
   notes          String?        @map("notes")
 
-  tenant         SubscriberTenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  job            Job              @relation(fields: [jobId], references: [id], onDelete: Cascade)
-  activityType   ActivityType     @relation(fields: [activityTypeId], references: [id])
-  assignee       Assignee?        @relation(fields: [assigneeId], references: [id])
+  tenant         SubscriberTenant @relation(fields: [tenantId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  job            Job              @relation(fields: [jobId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  activityType   ActivityType     @relation(fields: [activityTypeId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  assignee       Assignee?        @relation(fields: [assigneeId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@index([tenantId, externalId])
   @@map("job_activities")
-}
-
-enum ActivityStatus {
-  Tentative
-  Confirmed
-  AutoSchedule
-  Complete
-  Cancelled
 }
 
 // 10. COMPANY HOLIDAYS (Non-working calendar days for auto-scheduling)
@@ -309,7 +265,7 @@ model CompanyHoliday {
   holidayDate DateTime         @map("holiday_date")
   isRecurring Boolean          @default(true) @map("is_recurring")
 
-  tenant      SubscriberTenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant      SubscriberTenant @relation(fields: [tenantId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@map("company_holidays")
 }
@@ -329,7 +285,7 @@ model ChangeLog {
   newValue      String?          @map("new_value")
   createdAt     DateTime         @default(now()) @map("created_at")
 
-  tenant        SubscriberTenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant        SubscriberTenant @relation(fields: [tenantId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([tenantId, entityType, entityId])
   @@map("change_logs")
@@ -346,8 +302,8 @@ model JobFile {
   fileType    String           @default("PDF") @map("file_type") // e.g. "PDF", "DXF", "IMAGE"
   uploadedAt  DateTime         @default(now()) @map("uploaded_at")
 
-  tenant      SubscriberTenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  job         Job              @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  tenant      SubscriberTenant @relation(fields: [tenantId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  job         Job              @relation(fields: [jobId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@map("job_files")
 }
@@ -363,8 +319,8 @@ model JobIssue {
   loggedAt    DateTime         @default(now()) @map("logged_at")
   resolvedAt  DateTime?        @map("resolved_at")
 
-  tenant      SubscriberTenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  job         Job              @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  tenant      SubscriberTenant @relation(fields: [tenantId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  job         Job              @relation(fields: [jobId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@map("job_issues")
 }
@@ -377,7 +333,7 @@ model User {
   firstName        String         @map("first_name")
   lastName         String?        @map("last_name")
   isExternal       Boolean        @default(false) @map("is_external")
-  role             UserRole       @map("role")
+  role             String         @default("INTERNAL_OFFICE_USER") @map("role")
   entraOid         String?        @map("entra_oid")
   passwordHash     String?        @map("password_hash")
   invitedByUserId  String?        @map("invited_by_user_id")
@@ -386,30 +342,20 @@ model User {
   isActive         Boolean        @default(true) @map("is_active")
   createdAt        DateTime       @default(now()) @map("created_at")
 
-  tenant           SubscriberTenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  invitedBy        User?            @relation("UserInvites", fields: [invitedByUserId], references: [id])
+  tenant           SubscriberTenant @relation(fields: [tenantId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  invitedBy        User?            @relation("UserInvites", fields: [invitedByUserId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   invitedUsers     User[]           @relation("UserInvites")
   userRegions      UserRegion[]
 
   @@map("users")
 }
 
-enum UserRole {
-  SYSTEM_ADMIN
-  SUBSCRIBER_ADMIN
-  INTERNAL_OFFICE_USER
-  INTERNAL_ESTIMATOR
-  EXTERNAL_CREW_ADMIN
-  EXTERNAL_FIELD_INSTALLER
-  EXTERNAL_SUBCONTRACTOR
-}
-
 model UserRegion {
   userId   String @map("user_id")
   regionId String @map("region_id")
 
-  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  region   Region @relation(fields: [regionId], references: [id], onDelete: Cascade)
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  region   Region @relation(fields: [regionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@id([userId, regionId])
   @@map("user_regions")
@@ -425,8 +371,8 @@ model BuilderFormTemplate {
   isRequiredForCompletion Boolean         @default(false) @map("is_required_for_completion")
   createdAt              DateTime         @default(now()) @map("created_at")
 
-  tenant                 SubscriberTenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  account                Account?         @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  tenant                 SubscriberTenant @relation(fields: [tenantId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  account                Account?         @relation(fields: [accountId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@map("builder_form_templates")
 }
@@ -444,8 +390,8 @@ model Contact {
   email        String?   @map("email")
   isPrimary    Boolean   @default(false) @map("is_primary")
 
-  account      Account   @relation(fields: [accountId], references: [id], onDelete: Cascade)
-  community    Community? @relation(fields: [communityId], references: [id], onDelete: SetNull)
+  account      Account   @relation(fields: [accountId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  community    Community? @relation(fields: [communityId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@map("contacts")
 }
@@ -463,7 +409,7 @@ model ApiKey {
   expiresAt   DateTime?        @map("expires_at")
   createdAt   DateTime         @default(now()) @map("created_at")
 
-  tenant      SubscriberTenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant      SubscriberTenant @relation(fields: [tenantId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([tenantId])
   @@map("api_keys")
@@ -478,7 +424,7 @@ model ErpOutboundQueue {
   action         String           @map("action")      // UPSERT, STATUS_UPDATE, CANCEL
   payload        String           @map("payload")     // JSON payload
   destinationUrl String?          @map("destination_url")
-  status         ErpSyncStatus    @default(PENDING) @map("status")
+  status         String           @default("PENDING") @map("status")
   attempts       Int              @default(0) @map("attempts")
   maxAttempts    Int              @default(5) @map("max_attempts")
   nextRetryAt    DateTime?        @map("next_retry_at")
@@ -486,16 +432,8 @@ model ErpOutboundQueue {
   createdAt      DateTime         @default(now()) @map("created_at")
   updatedAt      DateTime         @updatedAt @map("updated_at")
 
-  tenant         SubscriberTenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant         SubscriberTenant @relation(fields: [tenantId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([tenantId, status])
   @@map("erp_outbound_queue")
 }
-
-enum ErpSyncStatus {
-  PENDING
-  RETRYING
-  FAILED
-  COMPLETED
-}
-

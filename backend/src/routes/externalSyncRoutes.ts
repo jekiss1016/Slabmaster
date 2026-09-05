@@ -1,5 +1,6 @@
 import { FastifyInstance, FastifyPluginAsync } from 'fastify';
-import { PrismaClient, ErpSyncStatus } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
+import { ErpSyncStatus } from '../types/enums';
 import { requireAuthOrApiKey, AuthenticatedRequest } from '../middleware/authMiddleware';
 import {
   listQueueItems,
