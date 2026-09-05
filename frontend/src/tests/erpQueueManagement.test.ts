@@ -100,8 +100,15 @@ describe('ERP Outbound Retry Queue, Progressive Backoff & Postman Integration', 
     expect(apiDocsContent).toContain('SlabMaster REST API & SAP S/4HANA Integration');
     expect(apiDocsContent).toContain('REPORT z_slabmaster_job_upsert');
     expect(apiDocsContent).toContain('cl_http_client');
+    expect(apiDocsContent).toContain('/api/v1/accounts/upsert');
+    expect(apiDocsContent).toContain('/api/v1/communities/upsert');
+    expect(apiDocsContent).toContain('/api/v1/lots/upsert');
+    expect(apiDocsContent).toContain('/api/v1/jobs/upsert');
+    expect(apiDocsContent).toContain('/api/v1/activities/upsert');
+    expect(apiDocsContent).toContain('/api/v1/sync/changes');
+    expect(apiDocsContent).toContain('/api/v1/sync/queue');
     expect(apiDocsContent).toContain('slabmaster_postman_collection.json');
-    expect(apiDocsContent).toContain('? 2026 SlabMaster');
+    expect(apiDocsContent).toContain('© 2026 SlabMaster');
     expect(apiDocsContent).toContain('v1.0.0');
   });
 });

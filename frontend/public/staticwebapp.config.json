@@ -1,4 +1,14 @@
 {
+  "routes": [
+    {
+      "route": "/api-docs",
+      "rewrite": "/api-docs.html"
+    },
+    {
+      "route": "/postman",
+      "rewrite": "/slabmaster_postman_collection.json"
+    }
+  ],
   "navigationFallback": {
     "rewrite": "/index.html",
     "exclude": ["/assets/*", "/*.{png,jpg,jpeg,gif,svg,ico,css,js,html,webmanifest,json}", "/comparison.html", "/help.html", "/api-docs.html", "/slabmaster_postman_collection.json"]

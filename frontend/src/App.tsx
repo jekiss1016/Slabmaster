@@ -10603,24 +10603,43 @@ export default function App() {
                     Comprehensive operational manuals, architectural guides, and interactive reference documentation for SlabMaster.
                   </p>
                 </div>
-                <div className="flex items-center space-x-3">
+                <div className="flex items-center space-x-2.5 flex-wrap gap-y-2">
+                  <a
+                    href="/slabmaster_postman_collection.json"
+                    download="slabmaster_postman_collection.json"
+                    className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-bold text-xs flex items-center space-x-1.5 shadow-sm transition-all cursor-pointer"
+                    title="Download Postman Collection v2.1"
+                  >
+                    <Download className="w-4 h-4" />
+                    <span>Postman Pack</span>
+                  </a>
+                  <a
+                    href="/api-docs.html"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-white dark:bg-slate-700 dark:hover:bg-slate-600 rounded-lg font-bold text-xs flex items-center space-x-1.5 shadow-sm transition-all cursor-pointer"
+                    title="Open SAP Developer Integration Pack"
+                  >
+                    <ExternalLink className="w-4 h-4 text-blue-400" />
+                    <span>SAP API Docs</span>
+                  </a>
                   <a
                     href="/comparison.html"
                     target="_blank"
                     rel="noreferrer"
-                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-bold text-xs flex items-center space-x-2 shadow-sm transition-all cursor-pointer"
+                    className="px-3.5 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg font-bold text-xs flex items-center space-x-1.5 shadow-sm transition-all cursor-pointer"
                   >
                     <ExternalLink className="w-4 h-4" />
-                    <span>Moraware Comparison Deck</span>
+                    <span>Moraware Deck</span>
                   </a>
                   <a
                     href="/help.html"
                     target="_blank"
                     rel="noreferrer"
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-bold text-xs flex items-center space-x-2 shadow-sm transition-all cursor-pointer"
+                    className="px-3.5 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-bold text-xs flex items-center space-x-1.5 shadow-sm transition-all cursor-pointer"
                   >
                     <ExternalLink className="w-4 h-4" />
-                    <span>Open User Guide (help.html)</span>
+                    <span>User Guide</span>
                   </a>
                 </div>
               </div>
@@ -10697,6 +10716,13 @@ export default function App() {
                     anchor: '/help.html#settings',
                     icon: Settings,
                     badge: 'Administration'
+                  },
+                  {
+                    title: 'REST API & SAP Integration Pack',
+                    desc: 'Comprehensive REST API documentation with sample ABAP/cURL calls for every endpoint and downloadable Postman pack.',
+                    anchor: '/api-docs.html',
+                    icon: KeyRound,
+                    badge: 'Enterprise API'
                   },
                 ].map((item) => (
                   <a

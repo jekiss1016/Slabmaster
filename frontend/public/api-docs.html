@@ -256,10 +256,13 @@
 
       <h3>Quick Links</h3>
       <ul>
-        <li><a href="#jobs-upsert">POST /api/v1/jobs/upsert</a></li>
-        <li><a href="#lots-upsert">POST /api/v1/lots/upsert</a></li>
-        <li><a href="#cdc-endpoint">GET /api/v1/sync/changes</a></li>
-        <li><a href="#queue-retry">POST /api/v1/sync/queue/:id/retry</a></li>
+        <li><a href="#accounts-crud">Accounts (Builders)</a></li>
+        <li><a href="#communities-crud">Communities (Subdivisions)</a></li>
+        <li><a href="#lots-crud">Lots (Job Sites)</a></li>
+        <li><a href="#jobs-crud">Jobs (Install Orders)</a></li>
+        <li><a href="#activities-crud">Activities (Milestones)</a></li>
+        <li><a href="#cdc-endpoint">Two-Way CDC Feed</a></li>
+        <li><a href="#queue-retry">Outbound ERP Queue</a></li>
       </ul>
     </nav>
 
@@ -363,19 +366,205 @@ Authorization: Bearer sm_live_9f83a1b4c7e28910fedcba45</code></pre>
 
       <!-- 4. ENDPOINTS -->
       <section id="endpoints">
-        <h2>? 4. REST CRUD Endpoints</h2>
+        <h2>⚡ 4. REST CRUD Endpoints</h2>
+        <p>
+          All endpoints support idempotent upserts, external ID resolution, standard HTTP status codes, and JSON payloads. All mutations automatically publish to the Two-Way CDC stream.
+        </p>
 
-        <!-- Job Upsert -->
-        <div id="jobs-upsert" class="card">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+        <!-- 4.1 ACCOUNTS (BUILDERS) -->
+        <div id="accounts-crud" class="card">
+          <h3>4.1 Builder Accounts (Top-Level Hierarchy)</h3>
+          <p>Represents the top-level builder or parent contractor entity (e.g. Lennar, Toll Brothers, Pulte).</p>
+
+          <!-- Upsert -->
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1rem; margin-bottom: 0.5rem;">
             <div style="display: flex; align-items: center; gap: 0.5rem;">
               <span class="badge badge-post">POST</span>
-              <strong style="font-family: monospace; font-size: 1rem;">/api/v1/jobs/upsert</strong>
+              <strong style="font-family: monospace; font-size: 0.95rem;">/api/v1/accounts/upsert</strong>
             </div>
-            <span class="badge">Idempotent</span>
+            <span class="badge">Idempotent Upsert</span>
           </div>
-          <p>Creates or updates a Job linked to a Lot using SAP external identifiers:</p>
+          <pre><code>POST /api/v1/accounts/upsert HTTP/1.1
+Host: dev.slabmasterapp.com
+X-API-Key: sm_live_9f83a1b4c7e28910fedcba45
+Content-Type: application/json
 
+{
+  "external_id": "SAP-BLD-01",
+  "name": "Lennar Homes - Central Division",
+  "account_type": "Builder",
+  "billing_address": "1200 Builder Way, Suite 400",
+  "city": "Austin",
+  "state": "TX",
+  "zip_code": "78701",
+  "phone": "512-555-0199",
+  "payment_terms": "NET30"
+}</code></pre>
+          <p><strong>Response (HTTP 200 OK / 201 Created):</strong></p>
+          <pre><code>{
+  "message": "Builder Account synchronized successfully.",
+  "operation": "UPSERTED",
+  "data": {
+    "accountUuid": "d3b07384-d113-4944-9c02-76342cbe8a01",
+    "externalId": "SAP-BLD-01",
+    "name": "Lennar Homes - Central Division",
+    "status": "Active",
+    "syncedAt": "2026-09-04T19:30:00.000Z"
+  }
+}</code></pre>
+
+          <!-- Get -->
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem; margin-bottom: 0.5rem;">
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <span class="badge badge-get">GET</span>
+              <strong style="font-family: monospace; font-size: 0.95rem;">/api/v1/accounts/by-external-id/{externalId}</strong>
+            </div>
+            <span class="badge">Lookup</span>
+          </div>
+          <pre><code>GET /api/v1/accounts/by-external-id/SAP-BLD-01 HTTP/1.1
+Host: dev.slabmasterapp.com
+X-API-Key: sm_live_9f83a1b4c7e28910fedcba45</code></pre>
+
+          <!-- Delete -->
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem; margin-bottom: 0.5rem;">
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <span class="badge badge-delete">DELETE</span>
+              <strong style="font-family: monospace; font-size: 0.95rem;">/api/v1/accounts/by-external-id/{externalId}</strong>
+            </div>
+            <span class="badge">Soft Deactivate</span>
+          </div>
+          <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem;">
+            Flags the account as inactive while preserving historical work orders, cut tickets, and slab assignments.
+          </p>
+          <pre><code>DELETE /api/v1/accounts/by-external-id/SAP-BLD-01 HTTP/1.1
+Host: dev.slabmasterapp.com
+X-API-Key: sm_live_9f83a1b4c7e28910fedcba45</code></pre>
+          <pre><code>{
+  "message": "Account marked inactive.",
+  "operation": "DEACTIVATED",
+  "externalId": "SAP-BLD-01"
+}</code></pre>
+        </div>
+
+        <!-- 4.2 COMMUNITIES (SUBDIVISIONS) -->
+        <div id="communities-crud" class="card">
+          <h3>4.2 Communities (Subdivisions / Developments)</h3>
+          <p>Represents a development neighborhood or subdivision nested under a Builder Account.</p>
+
+          <!-- Upsert -->
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1rem; margin-bottom: 0.5rem;">
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <span class="badge badge-post">POST</span>
+              <strong style="font-family: monospace; font-size: 0.95rem;">/api/v1/communities/upsert</strong>
+            </div>
+            <span class="badge">Idempotent Upsert</span>
+          </div>
+          <pre><code>POST /api/v1/communities/upsert HTTP/1.1
+Host: dev.slabmasterapp.com
+X-API-Key: sm_live_9f83a1b4c7e28910fedcba45
+Content-Type: application/json
+
+{
+  "external_id": "COMM-HIGHLAND",
+  "account_external_id": "SAP-BLD-01",
+  "name": "Highland Ranch Estates",
+  "region": "Southwest",
+  "city": "Dripping Springs",
+  "state": "TX",
+  "zip_code": "78620",
+  "contact_name": "Marcus Brody",
+  "contact_phone": "512-555-0244"
+}</code></pre>
+          <p><strong>Response (HTTP 200 OK):</strong></p>
+          <pre><code>{
+  "message": "Community synchronized successfully.",
+  "operation": "UPSERTED",
+  "data": {
+    "communityUuid": "719d3810-6c92-4f35-901a-829d71c89012",
+    "externalId": "COMM-HIGHLAND",
+    "accountExternalId": "SAP-BLD-01",
+    "name": "Highland Ranch Estates"
+  }
+}</code></pre>
+
+          <!-- Get & Delete -->
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem; margin-bottom: 0.5rem;">
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <span class="badge badge-get">GET</span>
+              <strong style="font-family: monospace; font-size: 0.95rem;">/api/v1/communities/by-external-id/{externalId}</strong>
+            </div>
+            <span class="badge badge-delete">DELETE /api/v1/communities/by-external-id/{externalId}</span>
+          </div>
+          <pre><code>GET /api/v1/communities/by-external-id/COMM-HIGHLAND HTTP/1.1
+Host: dev.slabmasterapp.com
+X-API-Key: sm_live_9f83a1b4c7e28910fedcba45</code></pre>
+        </div>
+
+        <!-- 4.3 LOTS (JOB SITES) -->
+        <div id="lots-crud" class="card">
+          <h3>4.3 Lots (Job Sites / Addresses)</h3>
+          <p>Represents a specific building parcel or home site linked to a Builder Community.</p>
+
+          <!-- Upsert -->
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1rem; margin-bottom: 0.5rem;">
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <span class="badge badge-post">POST</span>
+              <strong style="font-family: monospace; font-size: 0.95rem;">/api/v1/lots/upsert</strong>
+            </div>
+            <span class="badge">Idempotent Upsert</span>
+          </div>
+          <pre><code>POST /api/v1/lots/upsert HTTP/1.1
+Host: dev.slabmasterapp.com
+X-API-Key: sm_live_9f83a1b4c7e28910fedcba45
+Content-Type: application/json
+
+{
+  "external_id": "LOT-HIGHLAND-14",
+  "account_external_id": "SAP-BLD-01",
+  "community_external_id": "COMM-HIGHLAND",
+  "lot_number": "14",
+  "block_number": "C",
+  "street_address": "10428 E Sunburst Trail",
+  "target_install_date": "2026-09-22"
+}</code></pre>
+          <p><strong>Response (HTTP 200 OK):</strong></p>
+          <pre><code>{
+  "message": "Lot synchronized successfully.",
+  "operation": "UPSERTED",
+  "data": {
+    "lotUuid": "b4a8e910-3810-410a-81a2-918274019283",
+    "externalId": "LOT-HIGHLAND-14",
+    "lotNumber": "14",
+    "communityExternalId": "COMM-HIGHLAND"
+  }
+}</code></pre>
+
+          <!-- Get & Delete -->
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem; margin-bottom: 0.5rem;">
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <span class="badge badge-get">GET</span>
+              <strong style="font-family: monospace; font-size: 0.95rem;">/api/v1/lots/by-external-id/{externalId}</strong>
+            </div>
+            <span class="badge badge-delete">DELETE /api/v1/lots/by-external-id/{externalId}</span>
+          </div>
+          <pre><code>GET /api/v1/lots/by-external-id/LOT-HIGHLAND-14 HTTP/1.1
+Host: dev.slabmasterapp.com
+X-API-Key: sm_live_9f83a1b4c7e28910fedcba45</code></pre>
+        </div>
+
+        <!-- 4.4 JOBS (INSTALLATION WORK ORDERS) -->
+        <div id="jobs-crud" class="card">
+          <h3>4.4 Jobs (Fabrication & Installation Work Orders)</h3>
+          <p>The core production unit in SlabMaster containing slab allocations, cut lists, and scheduling.</p>
+
+          <!-- Upsert -->
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1rem; margin-bottom: 0.5rem;">
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <span class="badge badge-post">POST</span>
+              <strong style="font-family: monospace; font-size: 0.95rem;">/api/v1/jobs/upsert</strong>
+            </div>
+            <span class="badge">Idempotent Upsert</span>
+          </div>
           <pre><code>POST /api/v1/jobs/upsert HTTP/1.1
 Host: dev.slabmasterapp.com
 X-API-Key: sm_live_9f83a1b4c7e28910fedcba45
@@ -392,44 +581,84 @@ Content-Type: application/json
   "sales_order_number": "SO-881920",
   "target_install_date": "2026-09-22T00:00:00Z"
 }</code></pre>
-
           <p><strong>Response (HTTP 200 OK):</strong></p>
           <pre><code>{
   "message": "Job updated successfully.",
   "operation": "UPDATED",
   "data": {
-    "jobUuid": "a823e59b-12d4-42ea-...",
+    "jobUuid": "a823e59b-12d4-42ea-8910-cba190827364",
     "externalId": "SAP-ORD-90210",
     "jobName": "Kitchen Perimeter & Waterfall Island",
     "status": "Active"
   }
 }</code></pre>
+
+          <!-- Get & Delete -->
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem; margin-bottom: 0.5rem;">
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <span class="badge badge-get">GET</span>
+              <strong style="font-family: monospace; font-size: 0.95rem;">/api/v1/jobs/by-external-id/{externalId}</strong>
+            </div>
+            <span class="badge badge-delete">DELETE /api/v1/jobs/by-external-id/{externalId}</span>
+          </div>
+          <pre><code>GET /api/v1/jobs/by-external-id/SAP-ORD-90210 HTTP/1.1
+Host: dev.slabmasterapp.com
+X-API-Key: sm_live_9f83a1b4c7e28910fedcba45</code></pre>
         </div>
 
-        <!-- Lot Upsert -->
-        <div id="lots-upsert" class="card">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+        <!-- 4.5 ACTIVITIES (MILESTONES & PHASES) -->
+        <div id="activities-crud" class="card">
+          <h3>4.5 Job Activities (Production & Field Milestones)</h3>
+          <p>Detailed tracking of lifecycle steps: Laser Template, CAD Programming, CNC Sawjet Cutting, Edge Polishing, Field Installation, and Warranty Sign-off.</p>
+
+          <!-- Upsert -->
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1rem; margin-bottom: 0.5rem;">
             <div style="display: flex; align-items: center; gap: 0.5rem;">
               <span class="badge badge-post">POST</span>
-              <strong style="font-family: monospace; font-size: 1rem;">/api/v1/lots/upsert</strong>
+              <strong style="font-family: monospace; font-size: 0.95rem;">/api/v1/activities/upsert</strong>
             </div>
-            <span class="badge">Idempotent</span>
+            <span class="badge">Idempotent Upsert</span>
           </div>
-          <p>Creates or updates a Lot container under an Account and Community:</p>
-
-          <pre><code>POST /api/v1/lots/upsert HTTP/1.1
+          <pre><code>POST /api/v1/activities/upsert HTTP/1.1
 Host: dev.slabmasterapp.com
 X-API-Key: sm_live_9f83a1b4c7e28910fedcba45
 Content-Type: application/json
 
 {
-  "external_id": "LOT-HIGHLAND-14",
-  "account_external_id": "SAP-BLD-01",
-  "community_external_id": "COMM-HIGHLAND",
-  "lot_number": "14",
-  "street_address": "10428 E Sunburst Trail",
-  "target_install_date": "2026-09-22"
+  "external_id": "ACT-90210-INSTALL",
+  "job_external_id": "SAP-ORD-90210",
+  "activity_type": "INSTALLATION",
+  "name": "Field Countertop Installation & Seaming",
+  "status": "Scheduled",
+  "scheduled_date": "2026-09-22T08:00:00Z",
+  "assigned_crew": "Crew-Alpha-Austin",
+  "estimated_hours": 6.5
 }</code></pre>
+          <p><strong>Response (HTTP 200 OK / 201 Created):</strong></p>
+          <pre><code>{
+  "message": "Activity synchronized successfully.",
+  "operation": "UPSERTED",
+  "data": {
+    "activityUuid": "f9082341-a1b2-4c3d-8e9f-012938475610",
+    "externalId": "ACT-90210-INSTALL",
+    "jobExternalId": "SAP-ORD-90210",
+    "activityType": "INSTALLATION",
+    "status": "Scheduled",
+    "scheduledDate": "2026-09-22T08:00:00Z"
+  }
+}</code></pre>
+
+          <!-- Get & Delete -->
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem; margin-bottom: 0.5rem;">
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <span class="badge badge-get">GET</span>
+              <strong style="font-family: monospace; font-size: 0.95rem;">/api/v1/activities/by-external-id/{externalId}</strong>
+            </div>
+            <span class="badge badge-delete">DELETE /api/v1/activities/by-external-id/{externalId}</span>
+          </div>
+          <pre><code>GET /api/v1/activities/by-external-id/ACT-90210-INSTALL HTTP/1.1
+Host: dev.slabmasterapp.com
+X-API-Key: sm_live_9f83a1b4c7e28910fedcba45</code></pre>
         </div>
       </section>
 
@@ -598,7 +827,7 @@ POST /api/v1/sync/queue/retry-all</code></pre>
   </div>
 
   <footer>
-    ? 2026 SlabMaster | v1.0.0 ? Enterprise Countertop Fabrication & Field Dispatch Platform
+    © 2026 SlabMaster | v1.0.0 • Enterprise Countertop Fabrication & Field Dispatch Platform
   </footer>
 
 </body>
