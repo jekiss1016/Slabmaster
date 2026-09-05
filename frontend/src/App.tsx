@@ -10163,15 +10163,26 @@ export default function App() {
                     Comprehensive operational manuals, architectural guides, and interactive reference documentation for SlabMaster.
                   </p>
                 </div>
-                <a
-                  href="/help.html"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-bold text-xs flex items-center space-x-2 shadow-sm transition-all cursor-pointer"
-                >
-                  <ExternalLink className="w-4 h-4" />
-                  <span>Open Full User Guide (help.html)</span>
-                </a>
+                <div className="flex items-center space-x-3">
+                  <a
+                    href="/comparison.html"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-bold text-xs flex items-center space-x-2 shadow-sm transition-all cursor-pointer"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                    <span>Moraware Comparison Deck</span>
+                  </a>
+                  <a
+                    href="/help.html"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-bold text-xs flex items-center space-x-2 shadow-sm transition-all cursor-pointer"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                    <span>Open User Guide (help.html)</span>
+                  </a>
+                </div>
               </div>
 
               {/* Quick Jump Grid to Documentation Sections */}
