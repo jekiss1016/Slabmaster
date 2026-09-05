@@ -1,0 +1,689 @@
+{
+  "info": {
+    "name": "SlabMaster Modern RESTful API & SAP S/4HANA Integration",
+    "_postman_id": "a7c29e10-449b-4b11-9a70-slabmaster-v1",
+    "description": "Enterprise RESTful JSON API with first-class External ID routing for SAP S/4HANA, WBS systems, two-way Change Data Capture (CDC), and resilient dead-letter retry queues.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://dev.slabmasterapp.com",
+      "type": "string"
+    },
+    {
+      "key": "apiKey",
+      "value": "sm_live_REPLACE_WITH_YOUR_TOKEN",
+      "type": "string"
+    }
+  ],
+  "auth": {
+    "type": "apikey",
+    "apikey": [
+      {
+        "key": "key",
+        "value": "X-API-Key",
+        "type": "string"
+      },
+      {
+        "key": "value",
+        "value": "{{apiKey}}",
+        "type": "string"
+      },
+      {
+        "key": "in",
+        "value": "header",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "1. Builder Accounts",
+      "item": [
+        {
+          "name": "List Builder Accounts",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/accounts",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "accounts"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Account by External ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/accounts/by-external-id/SAP-BLD-01",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "accounts",
+                "by-external-id",
+                "SAP-BLD-01"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Upsert Builder Account (Idempotent)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"external_id\": \"SAP-BLD-01\",\n  \"account_name\": \"Toll Brothers - Mountain Division\",\n  \"account_code\": \"TOLL-MTN\",\n  \"billing_address_1\": \"7200 E Camelback Rd, Suite 400\",\n  \"billing_city\": \"Scottsdale\",\n  \"billing_state\": \"AZ\",\n  \"billing_zip\": \"85251\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/accounts/upsert",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "accounts",
+                "upsert"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Soft-Delete Account (Audit-Compliant)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/accounts/by-external-id/SAP-BLD-01",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "accounts",
+                "by-external-id",
+                "SAP-BLD-01"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Communities",
+      "item": [
+        {
+          "name": "Get Community by External ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/communities/by-external-id/COMM-HIGHLAND",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "communities",
+                "by-external-id",
+                "COMM-HIGHLAND"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Upsert Community (Idempotent)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"external_id\": \"COMM-HIGHLAND\",\n  \"account_external_id\": \"SAP-BLD-01\",\n  \"community_name\": \"Highland Ridge Estates\",\n  \"community_code\": \"HRE-01\",\n  \"city\": \"Scottsdale\",\n  \"state\": \"AZ\",\n  \"zip\": \"85255\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/communities/upsert",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "communities",
+                "upsert"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Lots (1 Lot -> Many Jobs)",
+      "item": [
+        {
+          "name": "Get Lot by External ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/lots/by-external-id/LOT-HIGHLAND-14",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "lots",
+                "by-external-id",
+                "LOT-HIGHLAND-14"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Upsert Lot (Idempotent)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"external_id\": \"LOT-HIGHLAND-14\",\n  \"community_external_id\": \"COMM-HIGHLAND\",\n  \"account_external_id\": \"SAP-BLD-01\",\n  \"lot_number\": \"14\",\n  \"street_address\": \"10428 E Sunburst Trail\",\n  \"target_install_date\": \"2026-09-22\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/lots/upsert",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "lots",
+                "upsert"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Soft-Delete Lot (Cancel)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/lots/by-external-id/LOT-HIGHLAND-14",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "lots",
+                "by-external-id",
+                "LOT-HIGHLAND-14"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Jobs (Work Orders / WBS Elements)",
+      "item": [
+        {
+          "name": "Get Job by External ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/jobs/by-external-id/SAP-ORD-90210",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "jobs",
+                "by-external-id",
+                "SAP-ORD-90210"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Upsert Job (Idempotent with ERP Keys)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"external_id\": \"SAP-ORD-90210\",\n  \"lot_external_id\": \"LOT-HIGHLAND-14\",\n  \"account_external_id\": \"SAP-BLD-01\",\n  \"community_external_id\": \"COMM-HIGHLAND\",\n  \"job_name\": \"Kitchen Perimeter & Waterfall Island\",\n  \"job_category\": \"INITIAL_INSTALL\",\n  \"project_number\": \"PRJ-2026-904\",\n  \"sales_order_number\": \"SO-881920\",\n  \"target_install_date\": \"2026-09-22T00:00:00Z\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/jobs/upsert",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "jobs",
+                "upsert"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Soft-Delete Job (Unblock Capacity & Preserve Audit)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/jobs/by-external-id/SAP-ORD-90210",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "jobs",
+                "by-external-id",
+                "SAP-ORD-90210"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Job Activities (Phases & Sequencing)",
+      "item": [
+        {
+          "name": "Get Activity by External ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/activities/by-external-id/SAP-ACT-4109",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "activities",
+                "by-external-id",
+                "SAP-ACT-4109"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Upsert Activity (Template / Fab / Install)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"external_id\": \"SAP-ACT-4109\",\n  \"job_external_id\": \"SAP-ORD-90210\",\n  \"activity_name\": \"Digital Laser Template\",\n  \"status\": \"Completed\",\n  \"sequence_order\": 1,\n  \"scheduled_start\": \"2026-09-10T08:00:00Z\",\n  \"scheduled_end\": \"2026-09-10T10:30:00Z\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/activities/upsert",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "activities",
+                "upsert"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Two-Way Sync (CDC Delta Feed)",
+      "item": [
+        {
+          "name": "Poll Changes Feed (CDC Stream)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/sync/changes?since=2026-09-01T00:00:00Z&limit=100",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "sync",
+                "changes"
+              ],
+              "query": [
+                {
+                  "key": "since",
+                  "value": "2026-09-01T00:00:00Z"
+                },
+                {
+                  "key": "limit",
+                  "value": "100"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "7. Outbound Retry Queue & Dead-Letter",
+      "item": [
+        {
+          "name": "List Outbound Queue Items",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/sync/queue",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "sync",
+                "queue"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Manual Retry Stuck Queue Item",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/sync/queue/queue-tx-9941/retry",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "sync",
+                "queue",
+                "queue-tx-9941",
+                "retry"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Batch Retry All Failed Queue Items",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/sync/queue/retry-all",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "sync",
+                "queue",
+                "retry-all"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "7. Moraware Live Demo Fixtures (SAP S/4HANA)",
+      "item": [
+        {
+          "name": "Get Lennar GA Account (SAP-CUST-126954)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/accounts/by-external-id/SAP-CUST-126954",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "accounts",
+                "by-external-id",
+                "SAP-CUST-126954"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Austin Park Community (SAP-COMM-LNXAUS)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/communities/by-external-id/SAP-COMM-LNXAUS",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "communities",
+                "by-external-id",
+                "SAP-COMM-LNXAUS"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Lot 000036 (SAP-LOT-LNXAUS-036)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/lots/by-external-id/SAP-LOT-LNXAUS-036",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "lots",
+                "by-external-id",
+                "SAP-LOT-LNXAUS-036"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Work Order LNXAUS_000036 (SAP-SO-10170)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/jobs/by-external-id/SAP-SO-10170",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "jobs",
+                "by-external-id",
+                "SAP-SO-10170"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Template Activity (SAP-WBS-10170-TMPL)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/activities/by-external-id/SAP-WBS-10170-TMPL",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "activities",
+                "by-external-id",
+                "SAP-WBS-10170-TMPL"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get CNC Sawjet Activity (SAP-WBS-10170-SAW)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/activities/by-external-id/SAP-WBS-10170-SAW",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "activities",
+                "by-external-id",
+                "SAP-WBS-10170-SAW"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Century Communities SE Account (SAP-CUST-122973)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/accounts/by-external-id/SAP-CUST-122973",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "accounts",
+                "by-external-id",
+                "SAP-CUST-122973"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Old Greenwood Glen Job (SAP-SO-10720)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/jobs/by-external-id/SAP-SO-10720",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "jobs",
+                "by-external-id",
+                "SAP-SO-10720"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Dream Finders Nashville Account (SAP-CUST-130470)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/accounts/by-external-id/SAP-CUST-130470",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "accounts",
+                "by-external-id",
+                "SAP-CUST-130470"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Perry Homes Florida Account (SAP-CUST-129495)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/accounts/by-external-id/SAP-CUST-129495",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "accounts",
+                "by-external-id",
+                "SAP-CUST-129495"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

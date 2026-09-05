@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SlabMaster User Guide & Documentation</title>
+  <link rel="icon" type="image/png" href="/icon-192.png">
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --primary: #3b82f6;
+      --primary-hover: #2563eb;
+      --border: #334155;
+      --accent-badge: #1e3a8a;
+      --accent-badge-text: #93c5fd;
+    }
+    @media (prefers-color-scheme: light) {
+      :root {
+        --bg: #f8fafc;
+        --card-bg: #ffffff;
+        --text: #0f172a;
+        --text-muted: #64748b;
+        --primary: #2563eb;
+        --primary-hover: #1d4ed8;
+        --border: #e2e8f0;
+        --accent-badge: #dbeafe;
+        --accent-badge-text: #1d4ed8;
+      }
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+    header {
+      background: var(--card-bg);
+      border-bottom: 1px solid var(--border);
+      padding: 1rem 2rem;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .header-title {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      font-size: 1.25rem;
+      font-weight: 800;
+      color: var(--primary);
+    }
+    .header-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.875rem;
+      font-weight: 600;
+      margin-left: 1.5rem;
+      transition: color 0.15s;
+    }
+    .header-links a:hover {
+      color: var(--primary);
+    }
+    .layout {
+      display: flex;
+      flex: 1;
+      max-width: 1400px;
+      margin: 0 auto;
+      width: 100%;
+    }
+    nav.sidebar {
+      width: 280px;
+      padding: 2rem 1.5rem;
+      border-right: 1px solid var(--border);
+      position: sticky;
+      top: 65px;
+      height: calc(100vh - 65px);
+      overflow-y: auto;
+      flex-shrink: 0;
+    }
+    nav.sidebar h3 {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      margin-bottom: 0.75rem;
+      margin-top: 1.5rem;
+    }
+    nav.sidebar h3:first-child { margin-top: 0; }
+    nav.sidebar ul { list-style: none; }
+    nav.sidebar li { margin-bottom: 0.4rem; }
+    nav.sidebar a {
+      color: var(--text);
+      text-decoration: none;
+      font-size: 0.875rem;
+      font-weight: 500;
+      display: block;
+      padding: 0.35rem 0.6rem;
+      border-radius: 6px;
+      transition: all 0.15s;
+    }
+    nav.sidebar a:hover {
+      background: var(--accent-badge);
+      color: var(--accent-badge-text);
+    }
+    main.content {
+      flex: 1;
+      padding: 2.5rem 3rem;
+      max-width: 960px;
+    }
+    section {
+      margin-bottom: 4rem;
+      scroll-margin-top: 80px;
+    }
+    h1 { font-size: 2.25rem; font-weight: 900; margin-bottom: 1rem; }
+    h2 { font-size: 1.6rem; font-weight: 800; margin-bottom: 0.75rem; color: var(--primary); display: flex; align-items: center; gap: 0.5rem; }
+    h3 { font-size: 1.15rem; font-weight: 700; margin: 1.25rem 0 0.5rem; }
+    p { margin-bottom: 1rem; font-size: 0.95rem; color: var(--text); }
+    .badge {
+      display: inline-block;
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 0.2rem 0.5rem;
+      border-radius: 9999px;
+      background: var(--accent-badge);
+      color: var(--accent-badge-text);
+      text-transform: uppercase;
+    }
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 1rem;
+      margin: 1rem 0;
+    }
+    ul, ol { margin-left: 1.5rem; margin-bottom: 1rem; font-size: 0.95rem; }
+    li { margin-bottom: 0.4rem; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1rem 0;
+      font-size: 0.875rem;
+    }
+    th, td {
+      border: 1px solid var(--border);
+      padding: 0.6rem 0.75rem;
+      text-align: left;
+    }
+    th { background: var(--card-bg); font-weight: 700; }
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 0.85em;
+      background: rgba(125, 125, 125, 0.15);
+      padding: 0.2em 0.4em;
+      border-radius: 4px;
+    }
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 1.5rem;
+      text-align: center;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      background: var(--card-bg);
+    }
+    @media (max-width: 860px) {
+      .layout { flex-direction: column; }
+      nav.sidebar { width: 100%; height: auto; position: static; border-right: none; border-bottom: 1px solid var(--border); }
+      main.content { padding: 1.5rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="header-title">
+      <span>📐 SlabMaster Enterprise</span>
+      <span class="badge">Official Documentation</span>
+    </div>
+    <div class="header-links">
+      <a href="/api-docs.html" target="_blank">⚡ SAP Integration Pack</a>
+      <a href="/slabmaster_postman_collection.json" download="slabmaster_postman_collection.json">📥 Postman Collection</a>
+      <a href="/">← Return to Application</a>
+    </div>
+  </header>
+
+  <div class="layout">
+    <nav class="sidebar">
+      <h3>Core Architecture</h3>
+      <ul>
+        <li><a href="#overview">System Overview</a></li>
+        <li><a href="#accounts">Accounts & Communities</a></li>
+        <li><a href="#jobs">Jobs & Field Dispatch</a></li>
+        <li><a href="#calendar">Production Calendar</a></li>
+      </ul>
+
+      <h3>Operations & Shop Floor</h3>
+      <ul>
+        <li><a href="#inventory">Slab Inventory & Remnants</a></li>
+        <li><a href="#purchasing">Purchasing & Dock Receiving</a></li>
+        <li><a href="#shop-kiosk">Shop Floor Kiosk View</a></li>
+      </ul>
+
+      <h3>Forms & Attributes Engine</h3>
+      <ul>
+        <li><a href="#custom-attributes">Dynamic Custom Attributes</a></li>
+        <li><a href="#table-matrix">Table Matrix & SAP Sheets</a></li>
+        <li><a href="#forms">Offline PWA Form Packets</a></li>
+      </ul>
+
+      <h3>Administration</h3>
+      <ul>
+        <li><a href="#settings">Multi-Plant & Security Settings</a></li>
+        <li><a href="#subscriber-onboarding">Subscriber Onboarding Guide</a></li>
+      </ul>
+
+      <h3>Integration & Developers</h3>
+      <ul>
+        <li><a href="#api-integration">Modern REST API & SAP Sync</a></li>
+      </ul>
+    </nav>
+
+    <main class="content">
+
+      <!-- 1. OVERVIEW -->
+      <section id="overview">
+        <h1>SlabMaster User Guide & Reference</h1>
+        <p>
+          Welcome to the official documentation for <strong>SlabMaster</strong>, the national multi-tenant enterprise solution for countertop fabrication, slab inventory management, job scheduling, and mobile field dispatch.
+        </p>
+        <div class="card">
+          <h3>Architectural Foundations</h3>
+          <p>
+            SlabMaster is designed from the ground up to solve the operational hurdles faced by high-volume commercial stone fabricators:
+          </p>
+          <ul>
+            <li><strong>3-Tier Builder Hierarchy:</strong> Direct modeling of <code>Account ➔ Community ➔ Lot</code> eliminates flat job naming hacks.</li>
+            <li><strong>Multi-Facility Plant Scoping:</strong> Independent facility hubs (e.g. <code>ATL</code>, <code>PHX</code>, <code>TUC</code>) with dedicated lead times, holiday calendars, and machine queues.</li>
+            <li><strong>Offline PWA Engine:</strong> Field crews can execute inspection checklists, capture customer signatures, and snap installation photos even with zero cellular connectivity.</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- 2. ACCOUNTS -->
+      <section id="accounts">
+        <h2>🏢 Accounts & Communities</h2>
+        <p>
+          The Accounts module manages master relationships with commercial production homebuilders, general contractors, and designers.
+        </p>
+        <div class="card">
+          <h3>The 3-Tier Enterprise Model</h3>
+          <ol>
+            <li><strong>Builder Account:</strong> High-level corporate client (e.g., Lennar, Pulte, D.R. Horton) storing corporate billing terms and regional contacts.</li>
+            <li><strong>Subdivision / Community:</strong> Master subdivision under the builder (e.g., <em>Silver Creek Ranch</em>) containing location coordinates, superintendent contacts, and default pricing sheets.</li>
+            <li><strong>Lot / Unit:</strong> Individual residential or commercial unit with specific plan elevations and architectural configurations.</li>
+          </ol>
+        </div>
+      </section>
+
+      <!-- 3. JOBS -->
+      <section id="jobs">
+        <h2>💼 Jobs & Field Dispatch</h2>
+        <p>
+          Every job order in SlabMaster represents an actionable countertop installation milestone, automatically grouped by subdivision and lot.
+        </p>
+        <div class="card-grid">
+          <div class="card">
+            <h3>Contractor Data Shielding</h3>
+            <p>External subcontractors and field crews only see the job site address, lot number, and technical specs necessary to complete the install. Commercial margins, PO amounts, and billing records are strictly shielded.</p>
+          </div>
+          <div class="card">
+            <h3>Activity Sequencing</h3>
+            <p>Jobs track four sequential milestones: <strong>Laser Template</strong> ➔ <strong>CAD / CAM Programming</strong> ➔ <strong>Shop Fabrication</strong> ➔ <strong>Field Installation</strong>.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 4. CALENDAR -->
+      <section id="calendar">
+        <h2>📅 Production Calendar & Auto-Scheduling</h2>
+        <p>
+          SlabMaster features an automated 14-day scheduling engine that sequences fabrication and installation milestones while strictly enforcing working days and regional facility shutdowns.
+        </p>
+        <ul>
+          <li><strong>Working-Day Rules:</strong> Scheduling offsets skip Saturdays, Sundays, and official company holidays.</li>
+          <li><strong>Plant Holiday Overrides:</strong> Configure regional shutdowns per operating facility (e.g., weather emergencies or machine maintenance).</li>
+          <li><strong>Touch Swipe & Stacked Views:</strong> Touch gestures on mobile devices allow shop managers to swipe day-by-day or inspect hourly crew distributions.</li>
+        </ul>
+      </section>
+
+      <!-- 5. SLAB INVENTORY & REMNANTS -->
+      <section id="inventory">
+        <h2>💎 Slab Inventory & Remnant Management</h2>
+        <p>
+          Full tracking of raw stone materials, bundle allocations, warehouse rack coordinates, and remnant offcuts.
+        </p>
+        <div class="card">
+          <h3>Key Features</h3>
+          <ul>
+            <li><strong>Dimensional SQFT Calculation:</strong> Enter Length (in) and Width (in) to calculate total square footage instantly: <code>SQFT = (L × W) / 144</code>.</li>
+            <li><strong>Remnant Offcut Linkage:</strong> Tag remnants with parent slab serial numbers to track yield utilization and residual cost basis.</li>
+            <li><strong>A-Frame Bin Tagging:</strong> Assign slabs to specific physical warehouse racks (e.g., <code>Rack B-04</code>).</li>
+            <li><strong>Thermal Barcode Printing:</strong> Generate scannable QR and Code-128 barcode labels for thermal shop printers.</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- 6. PURCHASING & POs -->
+      <section id="purchasing">
+        <h2>📦 Purchasing & Dock Receiving</h2>
+        <p>
+          Streamline vendor purchase orders for raw slabs, sinks, and consumable tooling with integrated dock receiving.
+        </p>
+        <div class="card">
+          <h3>One-Click Dock Receiving</h3>
+          <p>
+            When a slab bundle arrives at the receiving bay, shop managers can review the PO line items and click <strong>Dock Receive</strong>. Slabs are automatically assigned unique serial numbers, allocated to storage racks, and marked <code>Available</code> in inventory immediately.
+          </p>
+        </div>
+      </section>
+
+      <!-- 7. SHOP FLOOR KIOSK -->
+      <section id="shop-kiosk">
+        <h2>🖥️ Shop Floor Kiosk View</h2>
+        <p>
+          A high-contrast, touch-optimized station monitor designed for fabrication machine operators (Sawjet, CNC, and Polish stations).
+        </p>
+        <div class="card">
+          <h3>Machine Station Queues</h3>
+          <ul>
+            <li><strong>Saw 1 (Bridge Saw):</strong> Initial straight-line perimeter and sink cutout rough cuts.</li>
+            <li><strong>Saw 2 (Waterjet CNC):</strong> High-precision curve cuts, miters, and complex island cuts.</li>
+            <li><strong>CNC Router:</strong> Edge profiling, polishing, and undermount sink drop shaping.</li>
+            <li><strong>Polish Line:</strong> Hand finishing, backsplash chamfering, and final QC inspection.</li>
+          </ul>
+          <p>Operators can advance a job from <em>Cut Queue</em> ➔ <em>In Progress</em> ➔ <em>Complete</em> with a single tap on ruggedized shop tablets.</p>
+        </div>
+      </section>
+
+      <!-- 8. CUSTOM ATTRIBUTES -->
+      <section id="custom-attributes">
+        <h2>🏷️ Dynamic Custom Attributes Engine</h2>
+        <p>
+          Define multi-tenant custom schema attributes at runtime without code deployment.
+        </p>
+        <div class="card">
+          <h3>Entity Targeting & Data Types</h3>
+          <p>Custom attributes can be attached to <code>JOB</code>, <code>ACCOUNT</code>, <code>ACTIVITY</code>, or <code>SLAB</code> entities.</p>
+          <table>
+            <thead>
+              <tr><th>Data Type</th><th>Description</th><th>Example Use Case</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><code>text</code></td><td>Freeform text string</td><td>Project Coordinator Name</td></tr>
+              <tr><td><code>currency</code></td><td>Monetary USD values</td><td>Invoice Amount / ERP Sync</td></tr>
+              <tr><td><code>select</code></td><td>Configurable dropdown choices</td><td>Fabrication Change Reason</td></tr>
+              <tr><td><code>boolean</code></td><td>Toggle switch</td><td>Crane Lift Required</td></tr>
+              <tr><td><code>date</code></td><td>Calendar date selector</td><td>Builder Frame Inspection Date</td></tr>
+              <tr><td><code>url</code></td><td>Clickable external hyperlink</td><td>2020 Design / CAD Cloud Link</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- 9. TABLE MATRIX & SAP CONFIG SHEETS -->
+      <section id="table-matrix">
+        <h2>📊 Table Matrix Sub-Grids & SAP Config Sheets</h2>
+        <p>
+          Moraware configuration parity allowing embedded multi-row, multi-column sub-tables inside custom inspection and sign-off forms.
+        </p>
+        <div class="card">
+          <h3>SAP Configuration Sheet (Template <code>ft_sap_config_sheet</code>)</h3>
+          <p>
+            Enables fabricators to enter room-by-room stone specifications (Kitchen, Master Bath, Island) with automated column summation for Cutout Counts and Splash Lineal Feet.
+          </p>
+        </div>
+      </section>
+
+      <!-- 10. FORMS -->
+      <section id="forms">
+        <h2>📝 Offline PWA Form Packets</h2>
+        <p>
+          Build custom form templates, bundle them into multi-stage packets, and execute them on field tablets with offline IndexedDB storage and touch signature capture.
+        </p>
+      </section>
+
+      <!-- 11. SETTINGS -->
+      <section id="settings">
+        <h2>⚙️ Multi-Plant & Security Settings</h2>
+        <p>
+          Configure regional operating facilities, lead time matrices, holiday closures, Entra ID SSO policies, and white-label subscriber branding.
+        </p>
+      </section>
+
+      <!-- 12. API & ERP INTEGRATION -->
+      <section id="api-integration">
+        <h2>⚡ Modern RESTful API & SAP ERP Integration</h2>
+        <p>
+          SlabMaster provides a modern JSON RESTful API designed to supersede legacy SOAP and .NET interfaces with full CRUD control and first-class External ID routing.
+        </p>
+        <div class="card">
+          <h3>Key API Capabilities</h3>
+          <ul>
+            <li><strong>External ID Routing:</strong> Directly query, upsert, and link Builder Accounts, Communities, Lots, Jobs, and Job Activities using your SAP ERP identifiers (WBS Elements, PO numbers) without translating internal UUIDs.</li>
+            <li><strong>Two-Way Change Data Capture (CDC):</strong> Poll <code>GET /api/v1/sync/changes?since=&lt;timestamp&gt;</code> to mirror shop floor completion, field measure signoffs, and install progress back to SAP in real time.</li>
+            <li><strong>Audit-Compliant Soft Cancellation:</strong> <code>DELETE</code> endpoints idempotently set <code>status: "Cancelled"</code> and <code>isArchived: true</code> to avoid breaking downstream foreign keys in SAP cost collector accounting.</li>
+            <li><strong>Admin API Key Management:</strong> Generate scoped tokens (<code>sm_live_...</code>) directly in the Admin Portal under Settings ➔ API & ERP Integration.</li>
+          </ul>
+          <div style="margin-top: 1.5rem; display: flex; gap: 1rem; flex-wrap: wrap;">
+            <a href="/api-docs.html" target="_blank" style="padding: 0.6rem 1.2rem; background: var(--primary); color: white; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 0.85rem;">
+              ⚡ Open SAP Developer Integration Pack (api-docs.html)
+            </a>
+            <a href="/slabmaster_postman_collection.json" download="slabmaster_postman_collection.json" style="padding: 0.6rem 1.2rem; background: #059669; color: white; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 0.85rem;">
+              📥 Download Postman Collection (.json)
+            </a>
+          </div>
+        </div>
+      </section>
+
+      <!-- 13. SUBSCRIBER ONBOARDING CHECKLIST & SETUP GUIDE -->
+      <section id="subscriber-onboarding">
+        <h2>🚀 Subscriber Onboarding Checklist & Initial Setup Guide</h2>
+        <p>
+          Comprehensive blueprint for provisioning and configuring a new fabricator or enterprise subscriber tenant from zero to live production.
+        </p>
+
+        <div class="card">
+          <h3>Part 1: New Subscriber Information Checklist</h3>
+          <p>Gather the following prerequisite operational and system parameters prior to tenant provisioning:</p>
+          <ul style="margin-left: 1.5rem; margin-top: 0.5rem; line-height: 1.8;">
+            <li><strong>Organization & Identity:</strong> Legal company name, tenant domain (e.g. <code>granitecraft.com</code>), high-res transparent logo, and authentication mode (Entra ID SSO or Hybrid/Local).</li>
+            <li><strong>Regional Facilities & Plants:</strong> Facility names, plant codes (e.g. <code>ATL</code>, <code>PHX</code>), physical yard addresses, timezones, and holiday closure calendars.</li>
+            <li><strong>Crews & Machinery (Assignees):</strong> CNC Sawjet lines, CNC routers, digital laser templating techs, installation teams, and warranty repair trucks.</li>
+            <li><strong>Activity Lifecycle Pipeline:</strong> Standard phase progression (Template ➔ CAD Match ➔ Sawjet ➔ Polish ➔ Field Install ➔ Sign-off) with durations and lead time dependencies.</li>
+            <li><strong>Material & Slab Catalog:</strong> Stone types (Quartz, Granite, Porcelain), color brands (Cambria, Silestone, MSI), standard slab dimensions, and minimum remnant thresholds.</li>
+            <li><strong>Builder Accounts & Job Sites:</strong> Top-level builder accounts, community subdivisions, lot numbers, and corresponding SAP/ERP External IDs (e.g. <code>SAP-CUST-126954</code>, <code>SAP-COMM-LNXAUS</code>, <code>SAP-LOT-LNXAUS-036</code>).</li>
+            <li><strong>Form Templates & Sub-Grids:</strong> Inspection checklists, room-by-room Table Matrix sheets (e.g. <code>ft_sap_config_sheet</code>), and touch glass sign-off waivers.</li>
+            <li><strong>ERP Integration Credentials:</strong> SAP S/4HANA or Moraware endpoints, REST API key scopes, and outbound retry destination URLs.</li>
+          </ul>
+        </div>
+
+        <div class="card">
+          <h3>Part 2: 10-Step Chronological Setup Sequence</h3>
+          <ol style="margin-left: 1.5rem; margin-top: 0.5rem; line-height: 1.8;">
+            <li><strong>Tenant Provisioning:</strong> Create subscriber tenant profile, upload company logo, and configure Entra ID / Local administrator accounts.</li>
+            <li><strong>Regional Hub Configuration:</strong> Register operating facilities (e.g. Atlanta Metro Hub), set local timezones, and define operating hours / company holidays.</li>
+            <li><strong>Register Stations & Mobile Crews:</strong> Add CNC sawjet machines and field mobile trucks as assignees with unique schedule color codes.</li>
+            <li><strong>Build Activity Pipeline:</strong> Create standard milestones (Laser Template, CAD Match, Sawjet Cut, Install, QA Signoff) with inter-activity lead time buffers.</li>
+            <li><strong>Load Slab Inventory:</strong> Enter initial stone materials, colors, bundle numbers, and barcode IDs (e.g. <code>SLB-ATL-2026-0041</code>) with bin/rack warehouse locations.</li>
+            <li><strong>Setup Builder Master Hierarchy:</strong> Create the first Builder Account (e.g. Lennar GA), Subdivision Community (Austin Park), and Lot (Lot 000036) with ERP External IDs.</li>
+            <li><strong>Configure Table Matrix & Forms:</strong> Build digital form templates, room specification sub-tables, and touch signature fields for field tablets.</li>
+            <li><strong>Create First Job & Schedule:</strong> Create the first work order (e.g. <code>SAP-SO-10170</code>), allocate warehouse slabs, and apply the automated activity schedule template.</li>
+            <li><strong>Test Shop Floor & Mobile Sign-Off:</strong> Simulate shop floor kiosk cut execution on Sawjet Line 1 and mobile PWA offline signature capture.</li>
+            <li><strong>Generate API Keys & Connect ERP:</strong> Generate live REST API credentials (<code>sm_live_...</code>) and verify two-way sync with the Outbound ERP Retry Queue.</li>
+          </ol>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <footer>
+    © 2026 SlabMaster | v1.0.0 — Enterprise Countertop Fabrication & Field Dispatch Platform
+  </footer>
+
+</body>
+</html>
