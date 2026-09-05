@@ -1,0 +1,7 @@
+Capture complex field data without cellular coverage using SlabMaster's offline PWA form packets.
+
+Form packets bundle field checklists, CAD drawings, and room-by-room stone specification sheets.
+
+Under Custom Form Templates, our Table Matrix sub-grids allow templaters to enter room rows—such as Island and Perimeter—with automatic lineal feet, square footage, and cutout math.
+
+Technicians attach field site photos and capture builder superintendent signatures directly on glass, syncing automatically when connectivity returns.

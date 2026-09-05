@@ -1,0 +1,9 @@
+In SlabMaster, we organize commercial stone fabrication around a true three-tier builder hierarchy.
+
+Starting from the Accounts dashboard, we see our master roster of national builders, each mapped with corporate ERP customer codes.
+
+Drilling down into Lennar Homes Georgia, we see their active subdivision communities, including Austin Park at Highland.
+
+Within Austin Park, we manage individual home parcels and lot numbers like Lot 000036, each with dedicated elevation models, job site addresses, and superintendent contacts.
+
+This three-tier structure guarantees flawless data alignment between field operations and your central enterprise ERP.

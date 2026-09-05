@@ -1,0 +1,7 @@
+Eliminate paper shop travelers with SlabMaster's touch-optimized Shop Floor Kiosk.
+
+Mounted on tablet displays next to machines like CNC Sawjet Line 1, operators see an uncluttered, high-contrast cutting queue with real-time job timers.
+
+Operators can switch machine stations between sawjets, CNC routers, and edge polish lines.
+
+With large touch targets, technicians can start cuts, scan slab barcodes, and advance piece progress in one tap.

@@ -1,0 +1,7 @@
+The SlabMaster job engine coordinates complex fabrication pipelines with working-day lead time protection.
+
+From the Jobs grid, we monitor active work orders linked directly to SAP sales orders like SAP-SO-10170.
+
+Opening the job detail reveals our six-stage activity lifecycle, sequencing digital laser templating, stone CAD programming, sawjet CNC cutting, edge polishing, field installation, and customer sign-off.
+
+Switching to the Production Calendar, every activity is scheduled across shop machines and mobile crews, automatically skipping plant closure days and contractor holidays.

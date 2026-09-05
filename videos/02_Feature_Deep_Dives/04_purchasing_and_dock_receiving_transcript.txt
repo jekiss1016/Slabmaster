@@ -1,0 +1,7 @@
+Streamline distributor procurement with SlabMaster's Purchasing and Purchase Order module.
+
+Here, purchasing teams track open distributor purchase orders, vendor expected ship dates, and assigned job allocations.
+
+When the delivery truck arrives at the fabrication yard, receiving personnel click Receive to verify bundle contents and barcode tags.
+
+With a single click, slabs are instantly received at the dock and deposited directly into active warehouse inventory.

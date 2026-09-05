@@ -1,0 +1,7 @@
+Enterprise integration in SlabMaster is secure, observable, and resilient.
+
+Under Settings and API Integration, administrators generate live REST API tokens with granular read and write permissions for external SAP S/4HANA systems.
+
+Below, the Outbound ERP Retry Queue provides real-time visibility into outbound sync operations, featuring progressive exponential backoff ladders.
+
+If a destination ERP experiences downtime, dead-letter records can be inspected, diagnosed, and manually retried individually or in batches.

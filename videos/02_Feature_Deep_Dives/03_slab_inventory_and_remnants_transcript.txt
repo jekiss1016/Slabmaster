@@ -1,0 +1,7 @@
+SlabMaster delivers complete stone visibility with serialized barcode tracking and automated remnant management.
+
+In the Slab Inventory view, every slab is serialized with thermal barcodes, recording precise length, width, total square footage, and warehouse rack bin assignments.
+
+Using the material category filter, we can instantly isolate quartz, granite, or porcelain inventory.
+
+When slabs are allocated and cut on the shop floor, leftover stone exceeding minimum threshold dimensions automatically converts into reusable remnant stock.

@@ -1,0 +1,21 @@
+Welcome to SlabMaster. In this walkthrough, we will demonstrate how to configure a brand-new countertop fabrication subscriber tenant from day zero all the way to live shop floor production and enterprise ERP synchronization.
+
+First, we navigate to Settings to configure our primary regional facility. Here, we establish the Atlanta Metro Hub with plant code ATL, set local operating timezones, and configure the company holiday closure schedule.
+
+Next, under Job Settings and Activities, we register our physical cutting machinery, including CNC Sawjet Line 1, as well as our mobile field crews, digital laser templaters, and installation trucks, each color-coded for visual dispatch.
+
+In the Slab Inventory module, we load our initial stone catalog. Here we track serialized barcodes like SLB-ATL-2026-0041, recording exact dimensions, square footage, warehouse rack bins, and remnant threshold rules.
+
+Under Accounts, we manage our corporate builder relationships using a true three-tier hierarchy. Notice how Lennar Homes GA connects directly to the Austin Park subdivision and individual parcels like Lot 000036, all tagged with enterprise SAP External IDs.
+
+Moving to the Jobs module, we create work order SAP-SO-10170. We allocate our warehouse slabs directly to the job and apply an automated activity pipeline, calculating working-day lead times across templating, CAD, sawjet cutting, polishing, and installation.
+
+On the Production Calendar, activities populate across shop and field resources, automatically respecting shift schedules and skipping non-working holidays.
+
+For shop technicians, the Shop Floor Kiosk view delivers a high-contrast touch queue on tablet screens. Operators at Sawjet Line 1 can start cuts, verify barcodes, and advance piece statuses in one tap.
+
+Field installers utilize the offline PWA form runner to record room-by-room stone specifications with dynamic Table Matrix sub-grids, capturing builder superintendent signatures directly on touch glass.
+
+Finally, in Admin Settings, we generate scoped REST API keys and monitor the Outbound ERP Retry Queue, where outbound pushes to SAP S/4HANA utilize progressive exponential backoff with dead-letter recovery controls.
+
+With these ten steps complete, your new subscriber account is fully verified and ready for live production.
