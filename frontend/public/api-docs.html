@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SlabMaster REST API & SAP S/4HANA Integration Pack</title>
+  <link rel="icon" type="image/png" href="/icon-192.png">
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --primary: #3b82f6;
+      --primary-hover: #2563eb;
+      --border: #334155;
+      --code-bg: #090d16;
+      --accent-badge: #1e3a8a;
+      --accent-badge-text: #93c5fd;
+      --accent-emerald: #059669;
+      --accent-amber: #d97706;
+    }
+    @media (prefers-color-scheme: light) {
+      :root {
+        --bg: #f8fafc;
+        --card-bg: #ffffff;
+        --text: #0f172a;
+        --text-muted: #64748b;
+        --primary: #2563eb;
+        --primary-hover: #1d4ed8;
+        --border: #e2e8f0;
+        --code-bg: #1e293b;
+        --accent-badge: #dbeafe;
+        --accent-badge-text: #1d4ed8;
+        --accent-emerald: #047857;
+        --accent-amber: #b45309;
+      }
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+    header {
+      background: var(--card-bg);
+      border-bottom: 1px solid var(--border);
+      padding: 1rem 2rem;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .header-title {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      font-size: 1.25rem;
+      font-weight: 800;
+      color: var(--primary);
+    }
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    .btn {
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 0.85rem;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: all 0.15s ease;
+      cursor: pointer;
+      border: 1px solid transparent;
+    }
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-primary:hover { background: var(--primary-hover); }
+    .btn-outline { border-color: var(--border); color: var(--text); background: transparent; }
+    .btn-outline:hover { background: var(--border); }
+    .btn-emerald { background: var(--accent-emerald); color: white; }
+    .btn-emerald:hover { opacity: 0.9; }
+
+    .layout {
+      display: flex;
+      flex: 1;
+      max-width: 1440px;
+      margin: 0 auto;
+      width: 100%;
+    }
+    nav.sidebar {
+      width: 290px;
+      padding: 2rem 1.5rem;
+      border-right: 1px solid var(--border);
+      position: sticky;
+      top: 65px;
+      height: calc(100vh - 65px);
+      overflow-y: auto;
+      flex-shrink: 0;
+    }
+    nav.sidebar h3 {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      margin-bottom: 0.75rem;
+      margin-top: 1.5rem;
+    }
+    nav.sidebar h3:first-child { margin-top: 0; }
+    nav.sidebar ul { list-style: none; }
+    nav.sidebar li { margin-bottom: 0.35rem; }
+    nav.sidebar a {
+      color: var(--text);
+      text-decoration: none;
+      font-size: 0.875rem;
+      font-weight: 500;
+      display: block;
+      padding: 0.35rem 0.6rem;
+      border-radius: 6px;
+      transition: all 0.15s;
+    }
+    nav.sidebar a:hover {
+      background: var(--accent-badge);
+      color: var(--accent-badge-text);
+    }
+    main.content {
+      flex: 1;
+      padding: 2.5rem 3.5rem;
+      max-width: 1050px;
+    }
+    section {
+      margin-bottom: 4rem;
+      scroll-margin-top: 80px;
+    }
+    h1 { font-size: 2.3rem; font-weight: 900; margin-bottom: 0.75rem; }
+    h2 { font-size: 1.6rem; font-weight: 800; margin-bottom: 1rem; color: var(--primary); display: flex; align-items: center; gap: 0.5rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; }
+    h3 { font-size: 1.15rem; font-weight: 700; margin: 1.5rem 0 0.5rem; }
+    p { margin-bottom: 1rem; font-size: 0.95rem; color: var(--text); }
+    .badge {
+      display: inline-block;
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 0.2rem 0.5rem;
+      border-radius: 9999px;
+      background: var(--accent-badge);
+      color: var(--accent-badge-text);
+      text-transform: uppercase;
+    }
+    .badge-post { background: #065f46; color: #a7f3d0; }
+    .badge-get { background: #1e3a8a; color: #bfdbfe; }
+    .badge-delete { background: #881337; color: #fecdd3; }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+    .alert {
+      border-left: 4px solid var(--primary);
+      padding: 1rem 1.25rem;
+      background: rgba(59, 130, 246, 0.08);
+      border-radius: 0 8px 8px 0;
+      margin: 1.25rem 0;
+      font-size: 0.9rem;
+    }
+    .alert-amber {
+      border-left-color: var(--accent-amber);
+      background: rgba(217, 119, 6, 0.08);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1rem 0;
+      font-size: 0.875rem;
+    }
+    th, td {
+      border: 1px solid var(--border);
+      padding: 0.65rem 0.85rem;
+      text-align: left;
+    }
+    th { background: var(--card-bg); font-weight: 700; }
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 0.88em;
+      background: rgba(125, 125, 125, 0.15);
+      padding: 0.15em 0.35em;
+      border-radius: 4px;
+    }
+    pre {
+      background: var(--code-bg);
+      color: #e2e8f0;
+      padding: 1.25rem;
+      border-radius: 10px;
+      overflow-x: auto;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 0.85rem;
+      line-height: 1.5;
+      margin: 1rem 0;
+      border: 1px solid var(--border);
+    }
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 1.5rem;
+      text-align: center;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      background: var(--card-bg);
+    }
+    @media (max-width: 900px) {
+      .layout { flex-direction: column; }
+      nav.sidebar { width: 100%; height: auto; position: static; border-right: none; border-bottom: 1px solid var(--border); }
+      main.content { padding: 1.5rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="header-title">
+      <span>?? SlabMaster Enterprise</span>
+      <span class="badge">SAP Integration Pack</span>
+    </div>
+    <div class="header-actions">
+      <a href="/slabmaster_postman_collection.json" download="slabmaster_postman_collection.json" class="btn btn-emerald">
+        ?? Download Postman Collection
+      </a>
+      <a href="/help.html" class="btn btn-outline">User Help Guide</a>
+      <a href="/" class="btn btn-primary">Open App</a>
+    </div>
+  </header>
+
+  <div class="layout">
+    <nav class="sidebar">
+      <h3>Integration Guide</h3>
+      <ul>
+        <li><a href="#overview">1. Executive Overview</a></li>
+        <li><a href="#authentication">2. Authentication & Keys</a></li>
+        <li><a href="#sap-mapping">3. SAP Data Field Mapping</a></li>
+        <li><a href="#endpoints">4. REST CRUD Endpoints</a></li>
+        <li><a href="#abap-sample">5. ABAP Integration Code</a></li>
+        <li><a href="#cdc-feed">6. Two-Way CDC Sync</a></li>
+        <li><a href="#resilience">7. Retries & Dead-Letter Queue</a></li>
+        <li><a href="#postman">8. Testing with Postman</a></li>
+      </ul>
+
+      <h3>Quick Links</h3>
+      <ul>
+        <li><a href="#jobs-upsert">POST /api/v1/jobs/upsert</a></li>
+        <li><a href="#lots-upsert">POST /api/v1/lots/upsert</a></li>
+        <li><a href="#cdc-endpoint">GET /api/v1/sync/changes</a></li>
+        <li><a href="#queue-retry">POST /api/v1/sync/queue/:id/retry</a></li>
+      </ul>
+    </nav>
+
+    <main class="content">
+
+      <!-- 1. OVERVIEW -->
+      <section id="overview">
+        <h1>SlabMaster REST API & SAP S/4HANA Integration</h1>
+        <p class="lead" style="font-size: 1.1rem; color: var(--text-muted); margin-bottom: 1.5rem;">
+          A modern, high-throughput RESTful JSON API designed for SAP enterprise resource planning, Project Systems (WBS), and field fabrication synchronization.
+        </p>
+
+        <div class="card">
+          <h3>Why This API Supersedes Moraware</h3>
+          <ul style="margin-left: 1.25rem; line-height: 1.8;">
+            <li><strong>First-Class External ID Routing:</strong> Use SAP WBS Elements, Purchase Orders, and Lot codes directly in REST paths and upsert payloads without internal UUID translation tables.</li>
+            <li><strong>Full CRUD with Idempotent Upserts:</strong> Eliminates duplicate creation errors caused by network re-transmissions.</li>
+            <li><strong>Two-Way Change Data Capture (CDC):</strong> SAP polls clean delta feeds to capture shop floor progress, digital templating signoffs, and completed installs.</li>
+            <li><strong>Audit-Compliant Soft Cancellation:</strong> Protects SAP cost accounting by flagging records as cancelled rather than breaking foreign keys.</li>
+            <li><strong>Automated Dead-Letter Queue:</strong> Outbound pushes to SAP use progressive backoff (1m ? 5m ? 15m ? 1h) with manual retry controls in the Admin Portal.</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- 2. AUTHENTICATION -->
+      <section id="authentication">
+        <h2>?? 2. Authentication & Security</h2>
+        <p>Every REST request requires a tenant-scoped API key passed via standard HTTP headers:</p>
+
+        <pre><code># Recommended Header Format:
+X-API-Key: sm_live_9f83a1b4c7e28910fedcba45
+
+# Or Standard Bearer Authorization:
+Authorization: Bearer sm_live_9f83a1b4c7e28910fedcba45</code></pre>
+
+        <div class="alert">
+          <strong>Token Generation:</strong> Tenant administrators generate integration keys in the SlabMaster Admin Portal under <code>Settings ? API & ERP Integration</code>. Tokens are SHA-256 hashed prior to storage and can be scoped with <code>read</code>, <code>write</code>, <code>sync</code>, and <code>delete</code> permissions.
+        </div>
+      </section>
+
+      <!-- 3. SAP FIELD MAPPING -->
+      <section id="sap-mapping">
+        <h2>??? 3. SAP ERP Data Field Mapping Matrix</h2>
+        <p>This table maps standard SAP S/4HANA & ECC entities to SlabMaster's 3-tier hierarchy:</p>
+
+        <table>
+          <thead>
+            <tr>
+              <th>SAP Entity / Table</th>
+              <th>SAP Field Name</th>
+              <th>SlabMaster Route / Field</th>
+              <th>Description & Role</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Customer Master (KNA1)</strong></td>
+              <td><code>KUNNR</code> / <code>NAME1</code></td>
+              <td><code>Account.external_id</code></td>
+              <td>Builder / General Contractor Master</td>
+            </tr>
+            <tr>
+              <td><strong>Real Estate / Subdivision</strong></td>
+              <td><code>SWERK</code> / <code>OBJNR</code></td>
+              <td><code>Community.external_id</code></td>
+              <td>Residential Development / Subdivision</td>
+            </tr>
+            <tr>
+              <td><strong>Unit / Building Plot</strong></td>
+              <td><code>PARKZ</code> / Unit ID</td>
+              <td><code>Lot.external_id</code></td>
+              <td>Physical Lot / Unit (1 Lot ? Many Jobs)</td>
+            </tr>
+            <tr>
+              <td><strong>Sales Order (VBAK)</strong></td>
+              <td><code>VBELN</code></td>
+              <td><code>Job.external_id</code></td>
+              <td>Fabrication & Install Work Order</td>
+            </tr>
+            <tr>
+              <td><strong>WBS Element (PRPS)</strong></td>
+              <td><code>POSID</code> / <code>PSPNR</code></td>
+              <td><code>Job.project_number</code></td>
+              <td>Cost Collector & Project Milestone</td>
+            </tr>
+            <tr>
+              <td><strong>Plant / Facility (T001W)</strong></td>
+              <td><code>WERKS</code></td>
+              <td><code>Region.region_code</code></td>
+              <td>Regional Fabrication Shop (e.g. ATL, PHX)</td>
+            </tr>
+            <tr>
+              <td><strong>Milestone / Phase</strong></td>
+              <td><code>MLST</code> / <code>AUFNR</code></td>
+              <td><code>JobActivity.external_id</code></td>
+              <td>Phase (Template, Fab, Install)</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- 4. ENDPOINTS -->
+      <section id="endpoints">
+        <h2>? 4. REST CRUD Endpoints</h2>
+
+        <!-- Job Upsert -->
+        <div id="jobs-upsert" class="card">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <span class="badge badge-post">POST</span>
+              <strong style="font-family: monospace; font-size: 1rem;">/api/v1/jobs/upsert</strong>
+            </div>
+            <span class="badge">Idempotent</span>
+          </div>
+          <p>Creates or updates a Job linked to a Lot using SAP external identifiers:</p>
+
+          <pre><code>POST /api/v1/jobs/upsert HTTP/1.1
+Host: dev.slabmasterapp.com
+X-API-Key: sm_live_9f83a1b4c7e28910fedcba45
+Content-Type: application/json
+
+{
+  "external_id": "SAP-ORD-90210",
+  "account_external_id": "SAP-BLD-01",
+  "community_external_id": "COMM-HIGHLAND",
+  "lot_external_id": "LOT-HIGHLAND-14",
+  "job_name": "Kitchen Perimeter & Waterfall Island",
+  "job_category": "INITIAL_INSTALL",
+  "project_number": "PRJ-2026-904",
+  "sales_order_number": "SO-881920",
+  "target_install_date": "2026-09-22T00:00:00Z"
+}</code></pre>
+
+          <p><strong>Response (HTTP 200 OK):</strong></p>
+          <pre><code>{
+  "message": "Job updated successfully.",
+  "operation": "UPDATED",
+  "data": {
+    "jobUuid": "a823e59b-12d4-42ea-...",
+    "externalId": "SAP-ORD-90210",
+    "jobName": "Kitchen Perimeter & Waterfall Island",
+    "status": "Active"
+  }
+}</code></pre>
+        </div>
+
+        <!-- Lot Upsert -->
+        <div id="lots-upsert" class="card">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <span class="badge badge-post">POST</span>
+              <strong style="font-family: monospace; font-size: 1rem;">/api/v1/lots/upsert</strong>
+            </div>
+            <span class="badge">Idempotent</span>
+          </div>
+          <p>Creates or updates a Lot container under an Account and Community:</p>
+
+          <pre><code>POST /api/v1/lots/upsert HTTP/1.1
+Host: dev.slabmasterapp.com
+X-API-Key: sm_live_9f83a1b4c7e28910fedcba45
+Content-Type: application/json
+
+{
+  "external_id": "LOT-HIGHLAND-14",
+  "account_external_id": "SAP-BLD-01",
+  "community_external_id": "COMM-HIGHLAND",
+  "lot_number": "14",
+  "street_address": "10428 E Sunburst Trail",
+  "target_install_date": "2026-09-22"
+}</code></pre>
+        </div>
+      </section>
+
+      <!-- 5. ABAP CODE SAMPLE -->
+      <section id="abap-sample">
+        <h2>?? 5. SAP ABAP Integration Code Sample</h2>
+        <p>SAP developers can use the standard <code>cl_http_client</code> class to push orders from SAP S/4HANA or ECC to SlabMaster:</p>
+
+        <pre><code>REPORT z_slabmaster_job_upsert.
+
+DATA: lo_http_client TYPE REF TO if_http_client,
+      lv_url         TYPE string VALUE 'https://dev.slabmasterapp.com/api/v1/jobs/upsert',
+      lv_api_key     TYPE string VALUE 'sm_live_9f83a1b4c7e28910fedcba45',
+      lv_json        TYPE string,
+      lv_response    TYPE string,
+      lv_subrc       TYPE sy-subrc.
+
+" Build JSON payload from SAP Sales Order / WBS
+lv_json = '{"external_id":"SAP-ORD-90210",' &&
+          '"account_external_id":"SAP-BLD-01",' &&
+          '"community_external_id":"COMM-HIGHLAND",' &&
+          '"lot_external_id":"LOT-HIGHLAND-14",' &&
+          '"job_name":"Kitchen Perimeter & Island",' &&
+          '"target_install_date":"2026-09-22T00:00:00Z"}'.
+
+" Create HTTP Client by URL
+cl_http_client=>create_by_url(
+  EXPORTING url    = lv_url
+  IMPORTING client = lo_http_client ).
+
+" Set Headers
+lo_http_client->request->set_method( if_http_request=>co_request_method_post ).
+lo_http_client->request->set_header_field( name = 'X-API-Key' value = lv_api_key ).
+lo_http_client->request->set_header_field( name = 'Content-Type' value = 'application/json' ).
+lo_http_client->request->set_cdata( lv_json ).
+
+" Send and Receive
+lo_http_client->send( ).
+lo_http_client->receive(
+  EXCEPTIONS
+    http_communication_failure = 1
+    http_invalid_state         = 2
+    http_processing_failed     = 3
+    OTHERS                     = 4 ).
+
+IF sy-subrc = 0.
+  lv_response = lo_http_client->response->get_cdata( ).
+  WRITE: / 'SlabMaster Synchronized Successfully:', lv_response.
+ELSE.
+  WRITE: / 'Error Calling SlabMaster API:', sy-subrc.
+ENDIF.
+
+lo_http_client->close( ).</code></pre>
+      </section>
+
+      <!-- 6. TWO-WAY CDC SYNC -->
+      <section id="cdc-feed">
+        <h2 id="cdc-endpoint">?? 6. Two-Way Change Data Capture (CDC)</h2>
+        <p>
+          To capture shop floor progress and installation signoffs without firewall-blocked webhooks, SAP middleware polls the delta feed:
+        </p>
+
+        <pre><code>GET /api/v1/sync/changes?since=2026-09-04T12:00:00Z&limit=100 HTTP/1.1
+Host: dev.slabmasterapp.com
+X-API-Key: sm_live_9f83a1b4c7e28910fedcba45</code></pre>
+
+        <p><strong>Delta Event Response:</strong></p>
+        <pre><code>{
+  "data": [
+    {
+      "id": 1042,
+      "entityType": "JOB",
+      "entityId": "a823e59b-12d4-42ea-...",
+      "changedByName": "Field Lead Tablet (PWA)",
+      "changeSummary": "Install sign-off completed with customer signature",
+      "fieldName": "status",
+      "oldValue": "In Fabrication",
+      "newValue": "Installed & Signed",
+      "createdAt": "2026-09-04T18:45:12.000Z"
+    }
+  ],
+  "metadata": {
+    "count": 1,
+    "since": "2026-09-04T12:00:00Z",
+    "cursor": "2026-09-04T18:45:12.000Z",
+    "hasMore": false
+  }
+}</code></pre>
+      </section>
+
+      <!-- 7. RESILIENCE & RETRIES -->
+      <section id="resilience">
+        <h2>??? 7. Outbound Resilience & Dead-Letter Queue</h2>
+        <p>
+          When SlabMaster pushes milestones back to SAP and encounters network interruptions or SAP maintenance downtime, events enter the <strong>Outbound ERP Retry Queue</strong> with automated progressive backoff:
+        </p>
+
+        <table>
+          <thead>
+            <tr>
+              <th>Attempt #</th>
+              <th>Backoff Delay</th>
+              <th>Target Failure Type</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Attempt 1</strong></td>
+              <td>Immediate (0s)</td>
+              <td>Transient socket/TLS negotiation resets</td>
+            </tr>
+            <tr>
+              <td><strong>Attempt 2</strong></td>
+              <td>1 Minute</td>
+              <td>Brief microservice restarts</td>
+            </tr>
+            <tr>
+              <td><strong>Attempt 3</strong></td>
+              <td>5 Minutes</td>
+              <td>Rate limit (HTTP 429) backoff</td>
+            </tr>
+            <tr>
+              <td><strong>Attempt 4</strong></td>
+              <td>15 Minutes</td>
+              <td>Load balancer failovers</td>
+            </tr>
+            <tr>
+              <td><strong>Attempt 5</strong></td>
+              <td>1 Hour</td>
+              <td>Scheduled maintenance windows</td>
+            </tr>
+            <tr>
+              <td><strong>Exhausted</strong></td>
+              <td>Stuck / Dead-Letter (<code>FAILED</code>)</td>
+              <td>Requires admin review & manual retry trigger</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div id="queue-retry" class="card">
+          <h3>Manual Recovery Endpoints</h3>
+          <pre><code># Retry a specific stuck item:
+POST /api/v1/sync/queue/queue-tx-9941/retry
+
+# Batch retry all failed items in the dead-letter queue:
+POST /api/v1/sync/queue/retry-all</code></pre>
+        </div>
+      </section>
+
+      <!-- 8. POSTMAN -->
+      <section id="postman">
+        <h2>?? 8. Testing with Postman</h2>
+        <p>
+          You can test every endpoint immediately using our official pre-configured Postman Collection:
+        </p>
+
+        <ol style="margin-left: 1.5rem; line-height: 2;">
+          <li>Download the collection: <a href="/slabmaster_postman_collection.json" download="slabmaster_postman_collection.json" style="color: var(--primary); font-weight: bold;">slabmaster_postman_collection.json</a></li>
+          <li>Open Postman ? Click <strong>Import</strong> ? Select the JSON file.</li>
+          <li>Navigate to the collection's <strong>Variables</strong> tab and enter your active API token in the <code>apiKey</code> field.</li>
+          <li>Execute queries against <code>{{baseUrl}}/api/v1/...</code> with automatic authorization!</li>
+        </ol>
+      </section>
+
+    </main>
+  </div>
+
+  <footer>
+    ? 2026 SlabMaster | v1.0.0 ? Enterprise Countertop Fabrication & Field Dispatch Platform
+  </footer>
+
+</body>
+</html>

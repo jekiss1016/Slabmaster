@@ -1,6 +1,13 @@
-﻿import { FastifyInstance, FastifyPluginAsync } from 'fastify';
-import { PrismaClient } from '@prisma/client';
+import { FastifyInstance, FastifyPluginAsync } from 'fastify';
+import { PrismaClient, ErpSyncStatus } from '@prisma/client';
 import { requireAuthOrApiKey, AuthenticatedRequest } from '../middleware/authMiddleware';
+import {
+  listQueueItems,
+  manualRetryItem,
+  retryAllFailedItems,
+  enqueueErpOutbound,
+  recordAttemptFailure,
+} from '../services/erpQueueService';
 
 const prisma = new PrismaClient();
 
@@ -689,4 +696,61 @@ export const externalSyncRoutes: FastifyPluginAsync = async (fastify: FastifyIns
       },
     };
   });
+
+  // ==========================================
+  // 7. OUTBOUND ERP RETRY QUEUE & DEAD-LETTER
+  // ==========================================
+
+  // GET /api/v1/sync/queue?status=FAILED|RETRYING|PENDING|COMPLETED
+  fastify.get('/api/v1/sync/queue', async (request, reply) => {
+    const tenantId = (request as AuthenticatedRequest).tenantId!;
+    const { status } = request.query as { status?: ErpSyncStatus };
+    const items = await listQueueItems(tenantId, status);
+    return { data: items };
+  });
+
+  // POST /api/v1/sync/queue/:id/retry - Manual trigger for stuck item
+  fastify.post('/api/v1/sync/queue/:id/retry', async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const updated = await manualRetryItem(id);
+    if (!updated) {
+      return reply.status(404).send({ error: 'Queue item not found.' });
+    }
+    return { message: 'Item queued for immediate retry.', data: updated };
+  });
+
+  // POST /api/v1/sync/queue/retry-all - Batch retry all failed items
+  fastify.post('/api/v1/sync/queue/retry-all', async (request, reply) => {
+    const tenantId = (request as AuthenticatedRequest).tenantId!;
+    const result = await retryAllFailedItems(tenantId);
+    return { message: `Queued ${result.count} failed items for retry.`, count: result.count };
+  });
+
+  // POST /api/v1/sync/queue/enqueue - Enqueue outbound push (used by shop floor events or testing)
+  fastify.post('/api/v1/sync/queue/enqueue', async (request, reply) => {
+    const tenantId = (request as AuthenticatedRequest).tenantId!;
+    const body = (request.body || {}) as {
+      entity_type: string;
+      entity_id: string;
+      action: string;
+      payload: any;
+      destination_url?: string;
+    };
+
+    if (!body.entity_type || !body.entity_id || !body.action) {
+      return reply.status(400).send({ error: 'entity_type, entity_id, and action are required.' });
+    }
+
+    const item = await enqueueErpOutbound(
+      tenantId,
+      body.entity_type,
+      body.entity_id,
+      body.action,
+      body.payload || {},
+      body.destination_url
+    );
+
+    return reply.status(201).send({ message: 'Outbound event enqueued.', data: item });
+  });
 };
+

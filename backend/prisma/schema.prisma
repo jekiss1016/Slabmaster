@@ -34,6 +34,7 @@ model SubscriberTenant {
   files           JobFile[]
   issues          JobIssue[]
   apiKeys         ApiKey[]
+  erpQueue        ErpOutboundQueue[]
 
   @@map("subscriber_tenants")
 }
@@ -467,3 +468,34 @@ model ApiKey {
   @@index([tenantId])
   @@map("api_keys")
 }
+
+// 18. ERP OUTBOUND SYNC & RETRY QUEUE (For Resilient SAP Integration)
+model ErpOutboundQueue {
+  id             String           @id @default(uuid()) @map("queue_id")
+  tenantId       String           @map("tenant_id")
+  entityType     String           @map("entity_type") // Job, Account, Community, Lot, Activity
+  entityId       String           @map("entity_id")   // External or Internal ID
+  action         String           @map("action")      // UPSERT, STATUS_UPDATE, CANCEL
+  payload        String           @map("payload")     // JSON payload
+  destinationUrl String?          @map("destination_url")
+  status         ErpSyncStatus    @default(PENDING) @map("status")
+  attempts       Int              @default(0) @map("attempts")
+  maxAttempts    Int              @default(5) @map("max_attempts")
+  nextRetryAt    DateTime?        @map("next_retry_at")
+  lastError      String?          @map("last_error")
+  createdAt      DateTime         @default(now()) @map("created_at")
+  updatedAt      DateTime         @updatedAt @map("updated_at")
+
+  tenant         SubscriberTenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, status])
+  @@map("erp_outbound_queue")
+}
+
+enum ErpSyncStatus {
+  PENDING
+  RETRYING
+  FAILED
+  COMPLETED
+}
+

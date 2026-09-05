@@ -1,7 +1,7 @@
 {
   "navigationFallback": {
     "rewrite": "/index.html",
-    "exclude": ["/assets/*", "/*.{png,jpg,jpeg,gif,svg,ico,css,js,html,webmanifest}", "/comparison.html", "/help.html"]
+    "exclude": ["/assets/*", "/*.{png,jpg,jpeg,gif,svg,ico,css,js,html,webmanifest,json}", "/comparison.html", "/help.html", "/api-docs.html", "/slabmaster_postman_collection.json"]
   },
   "responseOverrides": {
     "404": {
