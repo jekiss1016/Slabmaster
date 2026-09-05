@@ -24,7 +24,8 @@ describe('Application Documentation & Help File Maintenance (Rule 6)', () => {
       'id="table-matrix"',
       'id="forms"',
       'id="settings"',
-      'id="api-integration"'
+      'id="api-integration"',
+      'id="subscriber-onboarding"'
     ];
 
     expectedAnchors.forEach(anchor => {
@@ -47,7 +48,8 @@ describe('Application Documentation & Help File Maintenance (Rule 6)', () => {
       'href="#table-matrix"',
       'href="#forms"',
       'href="#settings"',
-      'href="#api-integration"'
+      'href="#api-integration"',
+      'href="#subscriber-onboarding"'
     ];
 
     expectedLinks.forEach(link => {

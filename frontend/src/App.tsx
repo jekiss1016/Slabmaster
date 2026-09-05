@@ -10870,6 +10870,13 @@ export default function App() {
                     icon: KeyRound,
                     badge: 'Enterprise API'
                   },
+                  {
+                    title: 'Subscriber Onboarding Guide',
+                    desc: 'New subscriber prerequisite checklist and 10-step initial setup sequence from day zero to first cut and install.',
+                    anchor: '/help.html#subscriber-onboarding',
+                    icon: CheckSquare,
+                    badge: 'Setup Guide'
+                  },
                 ].map((item) => (
                   <a
                     key={item.title}

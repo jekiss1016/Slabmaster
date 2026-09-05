@@ -225,6 +225,7 @@
       <h3>Administration</h3>
       <ul>
         <li><a href="#settings">Multi-Plant & Security Settings</a></li>
+        <li><a href="#subscriber-onboarding">Subscriber Onboarding Guide</a></li>
       </ul>
 
       <h3>Integration & Developers</h3>
@@ -427,6 +428,45 @@
               📥 Download Postman Collection (.json)
             </a>
           </div>
+        </div>
+      </section>
+
+      <!-- 13. SUBSCRIBER ONBOARDING CHECKLIST & SETUP GUIDE -->
+      <section id="subscriber-onboarding">
+        <h2>🚀 Subscriber Onboarding Checklist & Initial Setup Guide</h2>
+        <p>
+          Comprehensive blueprint for provisioning and configuring a new fabricator or enterprise subscriber tenant from zero to live production.
+        </p>
+
+        <div class="card">
+          <h3>Part 1: New Subscriber Information Checklist</h3>
+          <p>Gather the following prerequisite operational and system parameters prior to tenant provisioning:</p>
+          <ul style="margin-left: 1.5rem; margin-top: 0.5rem; line-height: 1.8;">
+            <li><strong>Organization & Identity:</strong> Legal company name, tenant domain (e.g. <code>granitecraft.com</code>), high-res transparent logo, and authentication mode (Entra ID SSO or Hybrid/Local).</li>
+            <li><strong>Regional Facilities & Plants:</strong> Facility names, plant codes (e.g. <code>ATL</code>, <code>PHX</code>), physical yard addresses, timezones, and holiday closure calendars.</li>
+            <li><strong>Crews & Machinery (Assignees):</strong> CNC Sawjet lines, CNC routers, digital laser templating techs, installation teams, and warranty repair trucks.</li>
+            <li><strong>Activity Lifecycle Pipeline:</strong> Standard phase progression (Template ➔ CAD Match ➔ Sawjet ➔ Polish ➔ Field Install ➔ Sign-off) with durations and lead time dependencies.</li>
+            <li><strong>Material & Slab Catalog:</strong> Stone types (Quartz, Granite, Porcelain), color brands (Cambria, Silestone, MSI), standard slab dimensions, and minimum remnant thresholds.</li>
+            <li><strong>Builder Accounts & Job Sites:</strong> Top-level builder accounts, community subdivisions, lot numbers, and corresponding SAP/ERP External IDs (e.g. <code>SAP-CUST-126954</code>, <code>SAP-COMM-LNXAUS</code>, <code>SAP-LOT-LNXAUS-036</code>).</li>
+            <li><strong>Form Templates & Sub-Grids:</strong> Inspection checklists, room-by-room Table Matrix sheets (e.g. <code>ft_sap_config_sheet</code>), and touch glass sign-off waivers.</li>
+            <li><strong>ERP Integration Credentials:</strong> SAP S/4HANA or Moraware endpoints, REST API key scopes, and outbound retry destination URLs.</li>
+          </ul>
+        </div>
+
+        <div class="card">
+          <h3>Part 2: 10-Step Chronological Setup Sequence</h3>
+          <ol style="margin-left: 1.5rem; margin-top: 0.5rem; line-height: 1.8;">
+            <li><strong>Tenant Provisioning:</strong> Create subscriber tenant profile, upload company logo, and configure Entra ID / Local administrator accounts.</li>
+            <li><strong>Regional Hub Configuration:</strong> Register operating facilities (e.g. Atlanta Metro Hub), set local timezones, and define operating hours / company holidays.</li>
+            <li><strong>Register Stations & Mobile Crews:</strong> Add CNC sawjet machines and field mobile trucks as assignees with unique schedule color codes.</li>
+            <li><strong>Build Activity Pipeline:</strong> Create standard milestones (Laser Template, CAD Match, Sawjet Cut, Install, QA Signoff) with inter-activity lead time buffers.</li>
+            <li><strong>Load Slab Inventory:</strong> Enter initial stone materials, colors, bundle numbers, and barcode IDs (e.g. <code>SLB-ATL-2026-0041</code>) with bin/rack warehouse locations.</li>
+            <li><strong>Setup Builder Master Hierarchy:</strong> Create the first Builder Account (e.g. Lennar GA), Subdivision Community (Austin Park), and Lot (Lot 000036) with ERP External IDs.</li>
+            <li><strong>Configure Table Matrix & Forms:</strong> Build digital form templates, room specification sub-tables, and touch signature fields for field tablets.</li>
+            <li><strong>Create First Job & Schedule:</strong> Create the first work order (e.g. <code>SAP-SO-10170</code>), allocate warehouse slabs, and apply the automated activity schedule template.</li>
+            <li><strong>Test Shop Floor & Mobile Sign-Off:</strong> Simulate shop floor kiosk cut execution on Sawjet Line 1 and mobile PWA offline signature capture.</li>
+            <li><strong>Generate API Keys & Connect ERP:</strong> Generate live REST API credentials (<code>sm_live_...</code>) and verify two-way sync with the Outbound ERP Retry Queue.</li>
+          </ol>
         </div>
       </section>
 
