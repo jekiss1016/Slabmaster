@@ -17,3 +17,6 @@
 
 ## 5. Test Suite Expansion Rule
 - **Build-Time Feature Coverage**: Any new features, endpoints, or data workflows must be added to the automated test suite (`frontend/src/tests/`) at build time. Builds must not pass without corresponding test coverage and a 100% test pass rate.
+
+## 6. API Impact Gating & Breaking Change Protection Rule
+- **Explicit Permission & Advance Warning Required**: Any proposed modification, refactoring, field rename, schema alteration, or deletion that impacts active REST API contracts, endpoints, request/response formats, HTTP methods, or external ID lookups must be strictly gated. You must explicitly highlight and warn the user of all API impacts and potential breaking effects on live customer integrations operating on the current API version, and obtain explicit user permission before executing those changes.
