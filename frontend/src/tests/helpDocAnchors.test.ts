@@ -1,4 +1,4 @@
-﻿import { describe, it, expect } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import fs from 'fs';
 import path from 'path';
 
@@ -23,7 +23,8 @@ describe('Application Documentation & Help File Maintenance (Rule 6)', () => {
       'id="custom-attributes"',
       'id="table-matrix"',
       'id="forms"',
-      'id="settings"'
+      'id="settings"',
+      'id="api-integration"'
     ];
 
     expectedAnchors.forEach(anchor => {
@@ -45,7 +46,8 @@ describe('Application Documentation & Help File Maintenance (Rule 6)', () => {
       'href="#custom-attributes"',
       'href="#table-matrix"',
       'href="#forms"',
-      'href="#settings"'
+      'href="#settings"',
+      'href="#api-integration"'
     ];
 
     expectedLinks.forEach(link => {

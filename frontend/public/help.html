@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -224,6 +224,11 @@
       <ul>
         <li><a href="#settings">Multi-Plant & Security Settings</a></li>
       </ul>
+
+      <h3>Integration & Developers</h3>
+      <ul>
+        <li><a href="#api-integration">Modern REST API & SAP Sync</a></li>
+      </ul>
     </nav>
 
     <main class="content">
@@ -396,6 +401,23 @@
         <p>
           Configure regional operating facilities, lead time matrices, holiday closures, Entra ID SSO policies, and white-label subscriber branding.
         </p>
+      </section>
+
+      <!-- 12. API & ERP INTEGRATION -->
+      <section id="api-integration">
+        <h2>⚡ Modern RESTful API & SAP ERP Integration</h2>
+        <p>
+          SlabMaster provides a modern JSON RESTful API designed to supersede legacy SOAP and .NET interfaces with full CRUD control and first-class External ID routing.
+        </p>
+        <div class="card">
+          <h3>Key API Capabilities</h3>
+          <ul>
+            <li><strong>External ID Routing:</strong> Directly query, upsert, and link Builder Accounts, Communities, Lots, Jobs, and Job Activities using your SAP ERP identifiers (WBS Elements, PO numbers) without translating internal UUIDs.</li>
+            <li><strong>Two-Way Change Data Capture (CDC):</strong> Poll <code>GET /api/v1/sync/changes?since=&lt;timestamp&gt;</code> to mirror shop floor completion, field measure signoffs, and install progress back to SAP in real time.</li>
+            <li><strong>Audit-Compliant Soft Cancellation:</strong> <code>DELETE</code> endpoints idempotently set <code>status: "Cancelled"</code> and <code>isArchived: true</code> to avoid breaking downstream foreign keys in SAP cost collector accounting.</li>
+            <li><strong>Admin API Key Management:</strong> Generate scoped tokens (<code>sm_live_...</code>) directly in the Admin Portal under Settings ➔ API & ERP Integration.</li>
+          </ul>
+        </div>
       </section>
 
     </main>

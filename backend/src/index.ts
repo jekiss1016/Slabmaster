@@ -2,10 +2,15 @@ import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import { PrismaClient } from '@prisma/client';
 
+import { apiKeyRoutes } from './routes/apiKeyRoutes';
+import { externalSyncRoutes } from './routes/externalSyncRoutes';
+
 const fastify = Fastify({ logger: true });
 const prisma = new PrismaClient();
 
 fastify.register(cors, { origin: true });
+fastify.register(apiKeyRoutes);
+fastify.register(externalSyncRoutes);
 
 // Health check endpoint
 fastify.get('/health', async () => {

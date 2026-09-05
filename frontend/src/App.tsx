@@ -10,10 +10,12 @@ import { FormPacketBuilderModal } from './components/FormPacketBuilderModal';
 import { FieldJobsSegmentedView } from './components/FieldJobsSegmentedView';
 import { OfflineFormSubmission, getOfflineFormForJob, saveOfflineSubmission, getOfflineSubmissions } from './offlineStorage';
 import { CustomFieldsModal } from './components/CustomFieldsModal';
+import { ApiKeysManagementModal } from './components/ApiKeysManagementModal';
 import { ShopFloorView } from './components/ShopFloorView';
 import { SlabInventoryView } from './components/SlabInventoryView';
 import { PurchasingView } from './components/PurchasingView';
 import { DEFAULT_CUSTOM_FIELDS, CustomFieldDefinition } from './types/customAttributes';
+import { ApiKeyItem, DEFAULT_MOCK_API_KEYS } from './types/apiKeys';
 import {
   Search,
   Eye,
@@ -85,6 +87,8 @@ import {
   EyeOff,
   Sparkles,
   Menu,
+  Copy,
+  Terminal,
 } from 'lucide-react';
 
 export const US_STATES = [
@@ -352,6 +356,18 @@ export default function App() {
   const [activeNav, setActiveNav] = useState<'accounts' | 'account_detail' | 'community_detail' | 'jobs' | 'job_detail' | 'change_log' | 'calendar' | 'inventory' | 'purchasing' | 'shop' | 'reports' | 'forms' | 'settings' | 'help'>('accounts');
   const [customFields, setCustomFields] = useState<CustomFieldDefinition[]>(DEFAULT_CUSTOM_FIELDS);
   const [isCustomFieldsModalOpen, setIsCustomFieldsModalOpen] = useState(false);
+  const [apiKeys, setApiKeys] = useState<ApiKeyItem[]>(() => {
+    const saved = localStorage.getItem('slabmaster_api_keys');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        // fallback to default
+      }
+    }
+    return DEFAULT_MOCK_API_KEYS;
+  });
+  const [isApiKeyModalOpen, setIsApiKeyModalOpen] = useState(false);
   const [theme, setTheme] = useState<'dark' | 'light'>('light');
   const [selectedRegion, setSelectedRegion] = useState('All');
   const [searchCategory, setSearchCategory] = useState('All');
@@ -603,7 +619,7 @@ export default function App() {
   });
 
   // Master Settings Hub State
-  const [settingsCategory, setSettingsCategory] = useState<'billing' | 'calendar' | 'job' | 'system' | 'users' | 'branding' | 'regions' | 'leadtimes' | 'custom_fields'>('regions');
+  const [settingsCategory, setSettingsCategory] = useState<'billing' | 'calendar' | 'job' | 'system' | 'users' | 'branding' | 'regions' | 'leadtimes' | 'custom_fields' | 'api_keys'>('regions');
   const [usersSubSection, setUsersSubSection] = useState<'External Crews & Installers' | 'Internal Users' | 'Roles & Permissions' | 'SSO & Security'>('External Crews & Installers');
   const [systemSubSection, setSystemSubSection] = useState<'Login Locations' | 'Page Styles' | 'Security' | 'Settings'>('Security');
 
@@ -7025,6 +7041,7 @@ export default function App() {
                     { id: 'users', label: 'Users & Roles', icon: Users, desc: 'Internal roles, external invited users & RBAC' },
                     { id: 'branding', label: 'Branding & Logo', icon: ImageIcon, desc: 'Logo Base64 upload & brand styling' },
                     { id: 'custom_fields', label: 'Custom Attributes & Fields', icon: Tag, desc: 'Dynamic Job, Account & Lot schema attributes' },
+                    { id: 'api_keys', label: 'API & ERP Integration', icon: KeyRound, desc: 'Generate API tokens & configure SAP two-way sync' },
                     { id: 'system', label: 'System & Security', icon: Monitor, desc: 'Entra SSO, IP login locations & policies' },
                     { id: 'billing', label: 'Billing & Plan', icon: DollarSign, desc: 'SaaS subscription & tier management' },
                   ].map((cat) => (
@@ -10120,6 +10137,196 @@ export default function App() {
                     </div>
                   )}
 
+                  {/* MODULE 9: MODERN API & ERP / SAP INTEGRATION */}
+                  {settingsCategory === 'api_keys' && (
+                    <div className="space-y-6 text-xs">
+                      {/* Section Header */}
+                      <div className="border-b pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div>
+                          <div className="flex items-center space-x-2">
+                            <h3 className="text-lg font-black text-blue-600 dark:text-blue-400">
+                              Modern RESTful API & SAP ERP Integration
+                            </h3>
+                            <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                              Two-Way Sync Ready
+                            </span>
+                          </div>
+                          <p className="text-slate-500 mt-1">
+                            High-performance JSON API with first-class External ID routing for SAP S/4HANA, WBS Project Systems, and bi-directional Change Data Capture (CDC).
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setIsApiKeyModalOpen(true)}
+                          className="px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold flex items-center space-x-2 cursor-pointer shadow-md shadow-blue-500/20 transition shrink-0"
+                        >
+                          <KeyRound className="w-4 h-4" />
+                          <span>+ Generate API Token</span>
+                        </button>
+                      </div>
+
+                      {/* Active API Tokens Table */}
+                      <div className={`p-5 rounded-2xl border shadow-sm space-y-4 ${isDark ? 'bg-slate-800/40 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                        <div className="flex items-center justify-between">
+                          <h4 className="font-bold text-sm text-slate-800 dark:text-slate-200 flex items-center space-x-2">
+                            <Shield className="w-4 h-4 text-blue-500" />
+                            <span>Active ERP Integration Keys ({apiKeys.length})</span>
+                          </h4>
+                          <span className="text-[11px] text-slate-500">
+                            Tokens authenticate via <code className="text-blue-500 font-mono">X-API-Key</code> or <code className="text-blue-500 font-mono">Authorization: Bearer</code>
+                          </span>
+                        </div>
+
+                        {apiKeys.length === 0 ? (
+                          <div className="text-center py-8 text-slate-400">
+                            No active API keys found. Generate a token to enable SAP two-way sync.
+                          </div>
+                        ) : (
+                          <div className="overflow-x-auto">
+                            <table className="w-full text-left border-collapse">
+                              <thead>
+                                <tr className={`border-b text-[11px] font-bold uppercase tracking-wider ${isDark ? 'border-slate-700 text-slate-400' : 'border-slate-200 text-slate-500'}`}>
+                                  <th className="pb-3 pl-2">Key Name / Client</th>
+                                  <th className="pb-3">Token Prefix</th>
+                                  <th className="pb-3">Permission Scopes</th>
+                                  <th className="pb-3">Created</th>
+                                  <th className="pb-3">Last Used</th>
+                                  <th className="pb-3">Status</th>
+                                  <th className="pb-3 pr-2 text-right">Actions</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-slate-200 dark:divide-slate-700/60">
+                                {apiKeys.map((key) => (
+                                  <tr key={key.id} className="hover:bg-blue-500/5 transition">
+                                    <td className="py-3 pl-2 font-bold text-slate-900 dark:text-white">
+                                      {key.name}
+                                    </td>
+                                    <td className="py-3 font-mono text-xs text-blue-600 dark:text-blue-400">
+                                      {key.keyPrefix}••••••••
+                                    </td>
+                                    <td className="py-3">
+                                      <div className="flex flex-wrap gap-1">
+                                        {key.scopes.split(',').map((scope) => (
+                                          <span
+                                            key={scope}
+                                            className="px-2 py-0.5 rounded text-[10px] font-mono bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 font-semibold"
+                                          >
+                                            {scope.trim()}
+                                          </span>
+                                        ))}
+                                      </div>
+                                    </td>
+                                    <td className="py-3 text-slate-500">
+                                      {new Date(key.createdAt).toLocaleDateString()}
+                                    </td>
+                                    <td className="py-3 text-slate-500">
+                                      {key.lastUsedAt ? new Date(key.lastUsedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Never'}
+                                    </td>
+                                    <td className="py-3">
+                                      <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                                        Active
+                                      </span>
+                                    </td>
+                                    <td className="py-3 pr-2 text-right">
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          if (window.confirm(`Revoke API key "${key.name}"? Applications using this token will be denied immediately.`)) {
+                                            setApiKeys((prev) => prev.filter((k) => k.id !== key.id));
+                                          }
+                                        }}
+                                        className="text-rose-500 hover:text-rose-600 font-bold text-xs p-1 rounded hover:bg-rose-500/10 transition cursor-pointer"
+                                        title="Revoke Token"
+                                      >
+                                        Revoke
+                                      </button>
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Integration Architecture Overview Cards */}
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                        {/* Card 1: External ID Routing */}
+                        <div className={`p-5 rounded-2xl border space-y-3 ${isDark ? 'bg-slate-800/30 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                          <div className="flex items-center space-x-2 text-blue-600 dark:text-blue-400 font-bold text-sm">
+                            <Tag className="w-4 h-4 shrink-0" />
+                            <span>First-Class External ID Routing</span>
+                          </div>
+                          <p className="text-slate-600 dark:text-slate-400 text-[11px] leading-relaxed">
+                            Use your SAP WBS Elements, Purchase Orders, and Lot identifiers directly in REST route URLs and request payloads. No lookup tables or internal UUID translation needed.
+                          </p>
+                          <div className="p-2.5 rounded-lg bg-slate-900 text-slate-200 font-mono text-[10px] space-y-1 overflow-x-auto">
+                            <div><span className="text-emerald-400 font-bold">POST</span> /api/v1/jobs/upsert</div>
+                            <div><span className="text-blue-400 font-bold">GET</span>  /api/v1/jobs/by-external-id/:id</div>
+                            <div><span className="text-emerald-400 font-bold">POST</span> /api/v1/lots/upsert</div>
+                            <div><span className="text-emerald-400 font-bold">POST</span> /api/v1/activities/upsert</div>
+                          </div>
+                        </div>
+
+                        {/* Card 2: Two-Way CDC Sync */}
+                        <div className={`p-5 rounded-2xl border space-y-3 ${isDark ? 'bg-slate-800/30 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                          <div className="flex items-center space-x-2 text-purple-600 dark:text-purple-400 font-bold text-sm">
+                            <History className="w-4 h-4 shrink-0" />
+                            <span>Two-Way Change Data Capture (CDC)</span>
+                          </div>
+                          <p className="text-slate-600 dark:text-slate-400 text-[11px] leading-relaxed">
+                            SlabMaster logs every job progression, field measurement, and milestone completion. Your SAP sync agent polls the audit delta feed to reflect shop floor status in real time.
+                          </p>
+                          <div className="p-2.5 rounded-lg bg-slate-900 text-slate-200 font-mono text-[10px] space-y-1 overflow-x-auto">
+                            <div><span className="text-blue-400 font-bold">GET</span> /api/v1/sync/changes</div>
+                            <div className="text-slate-400">?since=2026-09-01T00:00:00Z</div>
+                            <div className="text-slate-400">&amp;limit=100</div>
+                          </div>
+                        </div>
+
+                        {/* Card 3: Soft-Delete Lifecycle */}
+                        <div className={`p-5 rounded-2xl border space-y-3 ${isDark ? 'bg-slate-800/30 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                          <div className="flex items-center space-x-2 text-amber-600 dark:text-amber-400 font-bold text-sm">
+                            <Archive className="w-4 h-4 shrink-0" />
+                            <span>Audit-Compliant Soft Cancellation</span>
+                          </div>
+                          <p className="text-slate-600 dark:text-slate-400 text-[11px] leading-relaxed">
+                            Hard deletes break foreign-key relationships in SAP ledgers. SlabMaster marks cancelled entities as <code className="font-mono text-amber-500">status: &quot;Cancelled&quot;</code> and <code className="font-mono text-amber-500">isArchived: true</code> to unblock shop floors while preserving audit integrity.
+                          </p>
+                          <div className="p-2.5 rounded-lg bg-slate-900 text-slate-200 font-mono text-[10px] space-y-1 overflow-x-auto">
+                            <div><span className="text-rose-400 font-bold">DELETE</span> /api/v1/jobs/by-external-id/:id</div>
+                            <div className="text-slate-500">// Defaults to soft cancellation</div>
+                            <div className="text-slate-500">// ?hard_purge=true for super-admin only</div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Interactive cURL Example Box */}
+                      <div className={`p-5 rounded-2xl border space-y-3 ${isDark ? 'bg-slate-900 border-slate-700' : 'bg-slate-900 text-slate-100 border-slate-800'}`}>
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center space-x-1.5">
+                            <Terminal className="w-4 h-4 text-blue-400" />
+                            <span>Sample SAP REST Upsert Request</span>
+                          </span>
+                          <span className="text-[11px] font-mono text-emerald-400">HTTP/1.1 200 OK (Idempotent)</span>
+                        </div>
+                        <div className="p-3.5 rounded-xl bg-slate-950 font-mono text-xs text-slate-200 overflow-x-auto select-all leading-relaxed">
+                          curl -X POST &quot;https://dev.slabmasterapp.com/api/v1/jobs/upsert&quot; \<br />
+                          &nbsp;&nbsp;-H &quot;X-API-Key: sm_live_9f83a1••••••••&quot; \<br />
+                          &nbsp;&nbsp;-H &quot;Content-Type: application/json&quot; \<br />
+                          &nbsp;&nbsp;-d &apos;&#123;<br />
+                          &nbsp;&nbsp;&nbsp;&nbsp;&quot;external_id&quot;: &quot;SAP-ORD-90210&quot;,<br />
+                          &nbsp;&nbsp;&nbsp;&nbsp;&quot;account_external_id&quot;: &quot;SAP-BLD-01&quot;,<br />
+                          &nbsp;&nbsp;&nbsp;&nbsp;&quot;community_external_id&quot;: &quot;COMM-HIGHLAND&quot;,<br />
+                          &nbsp;&nbsp;&nbsp;&nbsp;&quot;lot_external_id&quot;: &quot;LOT-14&quot;,<br />
+                          &nbsp;&nbsp;&nbsp;&nbsp;&quot;job_name&quot;: &quot;Master Bath Vanity &amp; Tub Deck&quot;,<br />
+                          &nbsp;&nbsp;&nbsp;&nbsp;&quot;target_install_date&quot;: &quot;2026-09-18T00:00:00Z&quot;<br />
+                          &nbsp;&nbsp;&#125;&apos;
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                 </div>
               </div>
             </div>
@@ -11868,6 +12075,17 @@ export default function App() {
           isDark={isDark}
           onSaveCustomFields={(updated: CustomFieldDefinition[]) => setCustomFields(updated)}
           onClose={() => setIsCustomFieldsModalOpen(false)}
+        />
+      )}
+
+      {/* 10. API KEYS & ERP INTEGRATION MODAL */}
+      {isApiKeyModalOpen && (
+        <ApiKeysManagementModal
+          isDark={isDark}
+          onClose={() => setIsApiKeyModalOpen(false)}
+          onKeyGenerated={(newKey) => {
+            setApiKeys((prev) => [newKey, ...prev]);
+          }}
         />
       )}
 

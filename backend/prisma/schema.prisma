@@ -33,6 +33,7 @@ model SubscriberTenant {
   changeLogs      ChangeLog[]
   files           JobFile[]
   issues          JobIssue[]
+  apiKeys         ApiKey[]
 
   @@map("subscriber_tenants")
 }
@@ -81,6 +82,7 @@ model Account {
   billingCity     String?          @map("billing_city")
   billingState    String?          @map("billing_state")
   billingZip      String?          @map("billing_zip")
+  isArchived      Boolean          @default(false) @map("is_archived")
   createdAt       DateTime         @default(now()) @map("created_at")
 
   tenant          SubscriberTenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
@@ -109,6 +111,7 @@ model Community {
   superintendentName  String?          @map("superintendent_name")
   superintendentPhone String?          @map("superintendent_phone")
   superintendentEmail String?          @map("superintendent_email")
+  isArchived          Boolean          @default(false) @map("is_archived")
   createdAt           DateTime         @default(now()) @map("created_at")
 
   tenant              SubscriberTenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
@@ -133,6 +136,7 @@ model Lot {
   lotNumber       String           @map("lot_number")
   streetAddress   String?          @map("street_address")
   elevationPlan   String?          @map("elevation_plan")
+  isArchived      Boolean          @default(false) @map("is_archived")
   createdAt       DateTime         @default(now()) @map("created_at")
 
   tenant          SubscriberTenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
@@ -443,4 +447,23 @@ model Contact {
   community    Community? @relation(fields: [communityId], references: [id], onDelete: SetNull)
 
   @@map("contacts")
+}
+
+// 17. API KEYS & ERP TOKENS (For Two-Way SAP Sync & Integrations)
+model ApiKey {
+  id          String           @id @default(uuid()) @map("key_id")
+  tenantId    String           @map("tenant_id")
+  name        String           @map("name")
+  keyPrefix   String           @map("key_prefix")
+  keyHash     String           @map("key_hash")
+  scopes      String           @default("read,write,sync") @map("scopes")
+  isActive    Boolean          @default(true) @map("is_active")
+  lastUsedAt  DateTime?        @map("last_used_at")
+  expiresAt   DateTime?        @map("expires_at")
+  createdAt   DateTime         @default(now()) @map("created_at")
+
+  tenant      SubscriberTenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@map("api_keys")
 }
