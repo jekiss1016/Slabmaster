@@ -228,6 +228,11 @@
         <li><a href="#subscriber-onboarding">Subscriber Onboarding Guide</a></li>
       </ul>
 
+      <h3>Tutorials & Media</h3>
+      <ul>
+        <li><a href="#video-tutorials">Video Walkthroughs & YouTube Pack</a></li>
+      </ul>
+
       <h3>Integration & Developers</h3>
       <ul>
         <li><a href="#api-integration">Modern REST API & SAP Sync</a></li>
@@ -467,6 +472,43 @@
             <li><strong>Test Shop Floor & Mobile Sign-Off:</strong> Simulate shop floor kiosk cut execution on Sawjet Line 1 and mobile PWA offline signature capture.</li>
             <li><strong>Generate API Keys & Connect ERP:</strong> Generate live REST API credentials (<code>sm_live_...</code>) and verify two-way sync with the Outbound ERP Retry Queue.</li>
           </ol>
+        </div>
+      </section>
+
+      <!-- 14. VIDEO WALKTHROUGHS & YOUTUBE CHANNEL PACK -->
+      <section id="video-tutorials">
+        <h2>🎥 Video Walkthroughs & YouTube Tutorial Channel Pack</h2>
+        <p>
+          High-definition (1080p) screen recordings featuring glowing cursor tracking, click ripple indicators, and dynamic chapter banners. All videos are stored in the project's <code>videos/</code> directory and paired with full voiceover cue sheets.
+        </p>
+
+        <div class="card">
+          <h3>Master Subscriber Setup Walkthrough (1080p)</h3>
+          <p>
+            Demonstrates the complete end-to-end subscriber onboarding flow from Day Zero to live shop floor production and enterprise ERP integration.
+          </p>
+          <ul style="margin-left: 1.5rem; margin-top: 0.5rem; line-height: 1.8;">
+            <li><strong>Video File:</strong> <code>videos/01_Master_Onboarding_Walkthrough/full_subscriber_setup_walkthrough.webm</code></li>
+            <li><strong>Narration Script & Timestamps:</strong> <code>videos/01_Master_Onboarding_Walkthrough/full_subscriber_setup_walkthrough_transcript.md</code></li>
+            <li><strong>Chapters:</strong> Tenant Provisioning ➔ Regional Hubs (ATL) ➔ Machinery (Sawjet Line 1) ➔ Barcode Inventory ➔ 3-Tier Builder Hierarchy (Lennar ➔ Austin Park ➔ Lot 000036) ➔ Work Order SAP-SO-10170 ➔ Production Calendar ➔ Kiosk Touch Queue ➔ Offline PWA Forms ➔ REST API Tokens & Dead-Letter Recovery Queue.</li>
+          </ul>
+        </div>
+
+        <div class="card">
+          <h3>Feature Deep-Dive Video Library</h3>
+          <p>
+            Dedicated high-contrast recordings and YouTube shorts for each modular feature:
+          </p>
+          <ul style="margin-left: 1.5rem; margin-top: 0.5rem; line-height: 1.8;">
+            <li><strong>01_builder_hierarchy_accounts_communities.webm:</strong> 3-Tier builder hierarchy, community subdivisions, lots, and SAP customer IDs.</li>
+            <li><strong>02_jobs_orders_and_scheduling.webm:</strong> 6-stage lifecycle milestones, lead times, and multi-plant working-day engine.</li>
+            <li><strong>03_slab_inventory_and_remnants.webm:</strong> Serialized barcodes, rack bin locations, and remnant threshold management.</li>
+            <li><strong>04_purchasing_and_dock_receiving.webm:</strong> Distributor purchase orders, ETA tracking, and one-click dock receiving.</li>
+            <li><strong>05_shop_floor_kiosk_stations.webm:</strong> High-contrast touch tablet queue for CNC sawjets and active cut timers.</li>
+            <li><strong>06_table_matrix_and_offline_forms.webm:</strong> Field measure sheets, dynamic room sub-grids, and touch glass stylus signatures.</li>
+            <li><strong>07_admin_settings_api_and_erp_queue.webm:</strong> Scoped REST API keys, progressive exponential backoff ladder, and dead-letter monitoring.</li>
+            <li><strong>Voiceover Scripts:</strong> <code>videos/02_Feature_Deep_Dives/feature_videos_voiceover_scripts.md</code></li>
+          </ul>
         </div>
       </section>
 

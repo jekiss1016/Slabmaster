@@ -63,6 +63,7 @@ import {
   Tag,
   FolderTree,
   FileSpreadsheet,
+  Video,
   Printer,
   ChevronDown,
   ChevronUp,
@@ -10876,6 +10877,13 @@ export default function App() {
                     anchor: '/help.html#subscriber-onboarding',
                     icon: CheckSquare,
                     badge: 'Setup Guide'
+                  },
+                  {
+                    title: 'Video Tutorials & YouTube Channel Pack',
+                    desc: 'High-definition 1080p walkthrough recordings with visual mouse tracking, click ripples, and narration cue sheets.',
+                    anchor: '/help.html#video-tutorials',
+                    icon: Video,
+                    badge: 'Video Walkthroughs'
                   },
                 ].map((item) => (
                   <a

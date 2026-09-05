@@ -27,7 +27,7 @@ Each document is maintained in its native editable source format (`.md` or `.htm
 | Document Title | Source Format | PDF Publication | Size |
 | :--- | :--- | :--- | :--- |
 | **New Subscriber Onboarding Checklist & Setup Guide** | [`subscriber_onboarding_guide.md`](./03_Subscriber_Guides/subscriber_onboarding_guide.md) | [`📄 subscriber_onboarding_guide.pdf`](./03_Subscriber_Guides/subscriber_onboarding_guide.pdf) | 381.6 KB |
-| **SlabMaster User Guide & Help Documentation** | [`user_help_guide.html`](./03_Subscriber_Guides/user_help_guide.html) | [`📄 user_help_guide.pdf`](./03_Subscriber_Guides/user_help_guide.pdf) | 1032.5 KB |
+| **SlabMaster User Guide & Help Documentation** | [`user_help_guide.html`](./03_Subscriber_Guides/user_help_guide.html) | [`📄 user_help_guide.pdf`](./03_Subscriber_Guides/user_help_guide.pdf) | 1151.4 KB |
 
 ### 📁 [Competitive Analysis & Moraware Parity](./04_Competitive_Analysis)
 
@@ -61,6 +61,14 @@ Each document is maintained in its native editable source format (`.md` or `.htm
 4. **`04_Competitive_Analysis/`**: Detailed Moraware parity matrix, crawling logs, feature gap comparisons, and raw datasets.
 5. **`05_API_and_Integration/`**: SAP S/4HANA REST API developer pack with ABAP code samples, endpoints, and the Postman Collection v2.1.
 6. **`06_Quality_and_Testing/`**: Automated test suite catalog, coverage metrics, and verification standards.
+
+---
+
+## 🎥 Video Tutorials & Screen Recordings
+
+Screen recordings and narrated YouTube channel guides are housed in the root [`videos/`](../videos/) repository:
+- **`videos/01_Master_Onboarding_Walkthrough/`**: Full setup walkthrough video (`.webm`) with word-for-word voiceover cue sheet.
+- **`videos/02_Feature_Deep_Dives/`**: 7 individual feature recordings covering Builder Hierarchy, Scheduling, Slab Barcodes, PO Receiving, Shop Floor Kiosk, Table Matrix Forms, and Outbound ERP Retry Queue.
 
 ---
 *© 2026 SlabMaster | v1.0.0 — Enterprise Countertop Fabrication & Field Dispatch Platform*
