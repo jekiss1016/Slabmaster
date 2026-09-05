@@ -71,12 +71,15 @@ export const DEFAULT_MOCK_ERP_QUEUE: ErpQueueItem[] = [
   {
     id: 'queue-tx-9941',
     entityType: 'Job',
-    entityId: 'SAP-WBS-70821',
+    entityId: 'SAP-SO-10170',
     action: 'STATUS_UPDATE',
     payload: JSON.stringify({
-      job_external_id: 'SAP-WBS-70821',
+      job_external_id: 'SAP-SO-10170',
       status: 'Install Completed & Signed',
-      signed_by: 'M. Vance (Field Lead)',
+      job_name: 'LNXAUS_000036_000_01 (Lot 36 - Kitchen & Waterfall Island)',
+      account_external_id: 'SAP-CUST-126954',
+      lot_external_id: 'SAP-LOT-LNXAUS-036',
+      signed_by: 'Brad Jenkins (Superintendent)',
       completion_date: '2026-09-04T18:45:00Z',
       square_footage_installed: 64.5
     }, null, 2),
@@ -92,10 +95,11 @@ export const DEFAULT_MOCK_ERP_QUEUE: ErpQueueItem[] = [
   {
     id: 'queue-tx-9942',
     entityType: 'Activity',
-    entityId: 'SAP-ACT-4109',
+    entityId: 'SAP-WBS-10485-TMPL',
     action: 'COMPLETION_SIGNOFF',
     payload: JSON.stringify({
-      activity_external_id: 'SAP-ACT-4109',
+      activity_external_id: 'SAP-WBS-10485-TMPL',
+      job_external_id: 'SAP-SO-10485',
       phase_name: 'Digital Laser Template',
       status: 'Completed',
       linear_feet_measured: 38.2
@@ -112,10 +116,11 @@ export const DEFAULT_MOCK_ERP_QUEUE: ErpQueueItem[] = [
   {
     id: 'queue-tx-9943',
     entityType: 'Lot',
-    entityId: 'LOT-HIGHLAND-44',
+    entityId: 'SAP-LOT-LNXAUS-036',
     action: 'UPSERT',
     payload: JSON.stringify({
-      lot_external_id: 'LOT-HIGHLAND-44',
+      lot_external_id: 'SAP-LOT-LNXAUS-036',
+      community_external_id: 'SAP-COMM-LNXAUS',
       status: 'Drywall Ready',
       target_install_date: '2026-09-19'
     }, null, 2),
@@ -127,6 +132,27 @@ export const DEFAULT_MOCK_ERP_QUEUE: ErpQueueItem[] = [
     lastError: null,
     createdAt: new Date(Date.now() - 1000 * 60 * 45).toISOString(),
     updatedAt: new Date(Date.now() - 1000 * 60 * 44).toISOString(),
+  },
+  {
+    id: 'queue-tx-9944',
+    entityType: 'Job',
+    entityId: 'SAP-SO-10720',
+    action: 'STATUS_UPDATE',
+    payload: JSON.stringify({
+      job_external_id: 'SAP-SO-10720',
+      status: 'In Fabrication',
+      job_name: 'CS2OGG_000069_000_01 (Lot 69 - Main Kitchen & Powder)',
+      account_external_id: 'SAP-CUST-122973',
+      lot_external_id: 'SAP-LOT-CS2OGG-069'
+    }, null, 2),
+    destinationUrl: 'https://sap-gateway.enterprise.corp/api/v2/jobs',
+    status: 'PENDING',
+    attempts: 0,
+    maxAttempts: 5,
+    nextRetryAt: new Date().toISOString(),
+    lastError: null,
+    createdAt: new Date(Date.now() - 1000 * 60 * 2).toISOString(),
+    updatedAt: new Date(Date.now() - 1000 * 60 * 2).toISOString(),
   }
 ];
 

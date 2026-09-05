@@ -479,6 +479,211 @@
           }
         }
       ]
+    },
+    {
+      "name": "7. Moraware Live Demo Fixtures (SAP S/4HANA)",
+      "item": [
+        {
+          "name": "Get Lennar GA Account (SAP-CUST-126954)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/accounts/by-external-id/SAP-CUST-126954",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "accounts",
+                "by-external-id",
+                "SAP-CUST-126954"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Austin Park Community (SAP-COMM-LNXAUS)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/communities/by-external-id/SAP-COMM-LNXAUS",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "communities",
+                "by-external-id",
+                "SAP-COMM-LNXAUS"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Lot 000036 (SAP-LOT-LNXAUS-036)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/lots/by-external-id/SAP-LOT-LNXAUS-036",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "lots",
+                "by-external-id",
+                "SAP-LOT-LNXAUS-036"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Work Order LNXAUS_000036 (SAP-SO-10170)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/jobs/by-external-id/SAP-SO-10170",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "jobs",
+                "by-external-id",
+                "SAP-SO-10170"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Template Activity (SAP-WBS-10170-TMPL)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/activities/by-external-id/SAP-WBS-10170-TMPL",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "activities",
+                "by-external-id",
+                "SAP-WBS-10170-TMPL"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get CNC Sawjet Activity (SAP-WBS-10170-SAW)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/activities/by-external-id/SAP-WBS-10170-SAW",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "activities",
+                "by-external-id",
+                "SAP-WBS-10170-SAW"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Century Communities SE Account (SAP-CUST-122973)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/accounts/by-external-id/SAP-CUST-122973",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "accounts",
+                "by-external-id",
+                "SAP-CUST-122973"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Old Greenwood Glen Job (SAP-SO-10720)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/jobs/by-external-id/SAP-SO-10720",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "jobs",
+                "by-external-id",
+                "SAP-SO-10720"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Dream Finders Nashville Account (SAP-CUST-130470)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/accounts/by-external-id/SAP-CUST-130470",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "accounts",
+                "by-external-id",
+                "SAP-CUST-130470"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Perry Homes Florida Account (SAP-CUST-129495)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/accounts/by-external-id/SAP-CUST-129495",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "accounts",
+                "by-external-id",
+                "SAP-CUST-129495"
+              ]
+            }
+          }
+        }
+      ]
     }
   ]
 }

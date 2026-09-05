@@ -247,6 +247,7 @@
         <li><a href="#overview">1. Executive Overview</a></li>
         <li><a href="#authentication">2. Authentication & Keys</a></li>
         <li><a href="#sap-mapping">3. SAP Data Field Mapping</a></li>
+        <li><a href="#test-fixtures">3.1 Live Demo Test Fixtures</a></li>
         <li><a href="#endpoints">4. REST CRUD Endpoints</a></li>
         <li><a href="#abap-sample">5. ABAP Integration Code</a></li>
         <li><a href="#cdc-feed">6. Two-Way CDC Sync</a></li>
@@ -362,6 +363,139 @@ Authorization: Bearer sm_live_9f83a1b4c7e28910fedcba45</code></pre>
             </tr>
           </tbody>
         </table>
+      </section>
+
+      <!-- 3.1 TEST FIXTURES & DEMO CATALOG -->
+      <section id="test-fixtures">
+        <h2>🧪 3.1 Live Demo Test Fixtures (Moraware Crawled Data & SAP External IDs)</h2>
+        <p>
+          The test subscriber environment is seeded with actual production hierarchy records crawled from Moraware, mapped directly to enterprise SAP S/4HANA external identifiers across all five tiers:
+        </p>
+
+        <table>
+          <thead>
+            <tr>
+              <th>Entity Tier</th>
+              <th>Display Name in Moraware</th>
+              <th>SAP External ERP ID</th>
+              <th>Parent Reference</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Account</strong></td>
+              <td>LENNAR HOMES OF GEORGIA - 126954</td>
+              <td><code>SAP-CUST-126954</code></td>
+              <td><em>Top-Level Tenant</em></td>
+            </tr>
+            <tr>
+              <td><strong>Community</strong></td>
+              <td>AUSTIN PARK AT HIGHLAND (LNXAUS)</td>
+              <td><code>SAP-COMM-LNXAUS</code></td>
+              <td><code>account_id: SAP-CUST-126954</code></td>
+            </tr>
+            <tr>
+              <td><strong>Lot</strong></td>
+              <td>000036 (5436 Austin Park Way)</td>
+              <td><code>SAP-LOT-LNXAUS-036</code></td>
+              <td><code>community_id: SAP-COMM-LNXAUS</code></td>
+            </tr>
+            <tr>
+              <td><strong>Job (Order)</strong></td>
+              <td>LNXAUS_000036_000_01 (SO-10170)</td>
+              <td><code>SAP-SO-10170</code></td>
+              <td><code>lot_id: SAP-LOT-LNXAUS-036</code></td>
+            </tr>
+            <tr>
+              <td><strong>Activities (WBS)</strong></td>
+              <td>Template, CAD, Sawjet, Polish, Install, Sign-off</td>
+              <td><code>SAP-WBS-10170-TMPL</code> ... <code>-SIGN</code></td>
+              <td><code>job_id: SAP-SO-10170</code></td>
+            </tr>
+            <tr>
+              <td><strong>Account</strong></td>
+              <td>CENTURY COMMUNITIES SOUTHEAST - 122973</td>
+              <td><code>SAP-CUST-122973</code></td>
+              <td><em>Top-Level Tenant</em></td>
+            </tr>
+            <tr>
+              <td><strong>Community</strong></td>
+              <td>OLD GREENWOOD GLEN (CS2OGG)</td>
+              <td><code>SAP-COMM-CS2OGG</code></td>
+              <td><code>account_id: SAP-CUST-122973</code></td>
+            </tr>
+            <tr>
+              <td><strong>Lot</strong></td>
+              <td>000069 (1869 Greenwood Ridge)</td>
+              <td><code>SAP-LOT-CS2OGG-069</code></td>
+              <td><code>community_id: SAP-COMM-CS2OGG</code></td>
+            </tr>
+            <tr>
+              <td><strong>Job (Order)</strong></td>
+              <td>CS2OGG_000069_000_01 (SO-10720)</td>
+              <td><code>SAP-SO-10720</code></td>
+              <td><code>lot_id: SAP-LOT-CS2OGG-069</code></td>
+            </tr>
+            <tr>
+              <td><strong>Account</strong></td>
+              <td>CENTURY COMMUNITIES NASHVILLE - 125316</td>
+              <td><code>SAP-CUST-125316</code></td>
+              <td><em>Top-Level Tenant</em></td>
+            </tr>
+            <tr>
+              <td><strong>Community</strong></td>
+              <td>AUTUMN LAKES NASHVILLE (CNAALN)</td>
+              <td><code>SAP-COMM-CNAALN</code></td>
+              <td><code>account_id: SAP-CUST-125316</code></td>
+            </tr>
+            <tr>
+              <td><strong>Job (Order)</strong></td>
+              <td>CNAALN_000033_000_01 (SO-10485)</td>
+              <td><code>SAP-SO-10485</code></td>
+              <td><code>lot_id: SAP-LOT-CNAALN-033</code></td>
+            </tr>
+            <tr>
+              <td><strong>Account</strong></td>
+              <td>DREAM FINDERS HOMES NASHVILLE - 130470</td>
+              <td><code>SAP-CUST-130470</code></td>
+              <td><em>Top-Level Tenant</em></td>
+            </tr>
+            <tr>
+              <td><strong>Community</strong></td>
+              <td>DREAM CREST (DF41DC)</td>
+              <td><code>SAP-COMM-DF41DC</code></td>
+              <td><code>account_id: SAP-CUST-130470</code></td>
+            </tr>
+            <tr>
+              <td><strong>Job (Order)</strong></td>
+              <td>DF41DC_0000DC_000_01 (SO-10941)</td>
+              <td><code>SAP-SO-10941</code></td>
+              <td><code>lot_id: SAP-LOT-DF41DC-001</code></td>
+            </tr>
+            <tr>
+              <td><strong>Account</strong></td>
+              <td>PERRY HOMES OF FLORIDA LLC - 129495</td>
+              <td><code>SAP-CUST-129495</code></td>
+              <td><em>Top-Level Tenant</em></td>
+            </tr>
+            <tr>
+              <td><strong>Community</strong></td>
+              <td>STAR FARMS LWR 90'S</td>
+              <td><code>SAP-COMM-STARFARMS</code></td>
+              <td><code>account_id: SAP-CUST-129495</code></td>
+            </tr>
+            <tr>
+              <td><strong>Job (Warranty)</strong></td>
+              <td>P2HSPN_001079_000_01 (Warranty Chip Repair)</td>
+              <td><code>SAP-SO-1079</code></td>
+              <td><code>activity: SAP-WBS-1079-CHIP</code></td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="alert alert-emerald" style="border-left: 4px solid var(--accent-emerald); background: rgba(5, 150, 105, 0.08); padding: 1rem; border-radius: 0 8px 8px 0; margin-top: 1rem;">
+          <strong>💡 Postman Demo Tip:</strong> All fixtures above are included in <em>Folder 7: Moraware Live Demo Fixtures</em> in the official Postman collection for 1-click execution.
+        </div>
       </section>
 
       <!-- 4. ENDPOINTS -->

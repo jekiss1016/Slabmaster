@@ -178,6 +178,7 @@ interface JobActivityRow {
   assignedTo?: string;
   notes?: string;
   requiredFormId?: string;
+  externalId?: string;
 }
 
 interface AttachedFile {
@@ -245,6 +246,7 @@ interface LotRow {
   lotNumber: string;
   streetAddress: string;
   planType: string;
+  externalId?: string;
   isArchived: boolean;
 }
 
@@ -256,6 +258,7 @@ interface CommunityRow {
   superintendent: string;
   defaultQaTechId?: string;
   defaultQaTechName?: string;
+  externalId?: string;
   lots: LotRow[];
   isArchived: boolean;
 }
@@ -815,7 +818,7 @@ export default function App() {
     },
   ]);
 
-  // Hierarchy Data: Accounts, Communities, Lots
+  // Hierarchy Data: Accounts, Communities, Lots (Enriched with real Moraware accounts & SAP External IDs)
   const [accountsData, setAccountsData] = useState<AccountRow[]>([
     {
       id: 'acc1',
@@ -825,7 +828,7 @@ export default function App() {
       phone: '(813) 555-0192',
       primaryContact: 'Brittany Googe',
       email: 'bgooge@perryhomes.com',
-      externalId: 'ERP-ACC-129495',
+      externalId: 'SAP-CUST-129495',
       isArchived: false,
       communities: [
         {
@@ -836,10 +839,11 @@ export default function App() {
           superintendent: 'Mark Stevens',
           defaultQaTechId: 'u_qa_tech_1',
           defaultQaTechName: 'Marcus Vance',
+          externalId: 'SAP-COMM-STARFARMS',
           isArchived: false,
           lots: [
-            { id: 'lot1', communityId: 'com1', lotNumber: '001078', streetAddress: '3839 BUTTE TRAIL', planType: 'Plan B - Craftsman', isArchived: false },
-            { id: 'lot2', communityId: 'com1', lotNumber: '001079', streetAddress: '3843 BUTTE TRAIL', planType: 'Plan C - Tuscan', isArchived: false },
+            { id: 'lot1', communityId: 'com1', lotNumber: '001078', streetAddress: '3839 BUTTE TRAIL', planType: 'Plan B - Craftsman', externalId: 'SAP-LOT-STARFARMS-1078', isArchived: false },
+            { id: 'lot2', communityId: 'com1', lotNumber: '001079', streetAddress: '3843 BUTTE TRAIL', planType: 'Plan C - Tuscan', externalId: 'SAP-LOT-STARFARMS-1079', isArchived: false },
           ]
         },
         {
@@ -850,9 +854,116 @@ export default function App() {
           superintendent: 'Jackie Horn',
           defaultQaTechId: 'u_qa_tech_2',
           defaultQaTechName: 'Sarah Jenkins',
+          externalId: 'SAP-COMM-OAKRIDGE',
           isArchived: false,
           lots: [
-            { id: 'lot3', communityId: 'com2', lotNumber: 'Lot 15', streetAddress: '108 Oakridge Dr', planType: 'Plan A - Modern', isArchived: false },
+            { id: 'lot3', communityId: 'com2', lotNumber: 'Lot 15', streetAddress: '108 Oakridge Dr', planType: 'Plan A - Modern', externalId: 'SAP-LOT-OAKRIDGE-015', isArchived: false },
+          ]
+        }
+      ]
+    },
+    {
+      id: 'acc_lennar_ga',
+      name: 'LENNAR HOMES OF GEORGIA - 126954',
+      code: 'LENNAR-GA',
+      billingAddress: '1000 Holcomb Woods Pkwy Bldg 200, Roswell, GA 30076',
+      phone: '(770) 555-4200',
+      primaryContact: 'David Hennessey',
+      email: 'dhennessey@lennar.com',
+      externalId: 'SAP-CUST-126954',
+      isArchived: false,
+      communities: [
+        {
+          id: 'com_lnxaus',
+          accountId: 'acc_lennar_ga',
+          name: 'AUSTIN PARK AT HIGHLAND (LNXAUS)',
+          cityState: 'Cumming, GA',
+          superintendent: 'Brad Jenkins',
+          defaultQaTechId: 'u_qa_tech_1',
+          defaultQaTechName: 'Marcus Vance',
+          externalId: 'SAP-COMM-LNXAUS',
+          isArchived: false,
+          lots: [
+            { id: 'lot_lnx_36', communityId: 'com_lnxaus', lotNumber: '000036', streetAddress: '412 Austin Park Ridge', planType: 'Plan 3200 - Craftsman', externalId: 'SAP-LOT-LNXAUS-036', isArchived: false },
+            { id: 'lot_lnx_37', communityId: 'com_lnxaus', lotNumber: '000037', streetAddress: '416 Austin Park Ridge', planType: 'Plan 3400 - Modern Farmhouse', externalId: 'SAP-LOT-LNXAUS-037', isArchived: false },
+            { id: 'lot_lnx_38', communityId: 'com_lnxaus', lotNumber: '000038', streetAddress: '420 Austin Park Ridge', planType: 'Plan 3200 - Craftsman', externalId: 'SAP-LOT-LNXAUS-038', isArchived: false },
+            { id: 'lot_lnx_72', communityId: 'com_lnxaus', lotNumber: '000072', streetAddress: '502 Austin Park Ridge', planType: 'Plan 3600 - Estate', externalId: 'SAP-LOT-LNXAUS-072', isArchived: false },
+          ]
+        }
+      ]
+    },
+    {
+      id: 'acc_century_se',
+      name: 'CENTURY COMMUNITIES SOUTHEAST - 122973',
+      code: 'CENTURY-SE',
+      billingAddress: '3091 Governors Lake Dr, Norcross, GA 30071',
+      phone: '(678) 555-8901',
+      primaryContact: 'Travis Miller',
+      email: 'tmiller@centurycommunities.com',
+      externalId: 'SAP-CUST-122973',
+      isArchived: false,
+      communities: [
+        {
+          id: 'com_cs2ogg',
+          accountId: 'acc_century_se',
+          name: 'OLD GREENWOOD GLEN (CS2OGG)',
+          cityState: 'Gainesville, GA',
+          superintendent: 'Mark Wheeler',
+          externalId: 'SAP-COMM-CS2OGG',
+          isArchived: false,
+          lots: [
+            { id: 'lot_cs2_69', communityId: 'com_cs2ogg', lotNumber: '000069', streetAddress: '742 Old Greenwood Trail', planType: 'Camden 2-Story', externalId: 'SAP-LOT-CS2OGG-069', isArchived: false },
+            { id: 'lot_cs2_70', communityId: 'com_cs2ogg', lotNumber: '000070', streetAddress: '746 Old Greenwood Trail', planType: 'Bristol Ranch', externalId: 'SAP-LOT-CS2OGG-070', isArchived: false },
+          ]
+        }
+      ]
+    },
+    {
+      id: 'acc_century_nsh',
+      name: 'CENTURY COMMUNITIES NASHVILLE - 125316',
+      code: 'CENTURY-NSH',
+      billingAddress: '51 Century Blvd, Suite 250, Nashville, TN 37214',
+      phone: '(615) 555-3341',
+      primaryContact: 'Heather Cole',
+      email: 'hcole@centurycommunities.com',
+      externalId: 'SAP-CUST-125316',
+      isArchived: false,
+      communities: [
+        {
+          id: 'com_cnaaln',
+          accountId: 'acc_century_nsh',
+          name: 'AUTUMN LAKES NASHVILLE (CNAALN)',
+          cityState: 'Murfreesboro, TN',
+          superintendent: 'Russell Evans',
+          externalId: 'SAP-COMM-CNAALN',
+          isArchived: false,
+          lots: [
+            { id: 'lot_cna_33', communityId: 'com_cnaaln', lotNumber: '000033', streetAddress: '1128 Autumn Lake Blvd', planType: 'Plan 2400 - Heritage', externalId: 'SAP-LOT-CNAALN-033', isArchived: false },
+          ]
+        }
+      ]
+    },
+    {
+      id: 'acc_dreamfinders',
+      name: 'DREAM FINDERS HOMES NASHVILLE - 130470',
+      code: 'DFH-NSH',
+      billingAddress: '2020 21st Ave S, Nashville, TN 37212',
+      phone: '(615) 555-7782',
+      primaryContact: 'Keith Sterling',
+      email: 'ksterling@dreamfindershomes.com',
+      externalId: 'SAP-CUST-130470',
+      isArchived: false,
+      communities: [
+        {
+          id: 'com_df41dc',
+          accountId: 'acc_dreamfinders',
+          name: 'DREAM CREST (DF41DC)',
+          cityState: 'Franklin, TN',
+          superintendent: 'Chad Montgomery',
+          externalId: 'SAP-COMM-DF41DC',
+          isArchived: false,
+          lots: [
+            { id: 'lot_df_dc', communityId: 'com_df41dc', lotNumber: '0000DC', streetAddress: '204 Dream Crest Lane', planType: 'Monroe Custom', externalId: 'SAP-LOT-DF41DC-001', isArchived: false },
           ]
         }
       ]
@@ -865,7 +976,7 @@ export default function App() {
       phone: '(702) 555-4819',
       primaryContact: 'Michael Ross',
       email: 'mross@tollbrothers.com',
-      externalId: 'ERP-ACC-105870',
+      externalId: 'SAP-CUST-105870',
       isArchived: false,
       communities: [
         {
@@ -874,57 +985,10 @@ export default function App() {
           name: 'Red Rock Canyon',
           cityState: 'Las Vegas, NV',
           superintendent: 'Dave Vance',
+          externalId: 'SAP-COMM-REDROCK',
           isArchived: false,
           lots: [
-            { id: 'lot4', communityId: 'com3', lotNumber: 'Lot 104', streetAddress: '104 Red Rock Pass', planType: 'Plan D - Estate', isArchived: false },
-          ]
-        }
-      ]
-    },
-    {
-      id: 'acc3',
-      name: 'CENTURY COMMUNITIES - FLORIDA - 127263',
-      code: 'CENTURY-FL',
-      billingAddress: '200 Central Ave, St. Petersburg, FL 33701',
-      phone: '(727) 555-8812',
-      primaryContact: 'Sarah Jenkins',
-      email: 'sjenkins@centurycommunities.com',
-      externalId: 'ERP-ACC-127263',
-      isArchived: false,
-      communities: [
-        {
-          id: 'com4',
-          accountId: 'acc3',
-          name: 'Sunset Ridge',
-          cityState: 'Sarasota, FL',
-          superintendent: 'Tom Bradley',
-          isArchived: false,
-          lots: [
-            { id: 'lot5', communityId: 'com4', lotNumber: 'Unit 3B', streetAddress: '88 Sunset Blvd', planType: 'Plan B - Craftsman', isArchived: false }
-          ]
-        }
-      ]
-    },
-    {
-      id: 'acc4',
-      name: 'REFX TEST CL-2 - 130766',
-      code: 'REFX-FL',
-      billingAddress: '1200 Westshore Blvd, Tampa, FL 33609',
-      phone: '(813) 555-9920',
-      primaryContact: 'Jason Mayes',
-      email: 'jmayes@refx.com',
-      externalId: 'ERP-ACC-130766',
-      isArchived: false,
-      communities: [
-        {
-          id: 'com5',
-          accountId: 'acc4',
-          name: 'Palmetto Palms',
-          cityState: 'Tampa, FL',
-          superintendent: 'Carl Rogers',
-          isArchived: false,
-          lots: [
-            { id: 'lot6', communityId: 'com5', lotNumber: 'Lot 8', streetAddress: '55 Palmetto Way', planType: 'Plan C - Tuscan', isArchived: false }
+            { id: 'lot4', communityId: 'com3', lotNumber: 'Lot 104', streetAddress: '104 Red Rock Pass', planType: 'Plan D - Estate', externalId: 'SAP-LOT-REDROCK-104', isArchived: false },
           ]
         }
       ]
@@ -959,11 +1023,204 @@ export default function App() {
     return `${d.getMonth() + 1}/${d.getDate()}/${d.getFullYear()}`;
   };
 
-  // Master Jobs Data
+  // Master Jobs Data (Enriched with real Moraware job codes, builder links & SAP WBS identifiers)
   const [jobsData, setJobsData] = useState<JobRow[]>([
     {
-      id: '1',
-      jobName: 'P2HSPN_001078_000_01',
+      id: 'job_lnx_10170',
+      jobName: 'LNXAUS_000036_000_01 (Lot 36 - Kitchen & Waterfall Island)',
+      jobCategory: 'INITIAL_INSTALL',
+      accountId: 'acc_lennar_ga',
+      accountName: 'LENNAR HOMES OF GEORGIA - 126954',
+      accountCode: 'LENNAR-GA',
+      communityId: 'com_lnxaus',
+      communityName: 'AUSTIN PARK AT HIGHLAND (LNXAUS)',
+      lotId: 'lot_lnx_36',
+      lotNumber: '000036',
+      streetAddress: '412 Austin Park Ridge',
+      cityStateZip: 'CUMMING, GA 30040',
+      elevationPlan: 'Plan 3200 - Craftsman',
+      projectNumber: 'PRJ-GA-2026-036',
+      salesOrderNumber: 'SO-881920',
+      builderPhase: 'PHASE TWO',
+      planNumber: 'PLN-3200',
+      fieldSuper: 'Brad Jenkins',
+      fieldManager: 'JACKIE HORN',
+      accountExecutive: 'David Hennessey',
+      accountManager: 'ATLANTA METRO TEAM',
+      designer: 'Elena Rostova',
+      jobNotes: 'Mitered 2.5" waterfall island edges. Silestone Desert Silver 3cm slabs allocated on PO-ATL-2026-0419.',
+      templateDate: { date: getRelDateStr(-4), status: 'conf' },
+      fabDate: { date: getRelDateStr(-1), status: 'conf' },
+      installDate: { date: getRelDateStr(2), status: 'conf' },
+      salesperson: 'David Hennessey',
+      externalId: 'SAP-SO-10170',
+      status: 'Active',
+      isArchived: false,
+      assignedCrew: 'Install Truck 1',
+      materialOrdered: true,
+      materialETA: getRelDateStr(-5),
+      materialReceived: true,
+      materialReceivedOn: getRelDateStr(-4),
+      sinksOrdered: true,
+      sinksETA: getRelDateStr(-3),
+      sinksReceived: true,
+      sinksReceivedOn: getRelDateStr(-2),
+      purchasingNotes: 'Desert Silver 3cm in Slab Rack A-04 (SLB-ATL-2026-0041)',
+      installerNotesText: 'Gate code 4821. Pre-inspection approved.',
+      files: [
+        { id: 'flnx1', name: 'Lennar_3200_Kitchen_CAD.pdf', size: '3.1 MB', type: 'PDF', uploadedAt: '8/12/2026' },
+        { id: 'flnx2', name: 'Waterfall_Miter_CutList.dxf', size: '5.4 MB', type: 'DXF', uploadedAt: '8/14/2026' },
+      ],
+      activities: [
+        { id: 'lnx_a1', activityName: 'Field Templating', phase: 'STONE', status: 'Complete', startDate: getRelDateStr(-4), schedTime: '9:00am', duration: '90m', assignedTo: 'Template Crew', externalId: 'SAP-WBS-10170-TMPL' },
+        { id: 'lnx_a2', activityName: 'Stone CAD Programming', phase: 'STONE', status: 'Complete', startDate: getRelDateStr(-3), schedTime: '11:00am', duration: '60m', assignedTo: 'CAD Team A', externalId: 'SAP-WBS-10170-CAD' },
+        { id: 'lnx_a3', activityName: 'Sawjet CNC Cutting', phase: 'STONE', status: 'Complete', startDate: getRelDateStr(-2), schedTime: '1:00pm', duration: '120m', assignedTo: 'Bridge Saw 1', externalId: 'SAP-WBS-10170-SAW' },
+        { id: 'lnx_a4', activityName: 'Edge Polishing & Miter Assembly', phase: 'STONE', status: 'In Progress', startDate: getRelDateStr(0), schedTime: '8:00am', duration: '180m', assignedTo: 'Hand Polish Crew', externalId: 'SAP-WBS-10170-POL' },
+        { id: 'lnx_a5', activityName: 'Stone Install', phase: 'STONE', status: 'Confirmed', startDate: getRelDateStr(2), schedTime: '8:00am', duration: '240m', assignedTo: 'Install Truck 1', externalId: 'SAP-WBS-10170-INST' },
+        { id: 'lnx_a6', activityName: 'Customer Acceptance Sign-Off', phase: 'STONE', status: 'Tentative', startDate: getRelDateStr(2), schedTime: '1:00pm', duration: '30m', assignedTo: 'QA Super', externalId: 'SAP-WBS-10170-SIGN' },
+      ]
+    },
+    {
+      id: 'job_cs2_10720',
+      jobName: 'CS2OGG_000069_000_01 (Lot 69 - Main Kitchen & Powder)',
+      jobCategory: 'INITIAL_INSTALL',
+      accountId: 'acc_century_se',
+      accountName: 'CENTURY COMMUNITIES SOUTHEAST - 122973',
+      accountCode: 'CENTURY-SE',
+      communityId: 'com_cs2ogg',
+      communityName: 'OLD GREENWOOD GLEN (CS2OGG)',
+      lotId: 'lot_cs2_69',
+      lotNumber: '000069',
+      streetAddress: '742 Old Greenwood Trail',
+      cityStateZip: 'GAINESVILLE, GA 30501',
+      elevationPlan: 'Camden 2-Story',
+      projectNumber: 'PRJ-GA-2026-069',
+      salesOrderNumber: 'SO-881944',
+      builderPhase: 'PHASE ONE',
+      planNumber: 'CAMDEN-2S',
+      fieldSuper: 'Mark Wheeler',
+      fieldManager: 'TRAVIS MILLER',
+      accountExecutive: 'Travis Miller',
+      accountManager: 'SOUTHEAST REGION',
+      designer: 'Rachel Zane',
+      jobNotes: 'Della Terra Carrara Quartz 3cm allocated on PO-ATL-2026-0428.',
+      templateDate: { date: getRelDateStr(-1), status: 'conf' },
+      fabDate: { date: getRelDateStr(1), status: 'auto' },
+      installDate: { date: getRelDateStr(3), status: 'calc' },
+      salesperson: 'Travis Miller',
+      externalId: 'SAP-SO-10720',
+      status: 'Active',
+      isArchived: false,
+      assignedCrew: 'Install Truck 2',
+      materialOrdered: true,
+      materialETA: getRelDateStr(0),
+      materialReceived: true,
+      materialReceivedOn: getRelDateStr(0),
+      sinksOrdered: true,
+      sinksETA: getRelDateStr(-1),
+      sinksReceived: true,
+      sinksReceivedOn: getRelDateStr(0),
+      purchasingNotes: 'Quartz slab delivered from Arizona Tile (SLB-ATL-2026-0099)',
+      installerNotesText: '',
+      files: [],
+      activities: [
+        { id: 'cs2_a1', activityName: 'Field Templating', phase: 'STONE', status: 'Complete', startDate: getRelDateStr(-1), schedTime: '10:00am', duration: '90m', assignedTo: 'Template Crew', externalId: 'SAP-WBS-10720-TMPL' },
+        { id: 'cs2_a2', activityName: 'Stone CAD Programming', phase: 'STONE', status: 'Confirmed', startDate: getRelDateStr(0), schedTime: '1:00pm', duration: '60m', assignedTo: 'CAD Team B', externalId: 'SAP-WBS-10720-CAD' },
+        { id: 'cs2_a3', activityName: 'Sawjet CNC Cutting', phase: 'STONE', status: 'Auto-Schedule', startDate: getRelDateStr(1), schedTime: '9:00am', duration: '120m', assignedTo: 'Bridge Saw 2', externalId: 'SAP-WBS-10720-SAW' },
+        { id: 'cs2_a4', activityName: 'Stone Install', phase: 'STONE', status: 'CALCULATED', startDate: getRelDateStr(3), schedTime: '8:00am', duration: '240m', assignedTo: 'Install Truck 2', externalId: 'SAP-WBS-10720-INST' },
+      ]
+    },
+    {
+      id: 'job_cna_10485',
+      jobName: 'CNAALN_000033_000_01 (Lot 33 - Primary Kitchen & Island)',
+      jobCategory: 'INITIAL_INSTALL',
+      accountId: 'acc_century_nsh',
+      accountName: 'CENTURY COMMUNITIES NASHVILLE - 125316',
+      accountCode: 'CENTURY-NSH',
+      communityId: 'com_cnaaln',
+      communityName: 'AUTUMN LAKES NASHVILLE (CNAALN)',
+      lotId: 'lot_cna_33',
+      lotNumber: '000033',
+      streetAddress: '1128 Autumn Lake Blvd',
+      cityStateZip: 'MURFREESBORO, TN 37128',
+      elevationPlan: 'Plan 2400 - Heritage',
+      projectNumber: 'PRJ-TN-2026-033',
+      salesOrderNumber: 'SO-882105',
+      builderPhase: 'PHASE THREE',
+      fieldSuper: 'Russell Evans',
+      fieldManager: 'HEATHER COLE',
+      accountExecutive: 'Heather Cole',
+      jobNotes: 'Calacatta Gold 3cm allocated on PO-ATL-2026-0412.',
+      templateDate: { date: getRelDateStr(-3), status: 'conf' },
+      fabDate: { date: getRelDateStr(0), status: 'conf' },
+      installDate: { date: getRelDateStr(2), status: 'conf' },
+      salesperson: 'Heather Cole',
+      externalId: 'SAP-SO-10485',
+      status: 'Active',
+      isArchived: false,
+      assignedCrew: 'Install Truck 3',
+      materialOrdered: true,
+      materialETA: getRelDateStr(-4),
+      materialReceived: true,
+      materialReceivedOn: getRelDateStr(-3),
+      sinksOrdered: true,
+      sinksETA: getRelDateStr(-2),
+      sinksReceived: true,
+      sinksReceivedOn: getRelDateStr(-1),
+      purchasingNotes: 'Calacatta Gold 3cm in bay 2',
+      installerNotesText: '',
+      files: [],
+      activities: [
+        { id: 'cna_a1', activityName: 'Field Templating', phase: 'STONE', status: 'Complete', startDate: getRelDateStr(-3), schedTime: '9:00am', duration: '90m', assignedTo: 'Template Crew', externalId: 'SAP-WBS-10485-TMPL' },
+        { id: 'cna_a2', activityName: 'Stone Sawjet Cutting', phase: 'STONE', status: 'In Progress', startDate: getRelDateStr(0), schedTime: '10:00am', duration: '120m', assignedTo: 'Bridge Saw 1', externalId: 'SAP-WBS-10485-SAW' },
+        { id: 'cna_a3', activityName: 'Stone Install', phase: 'STONE', status: 'Confirmed', startDate: getRelDateStr(2), schedTime: '8:00am', duration: '240m', assignedTo: 'Install Truck 3', externalId: 'SAP-WBS-10485-INST' },
+      ]
+    },
+    {
+      id: 'job_dfh_10941',
+      jobName: 'DF41DC_0000DC_000_01 (Lot DC - Dream Crest Luxury Quartz)',
+      jobCategory: 'INITIAL_INSTALL',
+      accountId: 'acc_dreamfinders',
+      accountName: 'DREAM FINDERS HOMES NASHVILLE - 130470',
+      accountCode: 'DFH-NSH',
+      communityId: 'com_df41dc',
+      communityName: 'DREAM CREST (DF41DC)',
+      lotId: 'lot_df_dc',
+      lotNumber: '0000DC',
+      streetAddress: '204 Dream Crest Lane',
+      cityStateZip: 'FRANKLIN, TN 37064',
+      elevationPlan: 'Monroe Custom',
+      projectNumber: 'PRJ-TN-2026-094',
+      salesOrderNumber: 'SO-882310',
+      fieldSuper: 'Chad Montgomery',
+      salesperson: 'Keith Sterling',
+      externalId: 'SAP-SO-10941',
+      status: 'Active',
+      isArchived: false,
+      assignedCrew: 'Apex Install Crew A',
+      materialOrdered: true,
+      materialETA: getRelDateStr(0),
+      materialReceived: true,
+      materialReceivedOn: getRelDateStr(0),
+      sinksOrdered: true,
+      sinksETA: getRelDateStr(0),
+      sinksReceived: false,
+      sinksReceivedOn: '',
+      templateDate: { date: getRelDateStr(0), status: 'conf' },
+      fabDate: { date: getRelDateStr(1), status: 'auto' },
+      installDate: { date: getRelDateStr(3), status: 'conf' },
+      purchasingNotes: 'Custom white quartz lot',
+      installerNotesText: '',
+      files: [],
+      activities: [
+        { id: 'dfh_a1', activityName: 'Stone CAD Programming', phase: 'STONE', status: 'Confirmed', startDate: getRelDateStr(0), schedTime: '11:00am', duration: '60m', assignedTo: 'CAD Team A', externalId: 'SAP-WBS-10941-CAD' },
+        { id: 'dfh_a2', activityName: 'Sawjet CNC Cutting', phase: 'STONE', status: 'Auto-Schedule', startDate: getRelDateStr(1), schedTime: '8:00am', duration: '120m', assignedTo: 'Bridge Saw 2', externalId: 'SAP-WBS-10941-SAW' },
+        { id: 'dfh_a3', activityName: 'Stone Install', phase: 'STONE', status: 'Confirmed', startDate: getRelDateStr(3), schedTime: '8:00am', duration: '240m', assignedTo: 'Apex Install Crew A', externalId: 'SAP-WBS-10941-INST' },
+      ]
+    },
+    {
+      id: 'job_perry_1078',
+      jobName: 'P2HSPN_001078_000_01 (Lot 1078 - Star Farms Perimeter)',
       jobCategory: 'INITIAL_INSTALL',
       accountId: 'acc1',
       accountName: 'PERRY HOMES OF FLORIDA LLC - 129495',
@@ -975,21 +1232,16 @@ export default function App() {
       streetAddress: '3839 BUTTE TRAIL',
       cityStateZip: 'LAKEWOOD RANCH, FL 34211',
       elevationPlan: 'Plan B - Craftsman',
-      projectNumber: '0001017193',
+      projectNumber: 'PRJ-FL-2026-1078',
       salesOrderNumber: 'SO-99201',
       builderPhase: 'PHASE ONE',
-      planNumber: 'TBD',
       fieldSuper: 'Mark Stevens',
-      fieldManager: '3004 HORN, JACKIE',
       accountExecutive: 'Brittany Googe',
-      accountManager: 'UNASSIGNED - AM - WEST',
-      designer: 'Elena Rostova',
-      jobNotes: 'Special sink cutout required. Custom edge profile.',
       templateDate: { date: getRelDateStr(-2), status: 'conf' },
       fabDate: { date: getRelDateStr(0), status: 'auto' },
       installDate: { date: getRelDateStr(3), status: 'calc' },
-      salesperson: 'jason mayes',
-      externalId: 'ERP-JOB-1078',
+      salesperson: 'Jason Mayes',
+      externalId: 'SAP-SO-1078',
       status: 'Active',
       isArchived: false,
       assignedCrew: 'Install Truck 1',
@@ -999,30 +1251,20 @@ export default function App() {
       materialReceivedOn: getRelDateStr(-4),
       sinksOrdered: true,
       sinksETA: getRelDateStr(-3),
-      sinksReceived: false,
-      sinksReceivedOn: '',
+      sinksReceived: true,
+      sinksReceivedOn: getRelDateStr(-2),
       purchasingNotes: 'Calacatta Gold 3cm slabs in bay 4',
       installerNotesText: 'Undermount sink clip verification completed.',
-      files: [
-        { id: 'f1', name: 'Kitchen_Plan_Rev2.pdf', size: '2.4 MB', type: 'PDF', uploadedAt: '6/15/2026' },
-        { id: 'f2', name: 'Slab_Seam_Layout.dxf', size: '4.8 MB', type: 'DXF', uploadedAt: '6/16/2026' },
-      ],
+      files: [],
       activities: [
-        { id: 'a1', activityName: 'Stone CAD', phase: 'STONE', status: 'Auto-Schedule', startDate: getRelDateStr(-4), schedTime: '3:30pm', duration: '60m', assignedTo: 'CAD Team A' },
-        { id: 'a2', activityName: 'Stone Saw', phase: 'STONE', status: 'Auto-Schedule', startDate: getRelDateStr(-3), schedTime: '3:30pm', duration: '120m', assignedTo: 'Bridge Saw 1' },
-        { id: 'a3', activityName: 'Stone CNC', phase: 'STONE', status: 'Auto-Schedule', startDate: getRelDateStr(-3), schedTime: '3:30pm', duration: '90m', assignedTo: 'CNC Router 2' },
-        { id: 'a4', activityName: 'Stone Fabrication', phase: 'STONE', status: 'Auto-Schedule', startDate: getRelDateStr(0), schedTime: '3:30pm', duration: '180m', assignedTo: 'Hand Polish Crew' },
-        { id: 'a5', activityName: 'Stone Install', phase: 'STONE', status: 'CALCULATED', startDate: getRelDateStr(3), schedTime: '8:00am', duration: '240m', assignedTo: 'Install Truck 1' },
-        { id: 'a6', activityName: '100% Job Complete', phase: 'STONE', status: 'Auto-Schedule', startDate: getRelDateStr(4), schedTime: '8:00am', duration: '30m', assignedTo: 'QA Super' },
-        { id: 'a7', activityName: 'Admin Start', phase: 'STONE', status: 'Auto-Schedule', startDate: getRelDateStr(-5), schedTime: '9:00am', duration: '15m', assignedTo: 'Office' },
-        { id: 'a8', activityName: 'STONE PROGRAM - SAW', phase: 'STONE', status: 'Auto-Schedule', startDate: getRelDateStr(-4), schedTime: '1:00pm', duration: '45m', assignedTo: 'Programmer' },
-        { id: 'a9', activityName: 'STONE PROGRAM - CNC', phase: 'STONE', status: 'Auto-Schedule', startDate: getRelDateStr(-4), schedTime: '2:00pm', duration: '45m', assignedTo: 'Programmer' },
-        { id: 'a10', activityName: 'PRODUCTION RELEASE', phase: 'STONE', status: 'Auto-Schedule', startDate: getRelDateStr(-4), schedTime: '4:00pm', duration: '15m', assignedTo: 'Plant Mgr' },
+        { id: 'perry_a1', activityName: 'Field Templating', phase: 'STONE', status: 'Complete', startDate: getRelDateStr(-2), schedTime: '9:00am', duration: '90m', assignedTo: 'Template Crew', externalId: 'SAP-WBS-1078-TMPL' },
+        { id: 'perry_a2', activityName: 'Stone Sawjet Cutting', phase: 'STONE', status: 'In Progress', startDate: getRelDateStr(0), schedTime: '1:00pm', duration: '120m', assignedTo: 'Bridge Saw 1', externalId: 'SAP-WBS-1078-SAW' },
+        { id: 'perry_a3', activityName: 'Stone Install', phase: 'STONE', status: 'CALCULATED', startDate: getRelDateStr(3), schedTime: '8:00am', duration: '240m', assignedTo: 'Install Truck 1', externalId: 'SAP-WBS-1078-INST' },
       ]
     },
     {
-      id: '2',
-      jobName: 'P2HSPN_001079_000_01 (Lot 42 - Warranty Vanity)',
+      id: 'job_perry_1079',
+      jobName: 'P2HSPN_001079_000_01 (Lot 1079 - Star Farms Vanity Remake)',
       jobCategory: 'REWORK_WARRANTY',
       accountId: 'acc1',
       accountName: 'PERRY HOMES OF FLORIDA LLC - 129495',
@@ -1030,16 +1272,16 @@ export default function App() {
       communityId: 'com1',
       communityName: 'STAR FARMS LWR 90\'S',
       lotId: 'lot2',
-      lotNumber: '001078',
-      streetAddress: '3839 BUTTE TRAIL',
+      lotNumber: '001079',
+      streetAddress: '3843 BUTTE TRAIL',
       cityStateZip: 'LAKEWOOD RANCH, FL 34211',
-      elevationPlan: 'Plan B - Craftsman',
+      elevationPlan: 'Plan C - Tuscan',
       templateDate: { date: getRelDateStr(-1), status: 'conf' },
       fabDate: { date: getRelDateStr(1), status: 'auto' },
       installDate: { date: getRelDateStr(3), status: 'calc' },
-      salesperson: 'jason mayes',
+      salesperson: 'Jason Mayes',
       jobIssues: 'Chip Repair Required',
-      externalId: 'ERP-JOB-1079',
+      externalId: 'SAP-SO-1079',
       status: 'Active',
       isArchived: false,
       assignedCrew: 'Service Crew A',
@@ -1055,129 +1297,13 @@ export default function App() {
       installerNotesText: 'Service technician dispatched for cosmetic chip filling.',
       files: [],
       activities: [
-        { id: 'b1', activityName: 'Stone Inspection', phase: 'STONE', status: 'Confirmed', startDate: getRelDateStr(-1), schedTime: '9:00am', duration: '60m', assignedTo: 'Service Crew A' },
-        { id: 'b2', activityName: 'Field Chip Polish & Seal', phase: 'STONE', status: 'Confirmed', startDate: getRelDateStr(3), schedTime: '10:00am', duration: '120m', assignedTo: 'Service Crew A' },
+        { id: 'perry_b1', activityName: 'Stone Inspection', phase: 'STONE', status: 'Confirmed', startDate: getRelDateStr(-1), schedTime: '9:00am', duration: '60m', assignedTo: 'Service Crew A', externalId: 'SAP-WBS-1079-INSP' },
+        { id: 'perry_b2', activityName: 'Field Chip Polish & Seal', phase: 'STONE', status: 'Confirmed', startDate: getRelDateStr(3), schedTime: '10:00am', duration: '120m', assignedTo: 'Service Crew A', externalId: 'SAP-WBS-1079-CHIP' },
       ]
     },
     {
-      id: '3',
-      jobName: 'P2HSPP_000017_000_01 (Lot 15 - Primary)',
-      jobCategory: 'INITIAL_INSTALL',
-      accountId: 'acc1',
-      accountName: 'PERRY HOMES OF FLORIDA LLC - 129495',
-      accountCode: 'PERRY-FL',
-      communityId: 'com2',
-      communityName: 'Oakridge Estates',
-      lotId: 'lot3',
-      lotNumber: 'Lot 15',
-      streetAddress: '108 Oakridge Dr',
-      cityStateZip: 'ORLANDO, FL 32801',
-      elevationPlan: 'Plan A - Modern',
-      templateDate: { date: 'No Date', status: 'none' },
-      fabDate: { date: getRelDateStr(3), status: 'auto' },
-      installDate: { date: getRelDateStr(5), status: 'calc' },
-      salesperson: 'jason mayes',
-      externalId: 'ERP-JOB-0017',
-      status: 'Active',
-      isArchived: false,
-      assignedCrew: 'Install Truck 2',
-      materialOrdered: false,
-      materialETA: '',
-      materialReceived: false,
-      materialReceivedOn: '',
-      sinksOrdered: false,
-      sinksETA: '',
-      sinksReceived: false,
-      sinksReceivedOn: '',
-      purchasingNotes: 'Awaiting template sign-off',
-      installerNotesText: '',
-      files: [],
-      activities: [
-        { id: 'c1', activityName: 'Field Templating', phase: 'STONE', status: 'Tentative', startDate: getRelDateStr(2), schedTime: '9:00am', duration: '120m', assignedTo: 'Template Crew' },
-        { id: 'c2', activityName: 'Stone Fabrication', phase: 'STONE', status: 'Auto-Schedule', startDate: getRelDateStr(3), schedTime: '1:00pm', duration: '180m', assignedTo: 'CNC Router 1' },
-        { id: 'c3', activityName: 'Stone Install', phase: 'STONE', status: 'CALCULATED', startDate: getRelDateStr(5), schedTime: '8:00am', duration: '240m', assignedTo: 'Install Truck 2' },
-      ]
-    },
-    {
-      id: '4',
-      jobName: 'RF1MRE_000014_000_03 (Lot 8 - Outdoor Bar)',
-      jobCategory: 'ADD_ON',
-      accountId: 'acc4',
-      accountName: 'REFX TEST CL-2 - 130766',
-      accountCode: 'REFX-FL',
-      communityId: 'com5',
-      communityName: 'Palmetto Palms',
-      lotId: 'lot6',
-      lotNumber: 'Lot 8',
-      streetAddress: '55 Palmetto Way',
-      cityStateZip: 'TAMPA, FL 33602',
-      elevationPlan: 'Plan C - Tuscan',
-      templateDate: { date: getRelDateStr(1), status: 'auto' },
-      fabDate: { date: getRelDateStr(2), status: 'auto' },
-      installDate: { date: getRelDateStr(4), status: 'conf' },
-      salesperson: 'jason mayes',
-      externalId: 'ERP-JOB-0014',
-      status: 'Active',
-      isArchived: false,
-      assignedCrew: 'Apex Install Crew A',
-      materialOrdered: true,
-      materialETA: getRelDateStr(1),
-      materialReceived: true,
-      materialReceivedOn: getRelDateStr(1),
-      sinksOrdered: false,
-      sinksETA: '',
-      sinksReceived: false,
-      sinksReceivedOn: '',
-      purchasingNotes: 'Granite rem cut from bundle #882',
-      installerNotesText: '',
-      files: [],
-      activities: [
-        { id: 'd1', activityName: 'Stone CAD', phase: 'STONE', status: 'Auto-Schedule', startDate: getRelDateStr(1), schedTime: '10:00am', duration: '60m', assignedTo: 'CAD Team A' },
-        { id: 'd2', activityName: 'Stone Fabrication', phase: 'STONE', status: 'Auto-Schedule', startDate: getRelDateStr(2), schedTime: '1:00pm', duration: '120m', assignedTo: 'Bridge Saw 1' },
-        { id: 'd3', activityName: 'Stone Install', phase: 'STONE', status: 'Confirmed', startDate: getRelDateStr(4), schedTime: '8:00am', duration: '180m', assignedTo: 'Apex Install Crew A' },
-      ]
-    },
-    {
-      id: '5',
-      jobName: 'XCF2TT_000001_000_01 (Lot 3B - Full Slab)',
-      jobCategory: 'INITIAL_INSTALL',
-      accountId: 'acc3',
-      accountName: 'CENTURY COMMUNITIES - FLORIDA - 127263',
-      accountCode: 'CENTURY-FL',
-      communityId: 'com4',
-      communityName: 'Sunset Ridge',
-      lotId: 'lot5',
-      lotNumber: 'Unit 3B',
-      streetAddress: '88 Sunset Blvd',
-      cityStateZip: 'SARASOTA, FL 34236',
-      elevationPlan: 'Plan B - Craftsman',
-      templateDate: { date: 'No Date', status: 'none' },
-      fabDate: { date: 'No Date', status: 'none' },
-      installDate: { date: getRelDateStr(1), status: 'conf' },
-      salesperson: 'Sarah Jenkins',
-      externalId: 'ERP-JOB-0001',
-      status: 'Active',
-      isArchived: false,
-      assignedCrew: 'Install Truck 1',
-      materialOrdered: true,
-      materialETA: getRelDateStr(-3),
-      materialReceived: true,
-      materialReceivedOn: getRelDateStr(-2),
-      sinksOrdered: true,
-      sinksETA: getRelDateStr(-2),
-      sinksReceived: true,
-      sinksReceivedOn: getRelDateStr(-1),
-      purchasingNotes: 'Sinks in warehouse aisle 3',
-      installerNotesText: '',
-      files: [],
-      activities: [
-        { id: 'e1', activityName: 'Field Templating', phase: 'STONE', status: 'Tentative', startDate: getRelDateStr(-2), schedTime: '11:00am', duration: '90m', assignedTo: 'Template Crew' },
-        { id: 'e2', activityName: 'Stone Install', phase: 'STONE', status: 'Confirmed', startDate: getRelDateStr(1), schedTime: '8:00am', duration: '240m', assignedTo: 'Install Truck 1' },
-      ]
-    },
-    {
-      id: '6',
-      jobName: 'ABCDE_000101_000_01 (Lot 104 - Main Kitchen)',
+      id: 'job_toll_0101',
+      jobName: 'ABCDE_000101_000_01 (Lot 104 - Red Rock Estate Island)',
       jobCategory: 'INITIAL_INSTALL',
       accountId: 'acc2',
       accountName: 'TOLL BROTHERS INC - LV - 105870',
@@ -1193,7 +1319,7 @@ export default function App() {
       fabDate: { date: 'No Date', status: 'auto' },
       installDate: { date: getRelDateStr(2), status: 'conf' },
       salesperson: 'Michael Ross',
-      externalId: 'ERP-JOB-0101',
+      externalId: 'SAP-SO-0101',
       status: 'Active',
       isArchived: false,
       assignedCrew: 'Templating Crew 1',
@@ -1209,9 +1335,9 @@ export default function App() {
       installerNotesText: '',
       files: [],
       activities: [
-        { id: 'f1', activityName: 'Stone CAD', phase: 'STONE', status: 'Confirmed', startDate: getRelDateStr(0), schedTime: '9:00am', duration: '60m', assignedTo: 'CAD Team B' },
-        { id: 'f2', activityName: 'Stone Saw', phase: 'STONE', status: 'Auto-Schedule', startDate: getRelDateStr(1), schedTime: '1:00pm', duration: '120m', assignedTo: 'Bridge Saw 2' },
-        { id: 'f3', activityName: 'Stone Install', phase: 'STONE', status: 'Confirmed', startDate: getRelDateStr(2), schedTime: '8:00am', duration: '240m', assignedTo: 'Install Truck 3' },
+        { id: 'toll_f1', activityName: 'Stone CAD Programming', phase: 'STONE', status: 'Confirmed', startDate: getRelDateStr(0), schedTime: '9:00am', duration: '60m', assignedTo: 'CAD Team B', externalId: 'SAP-WBS-0101-CAD' },
+        { id: 'toll_f2', activityName: 'Sawjet CNC Cutting', phase: 'STONE', status: 'Auto-Schedule', startDate: getRelDateStr(1), schedTime: '1:00pm', duration: '120m', assignedTo: 'Bridge Saw 2', externalId: 'SAP-WBS-0101-SAW' },
+        { id: 'toll_f3', activityName: 'Stone Install', phase: 'STONE', status: 'Confirmed', startDate: getRelDateStr(2), schedTime: '8:00am', duration: '240m', assignedTo: 'Install Truck 3', externalId: 'SAP-WBS-0101-INST' },
       ]
     },
   ]);
@@ -4908,6 +5034,7 @@ export default function App() {
                       >
                         <div className="space-y-1">
                           <div className="font-bold text-sm text-blue-600 dark:text-blue-400 hover:underline">{com.name}</div>
+                          {com.externalId && <div className="text-[10px] text-slate-400 font-mono">ERP ID: {com.externalId}</div>}
                           <div className="text-slate-500">Location: {com.cityState} • Site Super: <strong>{com.superintendent}</strong></div>
                         </div>
 
@@ -4957,9 +5084,16 @@ export default function App() {
                     <ArrowLeft className="w-4 h-4" />
                     <span>Back to Account</span>
                   </button>
-                  <h2 className="text-xl font-black text-blue-600 dark:text-blue-400">
-                    Subdivision: {selectedCommunity.name} ({selectedAccount.name})
-                  </h2>
+                  <div>
+                    <h2 className="text-xl font-black text-blue-600 dark:text-blue-400">
+                      Subdivision: {selectedCommunity.name} ({selectedAccount.name})
+                    </h2>
+                    {selectedCommunity.externalId && (
+                      <span className="text-xs text-slate-400 font-mono">
+                        ERP ID: {selectedCommunity.externalId}
+                      </span>
+                    )}
+                  </div>
                 </div>
 
                 <div className="flex items-center space-x-2">
@@ -4998,7 +5132,14 @@ export default function App() {
                       const linkedJobs = jobsData.filter(j => j.lotNumber === lot.lotNumber);
                       return (
                         <tr key={lot.id} className="hover:bg-blue-50/50 dark:hover:bg-slate-800/60">
-                          <td className="p-3 font-bold text-blue-600 dark:text-blue-400">{lot.lotNumber}</td>
+                          <td className="p-3 font-bold text-blue-600 dark:text-blue-400">
+                            <div>{lot.lotNumber}</div>
+                            {lot.externalId && (
+                              <span className="text-[10px] text-slate-400 font-mono block">
+                                ERP: {lot.externalId}
+                              </span>
+                            )}
+                          </td>
                           <td className="p-3 text-slate-600 dark:text-slate-300 font-medium">{lot.streetAddress}</td>
                           <td className="p-3 text-slate-500">{lot.planType}</td>
                           <td className="p-3">
@@ -5503,7 +5644,12 @@ export default function App() {
                               } hover:bg-blue-100/50 dark:hover:bg-slate-800/80`}
                             >
                               <td className="p-3 font-semibold text-blue-700 dark:text-blue-400">
-                                {act.activityName}
+                                <div>{act.activityName}</div>
+                                {act.externalId && (
+                                  <span className="text-[10px] text-slate-400 font-mono block">
+                                    WBS: {act.externalId}
+                                  </span>
+                                )}
                               </td>
                               <td className="p-3 font-mono text-slate-500">{act.phase}</td>
                               <td className="p-3">

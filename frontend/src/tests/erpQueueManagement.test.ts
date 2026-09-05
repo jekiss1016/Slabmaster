@@ -111,4 +111,22 @@ describe('ERP Outbound Retry Queue, Progressive Backoff & Postman Integration', 
     expect(apiDocsContent).toContain('© 2026 SlabMaster');
     expect(apiDocsContent).toContain('v1.0.0');
   });
+
+  it('should verify live Moraware test fixtures and SAP external IDs are cataloged in Postman and API docs', () => {
+    const postmanPath = path.resolve(__dirname, '../../public/slabmaster_postman_collection.json');
+    const postmanRaw = fs.readFileSync(postmanPath, 'utf8');
+    const collection = JSON.parse(postmanRaw);
+    const folderNames = collection.item.map((f: any) => f.name);
+
+    expect(folderNames.some((n: string) => n.includes('Moraware Live Demo Fixtures'))).toBe(true);
+
+    const apiDocsPath = path.resolve(__dirname, '../../public/api-docs.html');
+    const apiDocsContent = fs.readFileSync(apiDocsPath, 'utf8');
+
+    expect(apiDocsContent).toContain('SAP-CUST-126954');
+    expect(apiDocsContent).toContain('SAP-COMM-LNXAUS');
+    expect(apiDocsContent).toContain('SAP-LOT-LNXAUS-036');
+    expect(apiDocsContent).toContain('SAP-SO-10170');
+    expect(apiDocsContent).toContain('SAP-WBS-10170-TMPL');
+  });
 });
