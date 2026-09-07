@@ -88,4 +88,34 @@ describe('REST API Contract & Postman Collection Parity Tests', () => {
       'the URL must start with the protocol sqlserver://'
     );
   });
+
+  it('enforces that Postman collection requires user API token and contains no hardcoded credentials', () => {
+    const apiKeyVar = postman.variable.find((v: any) => v.key === 'apiKey');
+    expect(apiKeyVar.value).toBe('sm_live_REPLACE_WITH_YOUR_TOKEN');
+
+    // Ensure raw Postman JSON contains no live passwords, database strings, or real secrets
+    expect(postmanRaw).not.toContain('password');
+    expect(postmanRaw).not.toContain('RnfFNzfQ');
+    expect(postmanRaw).not.toContain('database.windows.net');
+    expect(postmanRaw).not.toContain('AccountKey=');
+  });
+
+  it('enforces that API documentation and Help Guide contain no credentials or hardcoded passwords', () => {
+    const apiDocsPath = path.resolve(__dirname, '../../public/api-docs.html');
+    const apiDocsRaw = fs.readFileSync(apiDocsPath, 'utf-8');
+
+    const helpPath = path.resolve(__dirname, '../../public/help.html');
+    const helpRaw = fs.readFileSync(helpPath, 'utf-8');
+
+    // Verify all auth headers in API docs use user token placeholder
+    expect(apiDocsRaw).toContain('sm_live_YOUR_API_TOKEN_HERE');
+    expect(apiDocsRaw).not.toContain('sm_live_9f83a1b4c7e28910fedcba45');
+
+    // Verify no database passwords or Azure secrets exist in public documentation
+    const forbiddenKeywords = ['RnfFNzfQ', 'slabmasteradmin', 'AccountKey=', 'DefaultEndpointsProtocol='];
+    forbiddenKeywords.forEach((keyword) => {
+      expect(apiDocsRaw).not.toContain(keyword);
+      expect(helpRaw).not.toContain(keyword);
+    });
+  });
 });
