@@ -7175,7 +7175,11 @@ export default function App() {
                       <span className="text-xs text-slate-500">Auto-calculated from Lot activities & stone dimensions</span>
                     </div>
 
-                    <button className="bg-emerald-600 text-white px-3 py-1.5 rounded text-xs font-bold flex items-center space-x-1.5 hover:bg-emerald-500 cursor-pointer">
+                    <button
+                      type="button"
+                      onClick={() => exportTableToCsv('reports')}
+                      className="bg-emerald-600 text-white px-3 py-1.5 rounded text-xs font-bold flex items-center space-x-1.5 hover:bg-emerald-500 cursor-pointer transition-all shadow-xs"
+                    >
                       <Download className="w-3.5 h-3.5" />
                       <span>Export CSV</span>
                     </button>
