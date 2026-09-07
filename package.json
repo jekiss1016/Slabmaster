@@ -1,0 +1,11 @@
+{
+  "name": "slabmaster",
+  "version": "1.0.0",
+  "private": true,
+  "description": "SlabMaster Enterprise Monorepo Root",
+  "scripts": {
+    "postinstall": "cd backend && npm install",
+    "build": "cd backend && npm run build",
+    "start": "cd backend && npm start"
+  }
+}
