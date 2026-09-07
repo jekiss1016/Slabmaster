@@ -14,6 +14,7 @@ import { ApiKeysManagementModal } from './components/ApiKeysManagementModal';
 import { ShopFloorView } from './components/ShopFloorView';
 import { SlabInventoryView } from './components/SlabInventoryView';
 import { PurchasingView } from './components/PurchasingView';
+import { Code128Barcode } from './components/Code128Barcode';
 import { DEFAULT_CUSTOM_FIELDS, CustomFieldDefinition } from './types/customAttributes';
 import { ApiKeyItem, DEFAULT_MOCK_API_KEYS, ErpQueueItem, DEFAULT_MOCK_ERP_QUEUE } from './types/apiKeys';
 import {
@@ -11971,7 +11972,7 @@ export default function App() {
         </div>
       )}
 
-      {/* MODAL 3: PRINTABLE JOB PACKET CLIPBOARD SHEET (NO BARCODE / QR) */}
+      {/* MODAL 3: PRINTABLE JOB PACKET CLIPBOARD SHEET (CODE 128 BARCODE SCANNABLE) */}
       {printJobPacketJob && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4 z-50 overflow-y-auto">
           <div className="max-w-3xl w-full bg-white text-slate-900 p-8 rounded-2xl shadow-2xl space-y-6 my-8 print:m-0 print:p-0 print:shadow-none print:w-full">
@@ -12007,10 +12008,18 @@ export default function App() {
                   <p className="text-slate-600 font-medium">Production Fabrication & Installation Field Packet</p>
                   <p className="text-slate-500 text-[11px]">{selectedRegion} Operating Hub • (813) 555-0100</p>
                 </div>
-                <div className="text-right">
+                <div className="text-right flex flex-col items-end">
                   <div className="text-xs font-bold text-slate-400">JOB ORDER NUMBER</div>
                   <div className="text-lg font-black font-mono text-blue-800">{printJobPacketJob.jobName}</div>
-                  <div className="text-[11px] text-slate-500">Order Category: {printJobPacketJob.jobCategory}</div>
+                  <div className="text-[11px] text-slate-500 mb-1.5">Order Category: {printJobPacketJob.jobCategory}</div>
+                  <div className="bg-white p-1 rounded border border-slate-200 print:border-none">
+                    <Code128Barcode
+                      value={printJobPacketJob.jobName}
+                      height={32}
+                      moduleWidth={1.5}
+                      showText={false}
+                    />
+                  </div>
                 </div>
               </div>
 

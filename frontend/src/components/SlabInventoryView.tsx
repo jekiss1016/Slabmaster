@@ -16,6 +16,7 @@ import {
   Package,
   Barcode
 } from 'lucide-react';
+import { Code128Barcode } from './Code128Barcode';
 
 export interface SlabItem {
   id: string;
@@ -537,11 +538,11 @@ export const SlabInventoryView: React.FC<SlabInventoryViewProps> = ({
 
       {/* Barcode Label Print Modal Dialog */}
       {activeLabelPrint && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white text-slate-900 rounded-2xl p-6 max-w-sm w-full shadow-2xl border border-slate-300 space-y-4">
-            <div className="flex items-center justify-between border-b pb-3">
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4 print:p-0 print:bg-white print:fixed print:inset-0">
+          <div className="bg-white text-slate-900 rounded-2xl p-6 max-w-sm w-full shadow-2xl border border-slate-300 space-y-4 print:shadow-none print:border-none print:p-0 print:m-0 print:max-w-none">
+            <div className="flex items-center justify-between border-b pb-3 print:hidden">
               <span className="text-xs font-black uppercase tracking-wider text-slate-400">
-                Thermal Slab Barcode Label
+                Thermal Slab Barcode Label (Code 128)
               </span>
               <button
                 type="button"
@@ -553,7 +554,7 @@ export const SlabInventoryView: React.FC<SlabInventoryViewProps> = ({
             </div>
 
             {/* Label Card */}
-            <div className="border-2 border-slate-900 p-4 rounded-xl space-y-2 text-center bg-white font-mono">
+            <div className="border-2 border-slate-900 p-4 rounded-xl space-y-2 text-center bg-white font-mono print:border-2 print:border-black print:rounded-none print:w-72 print:mx-auto">
               <span className="text-[10px] font-black tracking-widest block text-slate-400">
                 SLABMASTER™ WAREHOUSE
               </span>
@@ -561,19 +562,15 @@ export const SlabInventoryView: React.FC<SlabInventoryViewProps> = ({
               <div className="text-xs text-slate-600">
                 {activeLabelPrint.materialType} • {activeLabelPrint.thickness}
               </div>
-              <div className="py-2 flex justify-center">
-                {/* Barcode Mock Visual */}
-                <div className="h-12 w-48 bg-slate-900 flex items-center justify-around px-2">
-                  <div className="h-full w-1 bg-white"></div>
-                  <div className="h-full w-2 bg-white"></div>
-                  <div className="h-full w-0.5 bg-white"></div>
-                  <div className="h-full w-1.5 bg-white"></div>
-                  <div className="h-full w-0.5 bg-white"></div>
-                  <div className="h-full w-2 bg-white"></div>
-                  <div className="h-full w-1 bg-white"></div>
-                </div>
+              <div className="py-2 flex justify-center bg-white">
+                {/* 100% Optically Scannable Code 128 Standard Barcode */}
+                <Code128Barcode
+                  value={activeLabelPrint.serialNumber}
+                  height={50}
+                  moduleWidth={2}
+                  showText={true}
+                />
               </div>
-              <div className="text-xs font-black">{activeLabelPrint.serialNumber}</div>
               <div className="text-[10px] text-slate-500 pt-1 border-t border-slate-200 flex justify-between">
                 <span>{activeLabelPrint.lengthInches}" × {activeLabelPrint.widthInches}"</span>
                 <span className="font-bold">{activeLabelPrint.sqft} SF</span>
@@ -581,7 +578,7 @@ export const SlabInventoryView: React.FC<SlabInventoryViewProps> = ({
               </div>
             </div>
 
-            <div className="flex justify-end space-x-2 pt-2">
+            <div className="flex justify-end space-x-2 pt-2 print:hidden">
               <button
                 type="button"
                 onClick={() => setActiveLabelPrint(null)}
