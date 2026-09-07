@@ -1,4 +1,4 @@
-name: Azure Static Web Apps CI/CD
+name: Frontend UI - Azure Static Web Apps (slabmaster-ui-dev)
 
 on:
   push:
@@ -13,7 +13,7 @@ jobs:
   build_and_deploy_job:
     if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.action != 'closed')
     runs-on: ubuntu-latest
-    name: Build and Deploy Job
+    name: Frontend Build and Deploy Job
     steps:
       - uses: actions/checkout@v3
         with:

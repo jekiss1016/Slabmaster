@@ -20,3 +20,7 @@
 
 ## 6. API Impact Gating & Breaking Change Protection Rule
 - **Explicit Permission & Advance Warning Required**: Any proposed modification, refactoring, field rename, schema alteration, or deletion that impacts active REST API contracts, endpoints, request/response formats, HTTP methods, or external ID lookups must be strictly gated. You must explicitly highlight and warn the user of all API impacts and potential breaking effects on live customer integrations operating on the current API version, and obtain explicit user permission before executing those changes.
+
+## 7. CI/CD Scope & Workflow Identification Rule
+- **Explicit Frontend / Backend Identification**: All GitHub Actions workflows, jobs, and deployment descriptions must explicitly reference whether they target `[Frontend]` or `[Backend]` (e.g. `Frontend UI - Azure Static Web Apps` and `Backend API - Azure App Service`).
+- **Commit Scoping**: Every commit triggering automated builds must use explicit scope prefixes in its title or message (`frontend:`, `backend:`, `ci:`, or `full-stack:`) so that build logs, PR checks, and deployment histories immediately clarify which tier is building.
