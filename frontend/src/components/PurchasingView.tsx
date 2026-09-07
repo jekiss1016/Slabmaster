@@ -12,8 +12,18 @@ import {
   Truck,
   ExternalLink,
   Trash2,
-  FileCheck
+  FileCheck,
+  ArrowRight,
+  Barcode
 } from 'lucide-react';
+import { SlabItem } from './SlabInventoryView';
+import {
+  loadPos,
+  savePos,
+  loadSlabs,
+  saveSlabs,
+  generateSlabsFromPo
+} from '../utils/inventoryStorage';
 
 export interface PurchaseOrderItem {
   id: string;
@@ -82,16 +92,25 @@ const DEFAULT_POS: PurchaseOrderItem[] = [
 interface PurchasingViewProps {
   isDark: boolean;
   activeRegionCode?: string;
+  onNavigateToInventory?: () => void;
+  onSlabsReceived?: (newSlabs: SlabItem[]) => void;
 }
 
 export const PurchasingView: React.FC<PurchasingViewProps> = ({
   isDark,
-  activeRegionCode = 'ATL'
+  activeRegionCode = 'ATL',
+  onNavigateToInventory,
+  onSlabsReceived
 }) => {
-  const [pos, setPos] = useState<PurchaseOrderItem[]>(DEFAULT_POS);
+  const [pos, setPos] = useState<PurchaseOrderItem[]>(() => loadPos());
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [isCreatingPo, setIsCreatingPo] = useState(false);
+
+  // Dock Receiving Modal State
+  const [receivingPo, setReceivingPo] = useState<PurchaseOrderItem | null>(null);
+  const [targetRack, setTargetRack] = useState('Dock Receiving Bay / A-Frame 01');
+  const [dockSuccessNotice, setDockSuccessNotice] = useState<string | null>(null);
 
   // New PO State
   const [poNumber, setPoNumber] = useState(`PO-${activeRegionCode}-${Date.now().toString().slice(-4)}`);
@@ -131,14 +150,34 @@ export const PurchasingView: React.FC<PurchasingViewProps> = ({
       plantCode: activeRegionCode
     };
 
-    setPos([newPo, ...pos]);
+    const updatedPos = [newPo, ...pos];
+    setPos(updatedPos);
+    savePos(updatedPos);
     setIsCreatingPo(false);
     setPoNumber(`PO-${activeRegionCode}-${Date.now().toString().slice(-4)}`);
   };
 
-  const handleMarkReceived = (id: string) => {
-    setPos((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, status: 'RECEIVED' } : item))
+  const handleOpenDockReceive = (po: PurchaseOrderItem) => {
+    setReceivingPo(po);
+    setTargetRack('Dock Receiving Bay / A-Frame 01');
+  };
+
+  const handleConfirmDockReceive = () => {
+    if (!receivingPo) return;
+    const { updatedPo, newSlabs } = generateSlabsFromPo(receivingPo, targetRack);
+    const updatedPos = pos.map((item) => (item.id === updatedPo.id ? updatedPo : item));
+    setPos(updatedPos);
+    savePos(updatedPos);
+
+    // Save to shared slab inventory storage
+    const currentSlabs = loadSlabs();
+    const mergedSlabs = [...newSlabs, ...currentSlabs];
+    saveSlabs(mergedSlabs);
+
+    onSlabsReceived?.(newSlabs);
+    setReceivingPo(null);
+    setDockSuccessNotice(
+      `✓ Successfully docked ${newSlabs.length} slabs for ${updatedPo.poNumber}! Allocated to ${targetRack}.`
     );
   };
 
@@ -169,6 +208,25 @@ export const PurchasingView: React.FC<PurchasingViewProps> = ({
           <span>+ Create Purchase Order</span>
         </button>
       </div>
+
+      {dockSuccessNotice && (
+        <div className="p-4 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800 flex items-center justify-between text-xs text-emerald-800 dark:text-emerald-200 animate-fade-in shadow-xs">
+          <div className="flex items-center space-x-2 font-bold">
+            <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+            <span>{dockSuccessNotice}</span>
+          </div>
+          {onNavigateToInventory && (
+            <button
+              type="button"
+              onClick={onNavigateToInventory}
+              className="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-600 text-white rounded-lg font-bold flex items-center space-x-1 cursor-pointer transition-all shadow-xs"
+            >
+              <span>View in Slab Inventory</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Filter Toolbar */}
       <div className="flex flex-wrap items-center justify-between gap-3 p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
@@ -380,7 +438,7 @@ export const PurchasingView: React.FC<PurchasingViewProps> = ({
                     {!isReceived ? (
                       <button
                         type="button"
-                        onClick={() => handleMarkReceived(po.id)}
+                        onClick={() => handleOpenDockReceive(po)}
                         className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-[11px] font-bold cursor-pointer transition-all shadow-xs"
                       >
                         ✓ Receive
@@ -398,6 +456,107 @@ export const PurchasingView: React.FC<PurchasingViewProps> = ({
           </tbody>
         </table>
       </div>
+
+      {/* Dock Receiving & Slab Barcode Minting Modal */}
+      {receivingPo && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 rounded-2xl p-6 max-w-lg w-full shadow-2xl border border-slate-300 dark:border-slate-800 space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+              <div className="flex items-center space-x-2">
+                <Truck className="w-5 h-5 text-blue-600" />
+                <h3 className="text-sm font-black uppercase tracking-wider text-slate-900 dark:text-slate-100">
+                  Dock Receive & Slab Barcode Minting
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setReceivingPo(null)}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 space-y-1.5">
+                <div className="flex justify-between">
+                  <span className="text-slate-500 font-bold">Purchase Order:</span>
+                  <span className="font-mono font-black">{receivingPo.poNumber}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500 font-bold">Supplier:</span>
+                  <span className="font-bold">{receivingPo.supplierName}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500 font-bold">Material:</span>
+                  <span className="font-bold text-blue-600 dark:text-blue-400">{receivingPo.materialDescription}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500 font-bold">Quantity to Receive:</span>
+                  <span className="font-black text-emerald-600 dark:text-emerald-400">
+                    {receivingPo.quantitySlabs} Slabs (~{receivingPo.totalSqft} SF)
+                  </span>
+                </div>
+                {receivingPo.associatedJobName && (
+                  <div className="flex justify-between border-t border-slate-200 dark:border-slate-700 pt-1.5">
+                    <span className="text-slate-500 font-bold">Allocated Job:</span>
+                    <span className="font-bold text-blue-600 dark:text-blue-400">{receivingPo.associatedJobName}</span>
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">
+                  Assign Storage Rack / Warehouse Bay *
+                </label>
+                <select
+                  value={targetRack}
+                  onChange={(e) => setTargetRack(e.target.value)}
+                  className="w-full p-2.5 border rounded-lg text-xs font-bold text-slate-900 dark:bg-slate-800 dark:text-slate-100 dark:border-slate-700"
+                >
+                  <option value="Dock Receiving Bay / A-Frame 01">Dock Receiving Bay / A-Frame 01</option>
+                  <option value="Rack A-01 (Primary Staging)">Rack A-01 (Primary Staging)</option>
+                  <option value="Rack A-04 (Quartz Bundle Bay)">Rack A-04 (Quartz Bundle Bay)</option>
+                  <option value="Rack B-02 (Granite Bundle Bay)">Rack B-02 (Granite Bundle Bay)</option>
+                  <option value="Remnant Bin R-1">Remnant Bin R-1</option>
+                </select>
+              </div>
+
+              <div className="p-3 bg-blue-50/50 dark:bg-blue-950/30 rounded-xl border border-blue-200 dark:border-blue-900 text-[11px] text-blue-800 dark:text-blue-300">
+                <div className="font-bold flex items-center space-x-1.5 mb-1">
+                  <Barcode className="w-3.5 h-3.5" />
+                  <span>Auto-Generated Barcode Serials ({receivingPo.quantitySlabs} items)</span>
+                </div>
+                <div className="font-mono text-[10px] space-y-0.5 text-blue-900 dark:text-blue-200">
+                  {Array.from({ length: receivingPo.quantitySlabs }).map((_, idx) => (
+                    <div key={idx}>
+                      • SLB-{receivingPo.plantCode}-{(receivingPo.poNumber.split('-').pop() || 'PO')}-{(idx + 1).toString().padStart(2, '0')} ➔ {targetRack}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end space-x-2 pt-2 border-t border-slate-200 dark:border-slate-800">
+              <button
+                type="button"
+                onClick={() => setReceivingPo(null)}
+                className="px-3.5 py-2 border border-slate-300 dark:border-slate-700 text-xs font-bold rounded-xl cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDockReceive}
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl flex items-center space-x-1.5 shadow-md cursor-pointer transition-all"
+              >
+                <CheckCircle2 className="w-4 h-4" />
+                <span>Confirm Dock Receive & Mint Barcodes</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

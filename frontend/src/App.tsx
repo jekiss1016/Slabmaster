@@ -15,6 +15,7 @@ import { ShopFloorView } from './components/ShopFloorView';
 import { SlabInventoryView } from './components/SlabInventoryView';
 import { PurchasingView } from './components/PurchasingView';
 import { Code128Barcode } from './components/Code128Barcode';
+import { loadSlabs } from './utils/inventoryStorage';
 import { DEFAULT_CUSTOM_FIELDS, CustomFieldDefinition } from './types/customAttributes';
 import { ApiKeyItem, DEFAULT_MOCK_API_KEYS, ErpQueueItem, DEFAULT_MOCK_ERP_QUEUE } from './types/apiKeys';
 import {
@@ -23,6 +24,7 @@ import {
   Sliders,
   Save,
   Plus,
+  Barcode,
   Calendar as CalendarIcon,
   BarChart3,
   Settings,
@@ -189,6 +191,7 @@ interface AttachedFile {
   size: string;
   type: string;
   uploadedAt: string;
+  dataUrl?: string;
 }
 
 interface JobRow {
@@ -562,6 +565,11 @@ export default function App() {
   const [selectedJob, setSelectedJob] = useState<JobRow | null>(null);
   const [jobDetailOriginNav, setJobDetailOriginNav] = useState<'jobs' | 'calendar' | 'accounts' | 'community_detail'>('jobs');
   const [phaseFilter, setPhaseFilter] = useState<'ALL' | 'STONE' | 'CABINETRY'>('ALL');
+
+  // Barcode search, hardware scanner & file attachment states
+  const [inventorySearch, setInventorySearch] = useState('');
+  const [scannerToast, setScannerToast] = useState<{ message: string; code: string; type: 'slab' | 'job' | 'unknown' } | null>(null);
+  const fileInputRef = React.useRef<HTMLInputElement | null>(null);
 
   // Job Info Editing Modal State
   const [isEditingJobInfo, setIsEditingJobInfo] = useState(false);
@@ -1991,6 +1999,194 @@ export default function App() {
     }
     checkAuthSession();
   }, []);
+
+  // Barcode Scan Gun Handler (Matches Slab Serial or Job ID / External ID)
+  const handleScannedBarcode = (rawCode: string) => {
+    const code = rawCode.trim();
+    if (!code) return;
+
+    const upper = code.toUpperCase();
+
+    // 1. Match against Slab Inventory
+    const allSlabs = loadSlabs();
+    const matchedSlab = allSlabs.find(
+      (s) =>
+        s.serialNumber.toUpperCase() === upper ||
+        s.id.toUpperCase() === upper ||
+        upper.includes(s.serialNumber.toUpperCase()) ||
+        s.serialNumber.toUpperCase().includes(upper)
+    );
+
+    if (matchedSlab) {
+      setInventorySearch(matchedSlab.serialNumber);
+      setActiveNav('inventory');
+      setScannerToast({
+        message: `Slab ${matchedSlab.serialNumber} (${matchedSlab.materialName}) located in ${matchedSlab.rackLocation}`,
+        code: matchedSlab.serialNumber,
+        type: 'slab',
+      });
+      setTimeout(() => setScannerToast(null), 5000);
+      return;
+    }
+
+    // 2. Match against Master Job List
+    const matchedJob = jobsData.find(
+      (j) =>
+        j.id.toUpperCase() === upper ||
+        j.jobName.toUpperCase().includes(upper) ||
+        (j.externalId && j.externalId.toUpperCase() === upper) ||
+        upper === `JOB-${j.id.toUpperCase()}`
+    );
+
+    if (matchedJob) {
+      setSelectedJob(matchedJob);
+      setJobDetailOriginNav(
+        activeNav === 'inventory' || activeNav === 'purchasing' ? 'jobs' : (activeNav as any)
+      );
+      setActiveNav('jobs');
+      setScannerToast({
+        message: `Job Packet Found: ${matchedJob.jobName}`,
+        code: matchedJob.id,
+        type: 'job',
+      });
+      setTimeout(() => setScannerToast(null), 5000);
+      return;
+    }
+
+    // 3. Fallback: filter inventory search with scanned code
+    setActiveNav('inventory');
+    setInventorySearch(code);
+    setScannerToast({
+      message: `Barcode Scanned: "${code}" — Filtering Slab Inventory`,
+      code,
+      type: 'unknown',
+    });
+    setTimeout(() => setScannerToast(null), 5000);
+  };
+
+  // Global Hardware Barcode Scanner Listener (Zebra Keyboard Wedge mode)
+  useEffect(() => {
+    let buffer = '';
+    let lastKeyTime = Date.now();
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      const isInputFocused =
+        target &&
+        (target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.isContentEditable);
+
+      const now = Date.now();
+      const timeDiff = now - lastKeyTime;
+      lastKeyTime = now;
+
+      if (e.key === 'Enter') {
+        if (buffer.length >= 3) {
+          const scannedCode = buffer.trim();
+          buffer = '';
+          handleScannedBarcode(scannedCode);
+        } else {
+          buffer = '';
+        }
+        return;
+      }
+
+      // Printable characters
+      if (e.key && e.key.length === 1) {
+        // Scanners send keystrokes < 70ms apart
+        if (timeDiff > 70 && buffer.length > 0) {
+          buffer = '';
+        }
+        // If an input is focused, don't capture regular slow user typing into scanner buffer
+        if (isInputFocused && buffer.length === 0 && timeDiff > 70) {
+          return;
+        }
+        buffer += e.key;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [jobsData, activeNav]);
+
+  // Shop Floor Kiosk -> Master Job Activities Sync Handler
+  const handleKioskJobComplete = (jobName: string, station: string) => {
+    setJobsData((prev) =>
+      prev.map((job) => {
+        const isMatch =
+          job.jobName.toLowerCase().includes(jobName.toLowerCase()) ||
+          jobName.toLowerCase().includes(job.jobName.toLowerCase()) ||
+          job.id.toLowerCase() === jobName.toLowerCase();
+        if (!isMatch) return job;
+
+        const updatedActivities = job.activities.map((act) => {
+          const actName = act.activityName.toLowerCase();
+          const stationLower = station.toLowerCase();
+          const matches =
+            (stationLower.includes('saw') && actName.includes('saw')) ||
+            (stationLower.includes('polish') && actName.includes('polish')) ||
+            (stationLower.includes('quality') && actName.includes('qc')) ||
+            (stationLower.includes('cut') && actName.includes('fab')) ||
+            actName.includes('fabricat');
+          if (matches) {
+            return { ...act, status: 'Complete' as const };
+          }
+          return act;
+        });
+
+        const updatedJob = { ...job, activities: updatedActivities };
+        if (selectedJob && selectedJob.id === job.id) {
+          setSelectedJob(updatedJob);
+        }
+        return updatedJob;
+      })
+    );
+  };
+
+  // Job Detail File Upload & Attachment Handlers
+  const handleJobFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !selectedJob) return;
+
+    const sizeFormatted =
+      file.size > 1024 * 1024
+        ? `${(file.size / (1024 * 1024)).toFixed(1)} MB`
+        : `${Math.round(file.size / 1024)} KB`;
+
+    const extension = file.name.split('.').pop()?.toUpperCase() || 'FILE';
+    const objectUrl = URL.createObjectURL(file);
+
+    const newAttachedFile: AttachedFile = {
+      id: `file_${Date.now()}`,
+      name: file.name,
+      size: sizeFormatted,
+      type: extension,
+      uploadedAt: new Date().toLocaleDateString(),
+      dataUrl: objectUrl,
+    };
+
+    const updatedFiles = [...selectedJob.files, newAttachedFile];
+    const updatedJob = { ...selectedJob, files: updatedFiles };
+    setSelectedJob(updatedJob);
+    setJobsData((prev) =>
+      prev.map((j) => (j.id === selectedJob.id ? updatedJob : j))
+    );
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const handleDeleteJobFile = (fileId: string) => {
+    if (!selectedJob) return;
+    const updatedFiles = selectedJob.files.filter((f) => f.id !== fileId);
+    const updatedJob = { ...selectedJob, files: updatedFiles };
+    setSelectedJob(updatedJob);
+    setJobsData((prev) =>
+      prev.map((j) => (j.id === selectedJob.id ? updatedJob : j))
+    );
+  };
 
   // Authenticated User Display Name Helper (Displays User's Full Name)
   const getLoggedInUserDisplayName = (): string => {
@@ -5978,7 +6174,17 @@ export default function App() {
                       <Paperclip className="w-4 h-4 text-blue-600" />
                       <span>Files & Attachments (Azure Blob Storage)</span>
                     </h4>
-                    <button className="bg-blue-600 text-white px-2.5 py-1 rounded font-bold flex items-center space-x-1 hover:bg-blue-500 cursor-pointer">
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      onChange={handleJobFileUpload}
+                      className="hidden"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="bg-blue-600 text-white px-2.5 py-1 rounded font-bold flex items-center space-x-1 hover:bg-blue-500 cursor-pointer shadow-xs transition-all"
+                    >
                       <Upload className="w-3.5 h-3.5" />
                       <span>Upload File</span>
                     </button>
@@ -5987,15 +6193,42 @@ export default function App() {
                   {selectedJob.files.length === 0 ? (
                     <div className="text-slate-400 italic py-2">No Files Attached</div>
                   ) : (
-                    <div className="divide-y">
+                    <div className="divide-y divide-slate-100 dark:divide-slate-800">
                       {selectedJob.files.map((file) => (
-                        <div key={file.id} className="py-2 flex items-center justify-between">
+                        <div key={file.id} className="py-2 flex items-center justify-between group">
                           <div className="flex items-center space-x-2">
-                            <span className="px-1.5 py-0.5 bg-blue-100 text-blue-800 font-bold rounded text-[10px]">{file.type}</span>
-                            <span className="font-semibold text-blue-600 underline cursor-pointer">{file.name}</span>
+                            <span className="px-1.5 py-0.5 bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300 font-bold rounded text-[10px]">
+                              {file.type}
+                            </span>
+                            {file.dataUrl ? (
+                              <a
+                                href={file.dataUrl}
+                                download={file.name}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="font-semibold text-blue-600 dark:text-blue-400 underline hover:text-blue-800 dark:hover:text-blue-200 cursor-pointer"
+                                title="Click to download / preview"
+                              >
+                                {file.name}
+                              </a>
+                            ) : (
+                              <span className="font-semibold text-blue-600 dark:text-blue-400">
+                                {file.name}
+                              </span>
+                            )}
                             <span className="text-slate-400">({file.size})</span>
                           </div>
-                          <span className="text-slate-400">{file.uploadedAt}</span>
+                          <div className="flex items-center space-x-3">
+                            <span className="text-slate-400">{file.uploadedAt}</span>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteJobFile(file.id)}
+                              title="Delete attachment"
+                              className="text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 p-1 rounded cursor-pointer transition-colors"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -10719,6 +10952,7 @@ export default function App() {
             <SlabInventoryView
               isDark={isDark}
               activeRegionCode={selectedRegion === 'All' ? 'ATL' : selectedRegion}
+              initialSearchQuery={inventorySearch}
             />
           )}
 
@@ -10727,6 +10961,12 @@ export default function App() {
             <PurchasingView
               isDark={isDark}
               activeRegionCode={selectedRegion === 'All' ? 'ATL' : selectedRegion}
+              onNavigateToInventory={() => setActiveNav('inventory')}
+              onSlabsReceived={(newSlabs) => {
+                if (newSlabs.length > 0) {
+                  setInventorySearch(newSlabs[0].serialNumber);
+                }
+              }}
             />
           )}
 
@@ -10735,6 +10975,7 @@ export default function App() {
             <ShopFloorView
               isDark={isDark}
               onExitKiosk={() => setActiveNav('jobs')}
+              onJobActivityComplete={handleKioskJobComplete}
             />
           )}
 
@@ -12516,6 +12757,31 @@ export default function App() {
             setApiKeys((prev) => [newKey, ...prev]);
           }}
         />
+      )}
+
+      {/* Floating Zebra Barcode Scanner Notification Toast */}
+      {scannerToast && (
+        <div className="fixed bottom-12 right-6 z-50 animate-bounce-short shadow-2xl rounded-2xl p-4 bg-slate-900 text-white border-2 border-emerald-500 flex items-center space-x-3.5 max-w-md">
+          <div className="p-2.5 bg-emerald-500/20 text-emerald-400 rounded-xl border border-emerald-500/40 shrink-0">
+            <Barcode className="w-6 h-6 animate-pulse" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-[10px] uppercase font-black tracking-wider text-emerald-400 flex items-center space-x-1.5">
+              <span>Zebra Scan Gun Event</span>
+              <span className="px-1.5 py-0.5 bg-emerald-500/20 rounded font-mono text-[9px]">
+                {scannerToast.code}
+              </span>
+            </div>
+            <p className="text-xs font-bold text-slate-100 truncate">{scannerToast.message}</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setScannerToast(null)}
+            className="text-slate-400 hover:text-white text-sm font-bold px-1.5 py-0.5 rounded cursor-pointer"
+          >
+            ✕
+          </button>
+        </div>
       )}
 
     </div>

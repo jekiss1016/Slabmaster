@@ -291,6 +291,10 @@
             <h3>Activity Sequencing</h3>
             <p>Jobs track four sequential milestones: <strong>Laser Template</strong> ➔ <strong>CAD / CAM Programming</strong> ➔ <strong>Shop Fabrication</strong> ➔ <strong>Field Installation</strong>.</p>
           </div>
+          <div class="card">
+            <h3>CAD & Blueprint File Attachments</h3>
+            <p>Attach DXF cut files, CNC toolpaths, island elevation drawings, and job site photos directly to any job record. Features real-time file upload, automatic size formatting (KB/MB), in-browser download links, and one-click deletion.</p>
+          </div>
         </div>
       </section>
 
@@ -319,9 +323,9 @@
             <li><strong>Dimensional SQFT Calculation:</strong> Enter Length (in) and Width (in) to calculate total square footage instantly: <code>SQFT = (L × W) / 144</code>.</li>
             <li><strong>Remnant Offcut Linkage:</strong> Tag remnants with parent slab serial numbers to track yield utilization and residual cost basis.</li>
             <li><strong>A-Frame Bin Tagging:</strong> Assign slabs to specific physical warehouse racks (e.g., <code>Rack B-04</code>).</li>
-            <li><strong>Thermal Barcode Printing (Code 128 Standard):</strong> Generate 100% optically scannable Code 128 (ISO/IEC 15417) vector SVG barcodes for Zebra, Dymo, and Brother thermal printers. Supports standard 4"×2" and 3"×2" synthetic label stock with quiet zones and human-readable text.</li>
-            <li><strong>Zebra & Industrial Scan Gun Support:</strong> Fully plug-and-play with Zebra, Honeywell, and Datalogic handheld scanners in HID keyboard-wedge mode for instant zero-configuration lookup in Inventory and Dock Receiving.</li>
-            <li><strong>Job Packet Barcode Integration:</strong> Automatically embeds Code 128 barcodes onto printable shop clipboard packets, enabling sawyers and CNC operators to scan physical paper packets to locate jobs instantly.</li>
+            <li><strong>Thermal Barcode Printing (ISO/IEC 15417 Code 128):</strong> Generate 100% optically scannable Code 128 Subset B vector SVG barcodes for Zebra, Dymo, and Brother thermal printers. Built with exact bar/space ratio patterns, Modulo 103 checksum calculation, quiet zones, and thermal media print styling for standard 4"×2" and 3"×2" label stock.</li>
+            <li><strong>Zero-Click Zebra & Industrial Scan Gun Integration:</strong> Plug-and-play support for Zebra, Honeywell, and Datalogic handheld scanners in HID keyboard-wedge mode. The global scanner listener detects rapid keystroke bursts (&lt;70ms) and automatically routes the operator: scanning a slab serial navigates to Slab Inventory with an active filter, while scanning a job packet barcode navigates directly to the Job Detail record, accompanied by a floating HUD notification toast.</li>
+            <li><strong>Job Packet Barcode Integration:</strong> Automatically embeds scannable Code 128 barcodes onto printable shop clipboard packets, enabling sawyers and CNC operators to scan physical paper packets to locate jobs instantly.</li>
           </ul>
         </div>
       </section>
@@ -330,13 +334,18 @@
       <section id="purchasing">
         <h2>📦 Purchasing & Dock Receiving</h2>
         <p>
-          Streamline vendor purchase orders for raw slabs, sinks, and consumable tooling with integrated dock receiving.
+          Streamline vendor purchase orders for raw slabs, sinks, and consumable tooling with integrated dock receiving and barcode minting.
         </p>
         <div class="card">
-          <h3>One-Click Dock Receiving</h3>
+          <h3>Dock Receiving & Automated Slab Serialization</h3>
           <p>
-            When a slab bundle arrives at the receiving bay, shop managers can review the PO line items and click <strong>Dock Receive</strong>. Slabs are automatically assigned unique serial numbers, allocated to storage racks, and marked <code>Available</code> in inventory immediately.
+            When a slab bundle arrives at the receiving bay, shop managers open the <strong>Dock Receive</strong> modal to verify supplier, material, and bundle counts.
           </p>
+          <ul>
+            <li><strong>Rack / Bay Assignment:</strong> Direct incoming bundles to specific warehouse locations (e.g. <code>Dock Receiving Bay</code>, <code>Rack A-04 (Quartz Bundle Bay)</code>, or <code>Rack B-02</code>).</li>
+            <li><strong>Auto-Minted Barcode Serials:</strong> Generates formatted serial numbers in the standard sequence (<code>SLB-[PLANT]-[PO#]-[SEQ]</code>) with instant barcode label preview.</li>
+            <li><strong>Automated Slab Inventory Auto-Injection:</strong> Confirming receipt automatically mints serialized slab records, calculates square footage per slab, links allocated job IDs, marks the PO as <code>RECEIVED</code>, and updates active warehouse inventory without manual data entry.</li>
+          </ul>
         </div>
       </section>
 
@@ -347,14 +356,16 @@
           A high-contrast, touch-optimized station monitor designed for fabrication machine operators (Sawjet, CNC, and Polish stations).
         </p>
         <div class="card">
-          <h3>Machine Station Queues</h3>
+          <h3>Machine Station Queues & Live Schedule Sync</h3>
           <ul>
             <li><strong>Saw 1 (Bridge Saw):</strong> Initial straight-line perimeter and sink cutout rough cuts.</li>
             <li><strong>Saw 2 (Waterjet CNC):</strong> High-precision curve cuts, miters, and complex island cuts.</li>
             <li><strong>CNC Router:</strong> Edge profiling, polishing, and undermount sink drop shaping.</li>
             <li><strong>Polish Line:</strong> Hand finishing, backsplash chamfering, and final QC inspection.</li>
           </ul>
-          <p>Operators can advance a job from <em>Cut Queue</em> ➔ <em>In Progress</em> ➔ <em>Complete</em> with a single tap on ruggedized shop tablets.</p>
+          <p>
+            <strong>Real-Time Calendar & Schedule Sync:</strong> When machine operators mark a station cut or polish as Complete on the kiosk touchscreen, the system automatically synchronizes with the master schedule, updating the job's corresponding shop activity (CNC Sawjet Cutting, Edge Polish, QC) to <code>Complete</code> in real time.
+          </p>
         </div>
       </section>
 

@@ -115,9 +115,14 @@ const STATIONS = [
 interface ShopFloorViewProps {
   isDark: boolean;
   onExitKiosk?: () => void;
+  onJobActivityComplete?: (jobName: string, station: string) => void;
 }
 
-export const ShopFloorView: React.FC<ShopFloorViewProps> = ({ isDark, onExitKiosk }) => {
+export const ShopFloorView: React.FC<ShopFloorViewProps> = ({
+  isDark,
+  onExitKiosk,
+  onJobActivityComplete
+}) => {
   const [queue, setQueue] = useState<ShopQueueItem[]>(DEFAULT_SHOP_QUEUE);
   const [selectedStation, setSelectedStation] = useState('All Stations');
   const [searchQuery, setSearchQuery] = useState('');
@@ -134,10 +139,12 @@ export const ShopFloorView: React.FC<ShopFloorViewProps> = ({ isDark, onExitKios
   });
 
   const handleAdvanceStation = (id: string, jobName: string) => {
+    const item = queue.find((q) => q.id === id);
     setQueue((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, status: 'COMPLETED' } : item))
+      prev.map((it) => (it.id === id ? { ...it, status: 'COMPLETED' } : it))
     );
-    setCompletedNotice(`Job ${jobName} marked Complete for this station and dispatched downstream!`);
+    onJobActivityComplete?.(jobName, item?.station || 'CNC Sawjet');
+    setCompletedNotice(`Job ${jobName} marked Complete for this station and synced with master calendar!`);
     setTimeout(() => setCompletedNotice(null), 4000);
   };
 

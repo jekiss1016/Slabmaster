@@ -17,6 +17,7 @@ import {
   Barcode
 } from 'lucide-react';
 import { Code128Barcode } from './Code128Barcode';
+import { loadSlabs, saveSlabs } from '../utils/inventoryStorage';
 
 export interface SlabItem {
   id: string;
@@ -121,14 +122,22 @@ const DEFAULT_SLABS: SlabItem[] = [
 interface SlabInventoryViewProps {
   isDark: boolean;
   activeRegionCode?: string;
+  initialSearchQuery?: string;
 }
 
 export const SlabInventoryView: React.FC<SlabInventoryViewProps> = ({
   isDark,
-  activeRegionCode = 'ATL'
+  activeRegionCode = 'ATL',
+  initialSearchQuery = ''
 }) => {
-  const [slabs, setSlabs] = useState<SlabItem[]>(DEFAULT_SLABS);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [slabs, setSlabs] = useState<SlabItem[]>(() => loadSlabs());
+  const [searchQuery, setSearchQuery] = useState(initialSearchQuery);
+
+  React.useEffect(() => {
+    if (initialSearchQuery) {
+      setSearchQuery(initialSearchQuery);
+    }
+  }, [initialSearchQuery]);
   const [selectedStatus, setSelectedStatus] = useState<string>('ALL');
   const [selectedType, setSelectedType] = useState<string>('ALL');
   const [activeLabelPrint, setActiveLabelPrint] = useState<SlabItem | null>(null);
@@ -185,7 +194,9 @@ export const SlabInventoryView: React.FC<SlabInventoryViewProps> = ({
       receivedDate: new Date().toISOString().split('T')[0]
     };
 
-    setSlabs([newSlab, ...slabs]);
+    const updatedSlabs = [newSlab, ...slabs];
+    setSlabs(updatedSlabs);
+    saveSlabs(updatedSlabs);
     setIsAddingSlab(false);
     setSerialNumber(`SLB-${activeRegionCode}-${Date.now().toString().slice(-4)}`);
   };
