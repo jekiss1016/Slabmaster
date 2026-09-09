@@ -64,4 +64,25 @@ describe('Application Documentation & Help File Maintenance (Rule 6)', () => {
     expect(content).toContain('© 2026 SlabMaster');
     expect(content).toContain('v1.0.0');
   });
+
+  it('verifies help.html and user_help_guide.html link directly to the official YouTube channel', () => {
+    const helpContent = fs.readFileSync(helpHtmlPath, 'utf8');
+    const userGuidePath = path.resolve(__dirname, '../../../documents/03_Subscriber_Guides/user_help_guide.html');
+    const userGuideContent = fs.readFileSync(userGuidePath, 'utf8');
+
+    const expectedYtUrl = 'https://www.youtube.com/channel/UCVMMMRplZnCrfM8NEwaEHDw';
+    expect(helpContent).toContain(expectedYtUrl);
+    expect(userGuideContent).toContain(expectedYtUrl);
+
+    // Verify channel ID is present
+    expect(helpContent).toContain('UCVMMMRplZnCrfM8NEwaEHDw');
+    expect(userGuideContent).toContain('UCVMMMRplZnCrfM8NEwaEHDw');
+  });
+
+  it('verifies in-app Help Center modal in App.tsx links to official YouTube channel', () => {
+    const appTsxPath = path.resolve(__dirname, '../App.tsx');
+    const appContent = fs.readFileSync(appTsxPath, 'utf8');
+    expect(appContent).toContain('https://www.youtube.com/channel/UCVMMMRplZnCrfM8NEwaEHDw');
+    expect(appContent).toContain('YouTube Tutorials');
+  });
 });

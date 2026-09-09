@@ -169,6 +169,126 @@
       padding: 0.2em 0.4em;
       border-radius: 4px;
     }
+    .yt-banner {
+      background: linear-gradient(135deg, rgba(239, 68, 68, 0.12), rgba(185, 28, 28, 0.04));
+      border: 1px solid rgba(239, 68, 68, 0.35);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 1.75rem;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+    .yt-banner-left {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    .yt-icon-box {
+      width: 48px;
+      height: 48px;
+      border-radius: 10px;
+      background: #ef4444;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-size: 1.5rem;
+      flex-shrink: 0;
+    }
+    .yt-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: #ef4444;
+      color: #ffffff !important;
+      padding: 0.6rem 1.25rem;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 0.875rem;
+      text-decoration: none;
+      transition: background 0.15s, transform 0.1s;
+      box-shadow: 0 2px 8px rgba(239, 68, 68, 0.25);
+    }
+    .yt-btn:hover {
+      background: #dc2626;
+      transform: translateY(-1px);
+    }
+    .yt-btn-outline {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      background: transparent;
+      color: #ef4444 !important;
+      border: 1px solid #ef4444;
+      padding: 0.35rem 0.75rem;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 0.8rem;
+      text-decoration: none;
+      transition: background 0.15s, color 0.15s;
+    }
+    .yt-btn-outline:hover {
+      background: rgba(239, 68, 68, 0.1);
+    }
+    .yt-video-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.25rem;
+      margin: 1.25rem 0;
+    }
+    .yt-video-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: border-color 0.2s, box-shadow 0.2s, transform 0.15s;
+    }
+    .yt-video-card:hover {
+      border-color: #ef4444;
+      box-shadow: 0 4px 14px rgba(239, 68, 68, 0.12);
+      transform: translateY(-2px);
+    }
+    .yt-card-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 0.5rem;
+      margin-bottom: 0.5rem;
+    }
+    .yt-tag {
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 0.15rem 0.45rem;
+      border-radius: 4px;
+      background: rgba(239, 68, 68, 0.15);
+      color: #ef4444;
+      white-space: nowrap;
+    }
+    .video-callout {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #ef4444;
+      background: rgba(239, 68, 68, 0.08);
+      border: 1px solid rgba(239, 68, 68, 0.25);
+      border-radius: 6px;
+      padding: 0.25rem 0.65rem;
+      text-decoration: none;
+      margin: 0.5rem 0 0.75rem 0;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .video-callout:hover {
+      background: rgba(239, 68, 68, 0.18);
+      border-color: #ef4444;
+    }
     footer {
       border-top: 1px solid var(--border);
       padding: 1.5rem;
@@ -192,6 +312,7 @@
       <span class="badge">Official Documentation</span>
     </div>
     <div class="header-links">
+      <a href="https://www.youtube.com/channel/UCVMMMRplZnCrfM8NEwaEHDw" target="_blank" rel="noopener noreferrer" style="color: #ef4444; font-weight: 700;">📺 YouTube Channel</a>
       <a href="/api-docs.html" target="_blank">⚡ SAP Integration Pack</a>
       <a href="/slabmaster_postman_collection.json" download="slabmaster_postman_collection.json">📥 Postman Collection</a>
       <a href="/">← Return to Application</a>
@@ -263,6 +384,7 @@
       <!-- 2. ACCOUNTS -->
       <section id="accounts">
         <h2>🏢 Accounts & Communities</h2>
+        <a href="https://www.youtube.com/channel/UCVMMMRplZnCrfM8NEwaEHDw" target="_blank" rel="noopener noreferrer" class="video-callout">▶️ Video Tutorial: Builder Hierarchy Deep-Dive on YouTube</a>
         <p>
           The Accounts module manages master relationships with commercial production homebuilders, general contractors, and designers.
         </p>
@@ -279,6 +401,7 @@
       <!-- 3. JOBS -->
       <section id="jobs">
         <h2>💼 Jobs & Field Dispatch</h2>
+        <a href="https://www.youtube.com/channel/UCVMMMRplZnCrfM8NEwaEHDw" target="_blank" rel="noopener noreferrer" class="video-callout">▶️ Video Tutorial: Jobs, Orders & Scheduling Engine on YouTube</a>
         <p>
           Every job order in SlabMaster represents an actionable countertop installation milestone, automatically grouped by subdivision and lot.
         </p>
@@ -314,6 +437,7 @@
       <!-- 5. SLAB INVENTORY & REMNANTS -->
       <section id="inventory">
         <h2>💎 Slab Inventory & Remnant Management</h2>
+        <a href="https://www.youtube.com/channel/UCVMMMRplZnCrfM8NEwaEHDw" target="_blank" rel="noopener noreferrer" class="video-callout">▶️ Video Tutorial: Slab Inventory, Barcodes & Remnants on YouTube</a>
         <p>
           Full tracking of raw stone materials, bundle allocations, warehouse rack coordinates, and remnant offcuts.
         </p>
@@ -333,6 +457,7 @@
       <!-- 6. PURCHASING & POs -->
       <section id="purchasing">
         <h2>📦 Purchasing & Dock Receiving</h2>
+        <a href="https://www.youtube.com/channel/UCVMMMRplZnCrfM8NEwaEHDw" target="_blank" rel="noopener noreferrer" class="video-callout">▶️ Video Tutorial: Purchasing & Dock Receiving on YouTube</a>
         <p>
           Streamline vendor purchase orders for raw slabs, sinks, and consumable tooling with integrated dock receiving and barcode minting.
         </p>
@@ -352,6 +477,7 @@
       <!-- 7. SHOP FLOOR KIOSK -->
       <section id="shop-kiosk">
         <h2>🖥️ Shop Floor Kiosk View</h2>
+        <a href="https://www.youtube.com/channel/UCVMMMRplZnCrfM8NEwaEHDw" target="_blank" rel="noopener noreferrer" class="video-callout">▶️ Video Tutorial: Touch Kiosk Machine Stations on YouTube</a>
         <p>
           A high-contrast, touch-optimized station monitor designed for fabrication machine operators (Sawjet, CNC, and Polish stations).
         </p>
@@ -397,6 +523,7 @@
       <!-- 9. TABLE MATRIX & SAP CONFIG SHEETS -->
       <section id="table-matrix">
         <h2>📊 Table Matrix Sub-Grids & SAP Config Sheets</h2>
+        <a href="https://www.youtube.com/channel/UCVMMMRplZnCrfM8NEwaEHDw" target="_blank" rel="noopener noreferrer" class="video-callout">▶️ Video Tutorial: Table Matrix & Offline Forms on YouTube</a>
         <p>
           Moraware configuration parity allowing embedded multi-row, multi-column sub-tables inside custom inspection and sign-off forms.
         </p>
@@ -427,6 +554,7 @@
       <!-- 12. API & ERP INTEGRATION -->
       <section id="api-integration">
         <h2>⚡ Modern RESTful API & SAP ERP Integration</h2>
+        <a href="https://www.youtube.com/channel/UCVMMMRplZnCrfM8NEwaEHDw" target="_blank" rel="noopener noreferrer" class="video-callout">▶️ Video Tutorial: Admin Settings, API & ERP Queue on YouTube</a>
         <p>
           SlabMaster provides a modern JSON RESTful API designed to supersede legacy SOAP and .NET interfaces with full CRUD control and first-class External ID routing.
         </p>
@@ -452,6 +580,7 @@
       <!-- 13. SUBSCRIBER ONBOARDING CHECKLIST & SETUP GUIDE -->
       <section id="subscriber-onboarding">
         <h2>🚀 Subscriber Onboarding Checklist & Initial Setup Guide</h2>
+        <a href="https://www.youtube.com/channel/UCVMMMRplZnCrfM8NEwaEHDw" target="_blank" rel="noopener noreferrer" class="video-callout">▶️ Master Walkthrough: Complete Subscriber Setup Video on YouTube</a>
         <p>
           Comprehensive blueprint for provisioning and configuring a new fabricator or enterprise subscriber tenant from zero to live production.
         </p>
@@ -492,36 +621,212 @@
       <section id="video-tutorials">
         <h2>🎥 Video Walkthroughs & YouTube Tutorial Channel Pack</h2>
         <p>
-          High-definition (1080p) screen recordings featuring glowing cursor tracking, click ripple indicators, and dynamic chapter banners. All videos are stored in the project's <code>videos/</code> directory and paired with full voiceover cue sheets.
+          High-definition (1080p) screen recordings featuring glowing cursor tracking, click ripple indicators, and dynamic chapter banners. All videos are paired with full voiceover scripts and accessible directly on the official YouTube channel.
         </p>
 
+        <!-- YouTube Channel Official Banner -->
+        <div class="yt-banner">
+          <div class="yt-banner-left">
+            <div class="yt-icon-box">▶</div>
+            <div>
+              <h3 style="margin: 0; font-size: 1.15rem; color: var(--text);">Official SlabMaster YouTube Tutorial Channel</h3>
+              <p style="margin: 0.25rem 0 0; font-size: 0.875rem; color: var(--text-muted);">
+                Subscribe to stream all 1080p onboarding walkthroughs, feature deep-dives, and production workflows.
+              </p>
+            </div>
+          </div>
+          <a href="https://www.youtube.com/channel/UCVMMMRplZnCrfM8NEwaEHDw" target="_blank" rel="noopener noreferrer" class="yt-btn">
+            <span>📺 Subscribe on YouTube</span>
+            <span>→</span>
+          </a>
+        </div>
+
         <div class="card">
-          <h3>Master Subscriber Setup Walkthrough (1080p)</h3>
+          <div style="display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 1rem; margin-bottom: 0.75rem;">
+            <div>
+              <span class="badge" style="background: rgba(59, 130, 246, 0.15); color: var(--primary); margin-bottom: 0.5rem;">Master Guide (1080p • 71.6s)</span>
+              <h3 style="margin: 0.25rem 0;">Master Subscriber Setup Walkthrough</h3>
+            </div>
+            <a href="https://www.youtube.com/channel/UCVMMMRplZnCrfM8NEwaEHDw" target="_blank" rel="noopener noreferrer" class="yt-btn">
+              <span>▶️ Watch Master Walkthrough on YouTube</span>
+            </a>
+          </div>
           <p>
             Demonstrates the complete end-to-end subscriber onboarding flow from Day Zero to live shop floor production and enterprise ERP integration.
           </p>
           <ul style="margin-left: 1.5rem; margin-top: 0.5rem; line-height: 1.8;">
-            <li><strong>Video File:</strong> <code>videos/01_Master_Onboarding_Walkthrough/full_subscriber_setup_walkthrough.webm</code></li>
+            <li><strong>Video Target:</strong> <code>videos/01_Master_Onboarding_Walkthrough/full_subscriber_setup_walkthrough.webm</code></li>
+            <li><strong>YouTube Streaming:</strong> <a href="https://www.youtube.com/channel/UCVMMMRplZnCrfM8NEwaEHDw" target="_blank" rel="noopener noreferrer" style="color: #ef4444; font-weight: 600;">Stream on YouTube Channel (UCVMMMRplZnCrfM8NEwaEHDw)</a></li>
             <li><strong>Narration Script & Timestamps:</strong> <code>videos/01_Master_Onboarding_Walkthrough/full_subscriber_setup_walkthrough_transcript.md</code></li>
             <li><strong>Chapters:</strong> Tenant Provisioning ➔ Regional Hubs (ATL) ➔ Machinery (Sawjet Line 1) ➔ Barcode Inventory ➔ 3-Tier Builder Hierarchy (Lennar ➔ Austin Park ➔ Lot 000036) ➔ Work Order SAP-SO-10170 ➔ Production Calendar ➔ Kiosk Touch Queue ➔ Offline PWA Forms ➔ REST API Tokens & Dead-Letter Recovery Queue.</li>
           </ul>
         </div>
 
         <div class="card">
-          <h3>Feature Deep-Dive Video Library</h3>
-          <p>
-            Dedicated high-contrast recordings and YouTube shorts for each modular feature:
-          </p>
-          <ul style="margin-left: 1.5rem; margin-top: 0.5rem; line-height: 1.8;">
-            <li><strong>01_builder_hierarchy_accounts_communities.webm:</strong> 3-Tier builder hierarchy, community subdivisions, lots, and SAP customer IDs.</li>
-            <li><strong>02_jobs_orders_and_scheduling.webm:</strong> 6-stage lifecycle milestones, lead times, and multi-plant working-day engine.</li>
-            <li><strong>03_slab_inventory_and_remnants.webm:</strong> Serialized barcodes, rack bin locations, and remnant threshold management.</li>
-            <li><strong>04_purchasing_and_dock_receiving.webm:</strong> Distributor purchase orders, ETA tracking, and one-click dock receiving.</li>
-            <li><strong>05_shop_floor_kiosk_stations.webm:</strong> High-contrast touch tablet queue for CNC sawjets and active cut timers.</li>
-            <li><strong>06_table_matrix_and_offline_forms.webm:</strong> Field measure sheets, dynamic room sub-grids, and touch glass stylus signatures.</li>
-            <li><strong>07_admin_settings_api_and_erp_queue.webm:</strong> Scoped REST API keys, progressive exponential backoff ladder, and dead-letter monitoring.</li>
-            <li><strong>Voiceover Scripts:</strong> <code>videos/02_Feature_Deep_Dives/feature_videos_voiceover_scripts.md</code></li>
-          </ul>
+          <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1rem;">
+            <div>
+              <h3 style="margin: 0;">Feature Deep-Dive Video Library</h3>
+              <p style="margin: 0.25rem 0 0; font-size: 0.875rem; color: var(--text-muted);">
+                Modular high-definition recordings with step-by-step narration covering key operational subsystems:
+              </p>
+            </div>
+            <a href="https://www.youtube.com/channel/UCVMMMRplZnCrfM8NEwaEHDw" target="_blank" rel="noopener noreferrer" class="yt-btn-outline">
+              <span>📺 View Full YouTube Playlist</span>
+            </a>
+          </div>
+
+          <div class="yt-video-grid">
+            <!-- Video 1 -->
+            <div class="yt-video-card">
+              <div>
+                <div class="yt-card-header">
+                  <strong style="color: var(--text); font-size: 0.95rem;">01. Builder Hierarchy: Accounts, Communities & Lots</strong>
+                  <span class="yt-tag">22.3s</span>
+                </div>
+                <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.75rem;">
+                  Navigates the 3-tier commercial builder hierarchy from national accounts to subdivisions and parcel lots with SAP Customer IDs.
+                </p>
+              </div>
+              <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.5rem;">
+                <a href="https://www.youtube.com/channel/UCVMMMRplZnCrfM8NEwaEHDw" target="_blank" rel="noopener noreferrer" class="yt-btn-outline">
+                  ▶️ Watch Video
+                </a>
+                <a href="#accounts" class="yt-btn-outline" style="border-color: var(--border); color: var(--text-muted) !important;">
+                  📖 Read Docs
+                </a>
+              </div>
+            </div>
+
+            <!-- Video 2 -->
+            <div class="yt-video-card">
+              <div>
+                <div class="yt-card-header">
+                  <strong style="color: var(--text); font-size: 0.95rem;">02. Jobs, Work Orders & Scheduling Engine</strong>
+                  <span class="yt-tag">25.7s</span>
+                </div>
+                <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.75rem;">
+                  6-stage activity lifecycle milestones, lead times, and multi-plant working-day engine that automatically skips shop closures.
+                </p>
+              </div>
+              <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.5rem;">
+                <a href="https://www.youtube.com/channel/UCVMMMRplZnCrfM8NEwaEHDw" target="_blank" rel="noopener noreferrer" class="yt-btn-outline">
+                  ▶️ Watch Video
+                </a>
+                <a href="#jobs" class="yt-btn-outline" style="border-color: var(--border); color: var(--text-muted) !important;">
+                  📖 Read Docs
+                </a>
+              </div>
+            </div>
+
+            <!-- Video 3 -->
+            <div class="yt-video-card">
+              <div>
+                <div class="yt-card-header">
+                  <strong style="color: var(--text); font-size: 0.95rem;">03. Slab Inventory, Barcodes & Remnants</strong>
+                  <span class="yt-tag">19.4s</span>
+                </div>
+                <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.75rem;">
+                  Serialized thermal barcode scanning, length/width math, rack bin assignments, and automated remnant stock creation.
+                </p>
+              </div>
+              <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.5rem;">
+                <a href="https://www.youtube.com/channel/UCVMMMRplZnCrfM8NEwaEHDw" target="_blank" rel="noopener noreferrer" class="yt-btn-outline">
+                  ▶️ Watch Video
+                </a>
+                <a href="#inventory" class="yt-btn-outline" style="border-color: var(--border); color: var(--text-muted) !important;">
+                  📖 Read Docs
+                </a>
+              </div>
+            </div>
+
+            <!-- Video 4 -->
+            <div class="yt-video-card">
+              <div>
+                <div class="yt-card-header">
+                  <strong style="color: var(--text); font-size: 0.95rem;">04. Purchasing Orders & Dock Receiving</strong>
+                  <span class="yt-tag">18.3s</span>
+                </div>
+                <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.75rem;">
+                  Vendor procurement, expected arrival tracking, and one-click dock receiving that deposits stone directly into inventory.
+                </p>
+              </div>
+              <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.5rem;">
+                <a href="https://www.youtube.com/channel/UCVMMMRplZnCrfM8NEwaEHDw" target="_blank" rel="noopener noreferrer" class="yt-btn-outline">
+                  ▶️ Watch Video
+                </a>
+                <a href="#purchasing" class="yt-btn-outline" style="border-color: var(--border); color: var(--text-muted) !important;">
+                  📖 Read Docs
+                </a>
+              </div>
+            </div>
+
+            <!-- Video 5 -->
+            <div class="yt-video-card">
+              <div>
+                <div class="yt-card-header">
+                  <strong style="color: var(--text); font-size: 0.95rem;">05. Shop Floor Touch Kiosk for Machine Stations</strong>
+                  <span class="yt-tag">16.8s</span>
+                </div>
+                <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.75rem;">
+                  High-contrast touch kiosk for CNC Sawjets, active piece cut timers, and one-tap milestone advancement.
+                </p>
+              </div>
+              <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.5rem;">
+                <a href="https://www.youtube.com/channel/UCVMMMRplZnCrfM8NEwaEHDw" target="_blank" rel="noopener noreferrer" class="yt-btn-outline">
+                  ▶️ Watch Video
+                </a>
+                <a href="#shop-kiosk" class="yt-btn-outline" style="border-color: var(--border); color: var(--text-muted) !important;">
+                  📖 Read Docs
+                </a>
+              </div>
+            </div>
+
+            <!-- Video 6 -->
+            <div class="yt-video-card">
+              <div>
+                <div class="yt-card-header">
+                  <strong style="color: var(--text); font-size: 0.95rem;">06. Table Matrix & Offline Form Packets (PWA)</strong>
+                  <span class="yt-tag">21.4s</span>
+                </div>
+                <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.75rem;">
+                  Room-by-room dimension matrices with auto-summation, photo attachments, and touch stylus signatures on glass.
+                </p>
+              </div>
+              <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.5rem;">
+                <a href="https://www.youtube.com/channel/UCVMMMRplZnCrfM8NEwaEHDw" target="_blank" rel="noopener noreferrer" class="yt-btn-outline">
+                  ▶️ Watch Video
+                </a>
+                <a href="#table-matrix" class="yt-btn-outline" style="border-color: var(--border); color: var(--text-muted) !important;">
+                  📖 Read Docs
+                </a>
+              </div>
+            </div>
+
+            <!-- Video 7 -->
+            <div class="yt-video-card">
+              <div>
+                <div class="yt-card-header">
+                  <strong style="color: var(--text); font-size: 0.95rem;">07. Admin Settings, API Keys & Outbound ERP Queue</strong>
+                  <span class="yt-tag">18.8s</span>
+                </div>
+                <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.75rem;">
+                  Scoped REST API keys, exponential backoff retry ladders, and dead-letter monitoring for SAP S/4HANA integrations.
+                </p>
+              </div>
+              <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.5rem;">
+                <a href="https://www.youtube.com/channel/UCVMMMRplZnCrfM8NEwaEHDw" target="_blank" rel="noopener noreferrer" class="yt-btn-outline">
+                  ▶️ Watch Video
+                </a>
+                <a href="#settings" class="yt-btn-outline" style="border-color: var(--border); color: var(--text-muted) !important;">
+                  📖 Read Docs
+                </a>
+              </div>
+            </div>
+          </div>
+
+          <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border); font-size: 0.85rem; color: var(--text-muted);">
+            Voiceover cue sheets and transcript source files are also preserved locally at <code>videos/02_Feature_Deep_Dives/feature_videos_voiceover_scripts.md</code>.
+          </div>
         </div>
       </section>
 

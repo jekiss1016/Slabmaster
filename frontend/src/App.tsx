@@ -11017,6 +11017,15 @@ export default function App() {
                     <span>SAP API Docs</span>
                   </a>
                   <a
+                    href="https://www.youtube.com/channel/UCVMMMRplZnCrfM8NEwaEHDw"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="px-3.5 py-2 bg-red-600 hover:bg-red-500 text-white rounded-lg font-bold text-xs flex items-center space-x-1.5 shadow-sm transition-all cursor-pointer"
+                  >
+                    <Video className="w-4 h-4" />
+                    <span>YouTube Tutorials</span>
+                  </a>
+                  <a
                     href="/comparison.html"
                     target="_blank"
                     rel="noreferrer"
@@ -11126,10 +11135,10 @@ export default function App() {
                   },
                   {
                     title: 'Video Tutorials & YouTube Channel Pack',
-                    desc: 'High-definition 1080p walkthrough recordings with visual mouse tracking, click ripples, and narration cue sheets.',
+                    desc: 'Stream full 1080p subscriber onboarding and 7 feature deep-dive recordings on the official YouTube channel or inspect transcripts.',
                     anchor: '/help.html#video-tutorials',
                     icon: Video,
-                    badge: 'Video Walkthroughs'
+                    badge: 'YouTube Channel'
                   },
                 ].map((item) => (
                   <a
