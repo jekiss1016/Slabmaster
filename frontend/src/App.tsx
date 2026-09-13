@@ -4971,7 +4971,7 @@ export default function App() {
         </aside>
 
         {/* MAIN CONTENT CANVAS (PADDED ON BOTTOM FOR MOBILE THUMB BAR) */}
-        <main className="flex-1 flex flex-col min-w-0 overflow-hidden pb-16 md:pb-0">
+        <main className="flex-1 flex flex-col min-w-0 overflow-y-auto overflow-x-hidden pb-16 md:pb-0">
           
           {/* SCREEN 0: ACCOUNTS LIST / GRID VIEW */}
           {activeNav === 'accounts' && (
@@ -10953,25 +10953,29 @@ export default function App() {
 
           {/* SCREEN 8: SLAB INVENTORY & REMNANTS */}
           {activeNav === 'inventory' && (
-            <SlabInventoryView
-              isDark={isDark}
-              activeRegionCode={selectedRegion === 'All' ? 'ATL' : selectedRegion}
-              initialSearchQuery={inventorySearch}
-            />
+            <div className="flex-1 overflow-y-auto p-4 md:p-6">
+              <SlabInventoryView
+                isDark={isDark}
+                activeRegionCode={selectedRegion === 'All' ? 'ATL' : selectedRegion}
+                initialSearchQuery={inventorySearch}
+              />
+            </div>
           )}
 
           {/* SCREEN 9: PURCHASING & PURCHASE ORDERS */}
           {activeNav === 'purchasing' && (
-            <PurchasingView
-              isDark={isDark}
-              activeRegionCode={selectedRegion === 'All' ? 'ATL' : selectedRegion}
-              onNavigateToInventory={() => setActiveNav('inventory')}
-              onSlabsReceived={(newSlabs) => {
-                if (newSlabs.length > 0) {
-                  setInventorySearch(newSlabs[0].serialNumber);
-                }
-              }}
-            />
+            <div className="flex-1 overflow-y-auto p-4 md:p-6">
+              <PurchasingView
+                isDark={isDark}
+                activeRegionCode={selectedRegion === 'All' ? 'ATL' : selectedRegion}
+                onNavigateToInventory={() => setActiveNav('inventory')}
+                onSlabsReceived={(newSlabs) => {
+                  if (newSlabs.length > 0) {
+                    setInventorySearch(newSlabs[0].serialNumber);
+                  }
+                }}
+              />
+            </div>
           )}
 
           {/* SCREEN 10: SHOP FLOOR KIOSK */}
