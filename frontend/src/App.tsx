@@ -5061,87 +5061,181 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Accounts Grid Table */}
-              <div className="flex-1 overflow-auto p-4">
-                <div className={`border rounded-lg overflow-hidden shadow-md ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-300'}`}>
-                  <table className="w-full text-left text-xs border-collapse">
-                    <thead>
-                      <tr className={`${isDark ? 'bg-blue-950 text-blue-200 border-b border-slate-800' : 'bg-blue-600 text-white'}`}>
-                        <th className="p-3 font-bold border-r border-white/20">Builder Account Name</th>
-                        <th className="p-3 font-bold border-r border-white/20">Code</th>
-                        <th className="p-3 font-bold border-r border-white/20">Billing Address</th>
-                        <th className="p-3 font-bold border-r border-white/20">Primary Contact</th>
-                        <th className="p-3 font-bold border-r border-white/20 text-center">Subdivisions</th>
-                        <th className="p-3 font-bold border-r border-white/20 text-center">Total Lots</th>
-                        <th className="p-3 font-bold border-r border-white/20 text-center">Status</th>
-                        <th className="p-3 font-bold text-center">Actions</th>
-                      </tr>
-                    </thead>
-
-                    <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
-                      {filteredAccounts.map((acc, idx) => {
-                        const totalLots = acc.communities.reduce((sum, c) => sum + c.lots.length, 0);
-                        return (
-                          <tr
-                            key={acc.id}
-                            onClick={() => openAccountDetailScreen(acc)}
-                            className={`transition-colors cursor-pointer ${
-                              idx % 2 === 0
-                                ? isDark ? 'bg-slate-900/60' : 'bg-white'
-                                : isDark ? 'bg-slate-950/40' : 'bg-blue-50/40'
-                            } hover:bg-blue-100/50 dark:hover:bg-slate-800/80`}
-                          >
-                            <td className="p-3 font-bold text-blue-700 dark:text-blue-400 hover:underline">
-                              <div>{acc.name}</div>
-                              {acc.externalId && (
-                                <span className="text-[10px] text-slate-400 font-mono no-underline">
-                                  ID: {acc.externalId}
-                                </span>
-                              )}
-                            </td>
-                            <td className="p-3 font-mono font-semibold">{acc.code}</td>
-                            <td className="p-3 text-slate-600 dark:text-slate-400">{acc.billingAddress}</td>
-                            <td className="p-3">
-                              <div className="font-semibold">{acc.primaryContact}</div>
-                              <div className="text-[10px] text-slate-400">{acc.email}</div>
-                            </td>
-                            <td className="p-3 text-center font-bold text-blue-600">{acc.communities.length}</td>
-                            <td className="p-3 text-center font-bold text-purple-600">{totalLots}</td>
-                            <td className="p-3 text-center">
-                              <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                                acc.isArchived ? 'bg-amber-100 text-amber-800 border border-amber-300' : 'bg-emerald-100 text-emerald-800 border border-emerald-300'
-                              }`}>
-                                {acc.isArchived ? 'Archived' : 'Active'}
-                              </span>
-                            </td>
-                            <td className="p-3 text-center" onClick={(e) => e.stopPropagation()}>
-                              <div className="flex items-center justify-center space-x-2">
-                                <button
-                                  onClick={(e) => handleToggleArchiveAccount(acc.id, e)}
-                                  title={acc.isArchived ? 'Restore from Archive' : 'Archive Account'}
-                                  className="p-1 rounded hover:bg-slate-200 dark:hover:bg-slate-800 text-amber-600"
-                                >
-                                  {acc.isArchived ? <ArchiveRestore className="w-4 h-4" /> : <Archive className="w-4 h-4" />}
-                                </button>
-
-                                <button
-                                  onClick={(e) => handleDeleteAccount(acc, e)}
-                                  title={acc.communities.length > 0 ? 'Cannot delete account with child communities' : 'Delete Account'}
-                                  className={`p-1 rounded ${
-                                    acc.communities.length > 0
-                                      ? 'text-slate-300 dark:text-slate-700 cursor-not-allowed'
-                                      : 'hover:bg-rose-100 text-rose-600 cursor-pointer'
-                                  }`}
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </button>
+              {/* Accounts Grid Table / Mobile Cards */}
+              <div className="flex-1 overflow-auto p-3 sm:p-4">
+                {/* MOBILE CARDS PRESENTATION (md:hidden) */}
+                <div className="block md:hidden space-y-3">
+                  {filteredAccounts.length === 0 ? (
+                    <div className="p-8 text-center text-slate-400">No accounts match the selected view.</div>
+                  ) : (
+                    filteredAccounts.map((acc) => {
+                      const totalLots = acc.communities.reduce((sum, c) => sum + c.lots.length, 0);
+                      return (
+                        <div
+                          key={acc.id}
+                          onClick={() => openAccountDetailScreen(acc)}
+                          className={`p-4 rounded-xl border transition-all cursor-pointer shadow-sm active:scale-[0.99] ${
+                            isDark ? 'bg-slate-900 border-slate-800 hover:border-blue-500' : 'bg-white border-slate-200 hover:border-blue-500'
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div>
+                              <h3 className="font-black text-sm text-blue-600 dark:text-blue-400 leading-snug">
+                                {acc.name}
+                              </h3>
+                              <div className="flex items-center space-x-2 mt-0.5">
+                                <span className="font-mono text-[11px] font-semibold text-slate-500">Code: {acc.code}</span>
+                                {acc.externalId && (
+                                  <span className="text-[10px] text-slate-400 font-mono">
+                                    • ID: {acc.externalId}
+                                  </span>
+                                )}
                               </div>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
+                            </div>
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold shrink-0 ${
+                              acc.isArchived ? 'bg-amber-100 text-amber-800 border border-amber-300' : 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                            }`}>
+                              {acc.isArchived ? 'Archived' : 'Active'}
+                            </span>
+                          </div>
+
+                          <div className="mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800/80 text-xs space-y-1.5 text-slate-600 dark:text-slate-300">
+                            {acc.billingAddress && (
+                              <div className="flex items-start space-x-1.5">
+                                <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5" />
+                                <span className="text-[11px] truncate">{acc.billingAddress}</span>
+                              </div>
+                            )}
+                            {acc.primaryContact && (
+                              <div className="flex items-center space-x-1.5">
+                                <Users className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                                <span className="text-[11px] font-medium">{acc.primaryContact} {acc.email && `(${acc.email})`}</span>
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between">
+                            <div className="flex items-center space-x-2">
+                              <span className="px-2 py-0.5 rounded-md bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300 font-bold text-[11px]">
+                                {acc.communities.length} Subdivisions
+                              </span>
+                              <span className="px-2 py-0.5 rounded-md bg-purple-100 dark:bg-purple-950 text-purple-800 dark:text-purple-300 font-bold text-[11px]">
+                                {totalLots} Lots
+                              </span>
+                            </div>
+
+                            <div className="flex items-center space-x-1" onClick={(e) => e.stopPropagation()}>
+                              <button
+                                type="button"
+                                onClick={(e) => handleToggleArchiveAccount(acc.id, e)}
+                                title={acc.isArchived ? 'Restore from Archive' : 'Archive Account'}
+                                className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-amber-600 cursor-pointer"
+                              >
+                                {acc.isArchived ? <ArchiveRestore className="w-4 h-4" /> : <Archive className="w-4 h-4" />}
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={(e) => handleDeleteAccount(acc, e)}
+                                title={acc.communities.length > 0 ? 'Cannot delete account with child communities' : 'Delete Account'}
+                                className={`p-1.5 rounded-lg ${
+                                  acc.communities.length > 0
+                                    ? 'text-slate-300 dark:text-slate-700 cursor-not-allowed'
+                                    : 'hover:bg-rose-100 dark:hover:bg-rose-950/60 text-rose-600 cursor-pointer'
+                                }`}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+
+                {/* DESKTOP DATA TABLE (hidden md:block) */}
+                <div className={`hidden md:block border rounded-lg overflow-hidden shadow-md ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-300'}`}>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs border-collapse min-w-[800px]">
+                      <thead>
+                        <tr className={`${isDark ? 'bg-blue-950 text-blue-200 border-b border-slate-800' : 'bg-blue-600 text-white'}`}>
+                          <th className="p-3 font-bold border-r border-white/20">Builder Account Name</th>
+                          <th className="p-3 font-bold border-r border-white/20">Code</th>
+                          <th className="p-3 font-bold border-r border-white/20">Billing Address</th>
+                          <th className="p-3 font-bold border-r border-white/20">Primary Contact</th>
+                          <th className="p-3 font-bold border-r border-white/20 text-center">Subdivisions</th>
+                          <th className="p-3 font-bold border-r border-white/20 text-center">Total Lots</th>
+                          <th className="p-3 font-bold border-r border-white/20 text-center">Status</th>
+                          <th className="p-3 font-bold text-center">Actions</th>
+                        </tr>
+                      </thead>
+
+                      <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
+                        {filteredAccounts.map((acc, idx) => {
+                          const totalLots = acc.communities.reduce((sum, c) => sum + c.lots.length, 0);
+                          return (
+                            <tr
+                              key={acc.id}
+                              onClick={() => openAccountDetailScreen(acc)}
+                              className={`transition-colors cursor-pointer ${
+                                idx % 2 === 0
+                                  ? isDark ? 'bg-slate-900/60' : 'bg-white'
+                                  : isDark ? 'bg-slate-950/40' : 'bg-blue-50/40'
+                              } hover:bg-blue-100/50 dark:hover:bg-slate-800/80`}
+                            >
+                              <td className="p-3 font-bold text-blue-700 dark:text-blue-400 hover:underline">
+                                <div>{acc.name}</div>
+                                {acc.externalId && (
+                                  <span className="text-[10px] text-slate-400 font-mono no-underline">
+                                    ID: {acc.externalId}
+                                  </span>
+                                )}
+                              </td>
+                              <td className="p-3 font-mono font-semibold">{acc.code}</td>
+                              <td className="p-3 text-slate-600 dark:text-slate-400">{acc.billingAddress}</td>
+                              <td className="p-3">
+                                <div className="font-semibold">{acc.primaryContact}</div>
+                                <div className="text-[10px] text-slate-400">{acc.email}</div>
+                              </td>
+                              <td className="p-3 text-center font-bold text-blue-600">{acc.communities.length}</td>
+                              <td className="p-3 text-center font-bold text-purple-600">{totalLots}</td>
+                              <td className="p-3 text-center">
+                                <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                                  acc.isArchived ? 'bg-amber-100 text-amber-800 border border-amber-300' : 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                                }`}>
+                                  {acc.isArchived ? 'Archived' : 'Active'}
+                                </span>
+                              </td>
+                              <td className="p-3 text-center" onClick={(e) => e.stopPropagation()}>
+                                <div className="flex items-center justify-center space-x-2">
+                                  <button
+                                    onClick={(e) => handleToggleArchiveAccount(acc.id, e)}
+                                    title={acc.isArchived ? 'Restore from Archive' : 'Archive Account'}
+                                    className="p-1 rounded hover:bg-slate-200 dark:hover:bg-slate-800 text-amber-600"
+                                  >
+                                    {acc.isArchived ? <ArchiveRestore className="w-4 h-4" /> : <Archive className="w-4 h-4" />}
+                                  </button>
+
+                                  <button
+                                    onClick={(e) => handleDeleteAccount(acc, e)}
+                                    title={acc.communities.length > 0 ? 'Cannot delete account with child communities' : 'Delete Account'}
+                                    className={`p-1 rounded ${
+                                      acc.communities.length > 0
+                                        ? 'text-slate-300 dark:text-slate-700 cursor-not-allowed'
+                                        : 'hover:bg-rose-100 text-rose-600 cursor-pointer'
+                                    }`}
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               </div>
             </div>
@@ -5150,21 +5244,21 @@ export default function App() {
           {/* SCREEN 0B: ACCOUNT DETAIL VIEW (DRILL INTO SUBDIVISIONS / COMMUNITIES) */}
           {activeNav === 'account_detail' && selectedAccount && (
             <div className="flex-1 overflow-auto flex flex-col p-6 space-y-6">
-              <div className="flex items-center justify-between pb-3 border-b">
-                <div className="flex items-center space-x-3">
+              <div className="flex flex-wrap items-center justify-between pb-3 border-b gap-3">
+                <div className="flex items-center space-x-3 min-w-0">
                   <button
                     onClick={() => setActiveNav('accounts')}
-                    className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center space-x-1 font-bold text-xs cursor-pointer"
+                    className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center space-x-1 font-bold text-xs cursor-pointer shrink-0"
                   >
                     <ArrowLeft className="w-4 h-4" />
                     <span>Accounts List</span>
                   </button>
-                  <h2 className="text-xl font-black text-blue-600 dark:text-blue-400">
+                  <h2 className="text-xl font-black text-blue-600 dark:text-blue-400 truncate">
                     Account: {selectedAccount.name}
                   </h2>
                 </div>
 
-                <div className="flex items-center space-x-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <button
                     onClick={() => handleToggleArchiveAccount(selectedAccount.id)}
                     className="px-3 py-1.5 rounded border text-xs font-bold flex items-center space-x-1.5 cursor-pointer bg-slate-100 dark:bg-slate-800"
@@ -5192,7 +5286,7 @@ export default function App() {
                     <span>Edit Information</span>
                   </button>
                 </h3>
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
                   <div><span className="text-slate-400 font-semibold block">Account Code:</span> <strong className="font-mono">{selectedAccount.code}</strong></div>
                   <div><span className="text-slate-400 font-semibold block">Primary Contact:</span> <strong>{selectedAccount.primaryContact} ({selectedAccount.email})</strong></div>
                   <div><span className="text-slate-400 font-semibold block">Phone:</span> <span>{selectedAccount.phone}</span></div>
@@ -5228,15 +5322,15 @@ export default function App() {
                       <div
                         key={com.id}
                         onClick={() => openCommunityDetailScreen(com)}
-                        className="p-4 flex items-center justify-between hover:bg-blue-50/50 dark:hover:bg-slate-800/60 cursor-pointer transition-colors"
+                        className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-blue-50/50 dark:hover:bg-slate-800/60 cursor-pointer transition-colors"
                       >
-                        <div className="space-y-1">
+                        <div className="space-y-1 min-w-0">
                           <div className="font-bold text-sm text-blue-600 dark:text-blue-400 hover:underline">{com.name}</div>
                           {com.externalId && <div className="text-[10px] text-slate-400 font-mono">ERP ID: {com.externalId}</div>}
-                          <div className="text-slate-500">Location: {com.cityState} • Site Super: <strong>{com.superintendent}</strong></div>
+                          <div className="text-slate-500 text-xs">Location: {com.cityState} • Site Super: <strong>{com.superintendent}</strong></div>
                         </div>
 
-                        <div className="flex items-center space-x-4">
+                        <div className="flex items-center justify-between sm:justify-end space-x-4 w-full sm:w-auto">
                           <span className="px-2.5 py-1 rounded bg-purple-100 dark:bg-purple-950 text-purple-800 dark:text-purple-300 font-bold">
                             {com.lots.length} Lots Configured
                           </span>
@@ -5273,17 +5367,17 @@ export default function App() {
           {/* SCREEN 0C: COMMUNITY DETAIL VIEW (MANAGE LOTS & CHILD JOBS) */}
           {activeNav === 'community_detail' && selectedCommunity && selectedAccount && (
             <div className="flex-1 overflow-auto flex flex-col p-6 space-y-6">
-              <div className="flex items-center justify-between pb-3 border-b">
-                <div className="flex items-center space-x-3">
+              <div className="flex flex-wrap items-center justify-between pb-3 border-b gap-3">
+                <div className="flex items-center space-x-3 min-w-0">
                   <button
                     onClick={() => setActiveNav('account_detail')}
-                    className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center space-x-1 font-bold text-xs cursor-pointer"
+                    className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center space-x-1 font-bold text-xs cursor-pointer shrink-0"
                   >
                     <ArrowLeft className="w-4 h-4" />
                     <span>Back to Account</span>
                   </button>
-                  <div>
-                    <h2 className="text-xl font-black text-blue-600 dark:text-blue-400">
+                  <div className="min-w-0">
+                    <h2 className="text-xl font-black text-blue-600 dark:text-blue-400 truncate">
                       Subdivision: {selectedCommunity.name} ({selectedAccount.name})
                     </h2>
                     {selectedCommunity.externalId && (
@@ -5294,7 +5388,7 @@ export default function App() {
                   </div>
                 </div>
 
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-2 shrink-0">
                   <button
                     onClick={() => { setCreateScope('lot'); setActiveModal('create'); }}
                     className="bg-blue-600 text-white font-bold px-4 py-1.5 rounded text-xs flex items-center space-x-1.5 hover:bg-blue-500 cursor-pointer shadow-sm"
@@ -5314,16 +5408,17 @@ export default function App() {
                   </h3>
                 </div>
 
-                <table className="w-full text-left text-xs border-collapse">
-                  <thead>
-                    <tr className={`${isDark ? 'bg-blue-950 text-blue-200 border-b border-slate-800' : 'bg-blue-600 text-white'}`}>
-                      <th className="p-3 font-bold border-r border-white/20">Lot #</th>
-                      <th className="p-3 font-bold border-r border-white/20">Physical Street Address</th>
-                      <th className="p-3 font-bold border-r border-white/20">Plan / Elevation</th>
-                      <th className="p-3 font-bold border-r border-white/20">Linked Job Orders</th>
-                      <th className="p-3 font-bold text-center">Actions</th>
-                    </tr>
-                  </thead>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs border-collapse min-w-[650px]">
+                    <thead>
+                      <tr className={`${isDark ? 'bg-blue-950 text-blue-200 border-b border-slate-800' : 'bg-blue-600 text-white'}`}>
+                        <th className="p-3 font-bold border-r border-white/20">Lot #</th>
+                        <th className="p-3 font-bold border-r border-white/20">Physical Street Address</th>
+                        <th className="p-3 font-bold border-r border-white/20">Plan / Elevation</th>
+                        <th className="p-3 font-bold border-r border-white/20">Linked Job Orders</th>
+                        <th className="p-3 font-bold text-center">Actions</th>
+                      </tr>
+                    </thead>
 
                   <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
                     {selectedCommunity.lots.map((lot, idx) => {
@@ -5378,6 +5473,7 @@ export default function App() {
                   </tbody>
                 </table>
               </div>
+            </div>
             </div>
           )}
 
@@ -5475,8 +5571,7 @@ export default function App() {
                 </div>
               </div>
 
-              <div className="flex-1 overflow-auto p-4">
-                <div className={`border rounded-lg overflow-hidden shadow-md ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-300'}`}>
+              <div className="flex-1 overflow-auto p-3 sm:p-4">
                 {filteredJobs.length === 0 ? (
                   <div className="p-12 text-center text-slate-400">
                     <AlertCircle className="w-8 h-8 mx-auto mb-2 text-slate-400" />
@@ -5490,133 +5585,224 @@ export default function App() {
                     </button>
                   </div>
                 ) : (
-                  <table className={`w-full text-left text-xs border-collapse ${compactDensity ? 'p-1' : ''}`}>
-                    <thead>
-                      <tr className={`${isDark ? 'bg-blue-950 text-blue-200 border-b border-slate-800' : 'bg-blue-600 text-white'}`}>
-                        {visibleColumns.jobName && <th className="p-3 font-bold border-r border-white/20">Job Name / Lot</th>}
-                        {visibleColumns.account && <th className="p-3 font-bold border-r border-white/20">Account (Builder)</th>}
-                        {visibleColumns.community && <th className="p-3 font-bold border-r border-white/20">Community</th>}
-                        {visibleColumns.jobAddress && <th className="p-3 font-bold border-r border-white/20">Job Address</th>}
-                        {visibleColumns.templateDate && <th className="p-3 font-bold border-r border-white/20 text-center">{globalMilestoneNames.templateName} - Date ✏️</th>}
-                        {visibleColumns.fabDate && <th className="p-3 font-bold border-r border-white/20 text-center">{globalMilestoneNames.fabName} - Date ✏️</th>}
-                        {visibleColumns.installDate && <th className="p-3 font-bold border-r border-white/20 text-center">{globalMilestoneNames.installName} - Date ✏️</th>}
-                        {visibleColumns.salesperson && <th className="p-3 font-bold border-r border-white/20">Salesperson</th>}
-                        {visibleColumns.issues && <th className="p-3 font-bold">Category / Issues</th>}
-                      </tr>
-                    </thead>
-
-                    <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
-                      {filteredJobs.map((row, idx) => (
-                        <tr
+                  <>
+                    {/* MOBILE JOBS CARDS (block md:hidden) */}
+                    <div className="block md:hidden space-y-3">
+                      {filteredJobs.map((row) => (
+                        <div
                           key={row.id}
                           onClick={() => openJobDetailScreen(row)}
-                          className={`transition-colors cursor-pointer ${
-                            idx % 2 === 0
-                              ? isDark ? 'bg-slate-900/60' : 'bg-white'
-                              : isDark ? 'bg-slate-950/40' : 'bg-blue-50/40'
-                          } hover:bg-blue-100/50 dark:hover:bg-slate-800/80`}
+                          className={`p-4 rounded-xl border transition-all cursor-pointer shadow-sm active:scale-[0.99] ${
+                            isDark ? 'bg-slate-900 border-slate-800 hover:border-blue-500' : 'bg-white border-slate-200 hover:border-blue-500'
+                          }`}
                         >
-                          {visibleColumns.jobName && (
-                            <td className="p-3 font-semibold text-blue-700 dark:text-blue-400 hover:underline">
-                              <div>{row.jobName}</div>
+                          <div className="flex items-start justify-between gap-2">
+                            <div>
+                              <h3 className="font-black text-sm text-blue-600 dark:text-blue-400 leading-snug">
+                                {row.jobName}
+                              </h3>
+                              <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mt-0.5">
+                                {row.accountName} • <span className="text-slate-700 dark:text-slate-200">{row.communityName} (Lot {row.lotNumber})</span>
+                              </div>
                               {row.externalId && (
-                                <span className="text-[10px] text-slate-400 font-mono no-underline">
-                                  ERP Order: {row.externalId}
+                                <div className="text-[10px] text-slate-400 font-mono">
+                                  Order #{row.externalId}
+                                </div>
+                              )}
+                            </div>
+
+                            <div className="flex flex-col items-end gap-1 shrink-0">
+                              <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                                row.jobCategory === 'INITIAL_INSTALL' ? 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300' :
+                                row.jobCategory === 'REWORK_WARRANTY' ? 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300' :
+                                'bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300'
+                              }`}>
+                                {row.jobCategory}
+                              </span>
+                              {row.jobIssues && (
+                                <span className="text-[10px] font-bold text-rose-600 flex items-center space-x-0.5">
+                                  <AlertCircle className="w-3 h-3" />
+                                  <span>Issue</span>
                                 </span>
                               )}
-                            </td>
+                            </div>
+                          </div>
+
+                          {row.streetAddress && (
+                            <div className="mt-2.5 pt-2 border-t border-slate-100 dark:border-slate-800/80 flex items-center space-x-1.5 text-xs text-slate-600 dark:text-slate-400">
+                              <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                              <span className="text-[11px] truncate">{row.streetAddress}, {row.cityStateZip}</span>
+                            </div>
                           )}
 
-                          {visibleColumns.account && (
-                            <td className="p-3 font-semibold text-blue-800 dark:text-blue-300 hover:underline">
-                              {row.accountName}
-                            </td>
-                          )}
+                          {/* Milestone Dates Grid */}
+                          <div className="mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800/80 grid grid-cols-3 gap-2 text-center text-[10px]">
+                            <div
+                              className="p-1.5 rounded-lg bg-slate-50 dark:bg-slate-800/60 cursor-pointer"
+                              onClick={(e) => openDateEditor(row, e)}
+                            >
+                              <span className="block text-slate-400 uppercase font-bold">{globalMilestoneNames.templateName.replace('Laser ', '')}</span>
+                              <strong className="font-mono text-purple-600 dark:text-purple-400 block mt-0.5">
+                                {row.templateDate.date}
+                              </strong>
+                            </div>
 
-                          {visibleColumns.community && (
-                            <td className="p-3 text-slate-700 dark:text-slate-300 font-medium">
-                              {row.communityName} ({row.lotNumber})
-                            </td>
-                          )}
+                            <div
+                              className="p-1.5 rounded-lg bg-slate-50 dark:bg-slate-800/60 cursor-pointer"
+                              onClick={(e) => openDateEditor(row, e)}
+                            >
+                              <span className="block text-slate-400 uppercase font-bold">{globalMilestoneNames.fabName.replace('Shop ', '')}</span>
+                              <strong className="font-mono text-purple-600 dark:text-purple-400 block mt-0.5">
+                                {row.fabDate.date}
+                              </strong>
+                            </div>
 
-                          {visibleColumns.jobAddress && (
-                            <td className="p-3 text-slate-700 dark:text-slate-300 font-medium">
-                              <div className="font-semibold">{row.streetAddress}</div>
-                              <div className="text-[10px] text-slate-400 font-normal">{row.cityStateZip}</div>
-                            </td>
-                          )}
-
-                          {/* Editable Date Cells */}
-                          {visibleColumns.templateDate && (
-                            <td className="p-3 text-center font-medium hover:bg-blue-200/40" onClick={(e) => openDateEditor(row, e)}>
-                              <span className={`underline font-semibold cursor-pointer group flex items-center justify-center space-x-1 ${
-                                row.templateDate.status === 'auto' ? 'text-purple-600 dark:text-purple-400' :
-                                row.templateDate.status === 'calc' ? 'text-purple-600 dark:text-purple-400' :
-                                row.templateDate.status === 'conf' ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'
-                              }`}>
-                                <span>{row.templateDate.date} ({row.templateDate.status})</span>
-                                <Edit3 className="w-3 h-3 opacity-0 group-hover:opacity-100" />
-                              </span>
-                            </td>
-                          )}
-
-                          {visibleColumns.fabDate && (
-                            <td className="p-3 text-center font-medium hover:bg-blue-200/40" onClick={(e) => openDateEditor(row, e)}>
-                              <span className={`underline font-semibold cursor-pointer group flex items-center justify-center space-x-1 ${
-                                row.fabDate.status === 'auto' ? 'text-purple-600 dark:text-purple-400' :
-                                row.fabDate.status === 'calc' ? 'text-purple-600 dark:text-purple-400' :
-                                row.fabDate.status === 'conf' ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'
-                              }`}>
-                                <span>{row.fabDate.date} ({row.fabDate.status})</span>
-                                <Edit3 className="w-3 h-3 opacity-0 group-hover:opacity-100" />
-                              </span>
-                            </td>
-                          )}
-
-                          {visibleColumns.installDate && (
-                            <td className="p-3 text-center font-medium hover:bg-blue-200/40" onClick={(e) => openDateEditor(row, e)}>
-                              <span className={`underline font-semibold cursor-pointer group flex items-center justify-center space-x-1 ${
-                                row.installDate.status === 'auto' ? 'text-purple-600 dark:text-purple-400' :
-                                row.installDate.status === 'calc' ? 'text-purple-600 dark:text-purple-400' :
-                                row.installDate.status === 'conf' ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'
-                              }`}>
-                                <span>{row.installDate.date} ({row.installDate.status})</span>
-                                <Edit3 className="w-3 h-3 opacity-0 group-hover:opacity-100" />
-                              </span>
-                            </td>
-                          )}
-
-                          {visibleColumns.salesperson && (
-                            <td className="p-3 text-slate-700 dark:text-slate-300">
-                              {row.salesperson}
-                            </td>
-                          )}
-
-                          {visibleColumns.issues && (
-                            <td className="p-3">
-                              <div className="flex items-center space-x-2">
-                                <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                                  row.jobCategory === 'INITIAL_INSTALL' ? 'bg-blue-100 text-blue-800 border border-blue-300 dark:bg-blue-950 dark:text-blue-300' :
-                                  row.jobCategory === 'REWORK_WARRANTY' ? 'bg-rose-100 text-rose-800 border border-rose-300 dark:bg-rose-950 dark:text-rose-300' :
-                                  'bg-purple-100 text-purple-800 border border-purple-300 dark:bg-purple-950 dark:text-purple-300'
-                                }`}>
-                                  {row.jobCategory}
-                                </span>
-                                {row.jobIssues && (
-                                  <span className="text-[11px] font-semibold text-rose-600 flex items-center space-x-1">
-                                    <AlertCircle className="w-3 h-3" />
-                                    <span>{row.jobIssues}</span>
-                                  </span>
-                                )}
-                              </div>
-                            </td>
-                          )}
-                        </tr>
+                            <div
+                              className="p-1.5 rounded-lg bg-slate-50 dark:bg-slate-800/60 cursor-pointer"
+                              onClick={(e) => openDateEditor(row, e)}
+                            >
+                              <span className="block text-slate-400 uppercase font-bold">{globalMilestoneNames.installName}</span>
+                              <strong className="font-mono text-emerald-600 dark:text-emerald-400 block mt-0.5">
+                                {row.installDate.date}
+                              </strong>
+                            </div>
+                          </div>
+                        </div>
                       ))}
-                    </tbody>
-                  </table>
+                    </div>
+
+                    {/* DESKTOP JOBS TABLE (hidden md:block) */}
+                    <div className={`hidden md:block border rounded-lg overflow-hidden shadow-md ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-300'}`}>
+                      <div className="overflow-x-auto">
+                        <table className={`w-full text-left text-xs border-collapse min-w-[900px] ${compactDensity ? 'p-1' : ''}`}>
+                          <thead>
+                            <tr className={`${isDark ? 'bg-blue-950 text-blue-200 border-b border-slate-800' : 'bg-blue-600 text-white'}`}>
+                              {visibleColumns.jobName && <th className="p-3 font-bold border-r border-white/20">Job Name / Lot</th>}
+                              {visibleColumns.account && <th className="p-3 font-bold border-r border-white/20">Account (Builder)</th>}
+                              {visibleColumns.community && <th className="p-3 font-bold border-r border-white/20">Community</th>}
+                              {visibleColumns.jobAddress && <th className="p-3 font-bold border-r border-white/20">Job Address</th>}
+                              {visibleColumns.templateDate && <th className="p-3 font-bold border-r border-white/20 text-center">{globalMilestoneNames.templateName} - Date ✏️</th>}
+                              {visibleColumns.fabDate && <th className="p-3 font-bold border-r border-white/20 text-center">{globalMilestoneNames.fabName} - Date ✏️</th>}
+                              {visibleColumns.installDate && <th className="p-3 font-bold border-r border-white/20 text-center">{globalMilestoneNames.installName} - Date ✏️</th>}
+                              {visibleColumns.salesperson && <th className="p-3 font-bold border-r border-white/20">Salesperson</th>}
+                              {visibleColumns.issues && <th className="p-3 font-bold">Category / Issues</th>}
+                            </tr>
+                          </thead>
+
+                          <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
+                            {filteredJobs.map((row, idx) => (
+                              <tr
+                                key={row.id}
+                                onClick={() => openJobDetailScreen(row)}
+                                className={`transition-colors cursor-pointer ${
+                                  idx % 2 === 0
+                                    ? isDark ? 'bg-slate-900/60' : 'bg-white'
+                                    : isDark ? 'bg-slate-950/40' : 'bg-blue-50/40'
+                                } hover:bg-blue-100/50 dark:hover:bg-slate-800/80`}
+                              >
+                                {visibleColumns.jobName && (
+                                  <td className="p-3 font-semibold text-blue-700 dark:text-blue-400 hover:underline">
+                                    <div>{row.jobName}</div>
+                                    {row.externalId && (
+                                      <span className="text-[10px] text-slate-400 font-mono no-underline">
+                                        ERP Order: {row.externalId}
+                                      </span>
+                                    )}
+                                  </td>
+                                )}
+
+                                {visibleColumns.account && (
+                                  <td className="p-3 font-semibold text-blue-800 dark:text-blue-300 hover:underline">
+                                    {row.accountName}
+                                  </td>
+                                )}
+
+                                {visibleColumns.community && (
+                                  <td className="p-3 text-slate-700 dark:text-slate-300 font-medium">
+                                    {row.communityName} ({row.lotNumber})
+                                  </td>
+                                )}
+
+                                {visibleColumns.jobAddress && (
+                                  <td className="p-3 text-slate-700 dark:text-slate-300 font-medium">
+                                    <div className="font-semibold">{row.streetAddress}</div>
+                                    <div className="text-[10px] text-slate-400 font-normal">{row.cityStateZip}</div>
+                                  </td>
+                                )}
+
+                                {/* Editable Date Cells */}
+                                {visibleColumns.templateDate && (
+                                  <td className="p-3 text-center font-medium hover:bg-blue-200/40" onClick={(e) => openDateEditor(row, e)}>
+                                    <span className={`underline font-semibold cursor-pointer group flex items-center justify-center space-x-1 ${
+                                      row.templateDate.status === 'auto' ? 'text-purple-600 dark:text-purple-400' :
+                                      row.templateDate.status === 'calc' ? 'text-purple-600 dark:text-purple-400' :
+                                      row.templateDate.status === 'conf' ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'
+                                    }`}>
+                                      <span>{row.templateDate.date} ({row.templateDate.status})</span>
+                                      <Edit3 className="w-3 h-3 opacity-0 group-hover:opacity-100" />
+                                    </span>
+                                  </td>
+                                )}
+
+                                {visibleColumns.fabDate && (
+                                  <td className="p-3 text-center font-medium hover:bg-blue-200/40" onClick={(e) => openDateEditor(row, e)}>
+                                    <span className={`underline font-semibold cursor-pointer group flex items-center justify-center space-x-1 ${
+                                      row.fabDate.status === 'auto' ? 'text-purple-600 dark:text-purple-400' :
+                                      row.fabDate.status === 'calc' ? 'text-purple-600 dark:text-purple-400' :
+                                      row.fabDate.status === 'conf' ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'
+                                    }`}>
+                                      <span>{row.fabDate.date} ({row.fabDate.status})</span>
+                                      <Edit3 className="w-3 h-3 opacity-0 group-hover:opacity-100" />
+                                    </span>
+                                  </td>
+                                )}
+
+                                {visibleColumns.installDate && (
+                                  <td className="p-3 text-center font-medium hover:bg-blue-200/40" onClick={(e) => openDateEditor(row, e)}>
+                                    <span className={`underline font-semibold cursor-pointer group flex items-center justify-center space-x-1 ${
+                                      row.installDate.status === 'auto' ? 'text-purple-600 dark:text-purple-400' :
+                                      row.installDate.status === 'calc' ? 'text-purple-600 dark:text-purple-400' :
+                                      row.installDate.status === 'conf' ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'
+                                    }`}>
+                                      <span>{row.installDate.date} ({row.installDate.status})</span>
+                                      <Edit3 className="w-3 h-3 opacity-0 group-hover:opacity-100" />
+                                    </span>
+                                  </td>
+                                )}
+
+                                {visibleColumns.salesperson && (
+                                  <td className="p-3 text-slate-700 dark:text-slate-300">
+                                    {row.salesperson}
+                                  </td>
+                                )}
+
+                                {visibleColumns.issues && (
+                                  <td className="p-3">
+                                    <div className="flex items-center space-x-2">
+                                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                                        row.jobCategory === 'INITIAL_INSTALL' ? 'bg-blue-100 text-blue-800 border border-blue-300 dark:bg-blue-950 dark:text-blue-300' :
+                                        row.jobCategory === 'REWORK_WARRANTY' ? 'bg-rose-100 text-rose-800 border border-rose-300 dark:bg-rose-950 dark:text-rose-300' :
+                                        'bg-purple-100 text-purple-800 border border-purple-300 dark:bg-purple-950 dark:text-purple-300'
+                                      }`}>
+                                        {row.jobCategory}
+                                      </span>
+                                      {row.jobIssues && (
+                                        <span className="text-[11px] font-semibold text-rose-600 flex items-center space-x-1">
+                                          <AlertCircle className="w-3 h-3" />
+                                          <span>{row.jobIssues}</span>
+                                        </span>
+                                      )}
+                                    </div>
+                                  </td>
+                                )}
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </>
                 )}
-              </div>
               </div>
             </div>
             )
@@ -5625,11 +5811,11 @@ export default function App() {
           {/* SCREEN 2: DEDICATED FULL JOB DETAIL VIEW */}
           {activeNav === 'job_detail' && selectedJob && (
             <div className="flex-1 overflow-auto flex flex-col">
-              <div className={`px-6 py-3 border-b flex items-center justify-between ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-300 shadow-sm'}`}>
-                <div className="flex items-center space-x-4">
+              <div className={`px-4 sm:px-6 py-3 border-b flex flex-wrap items-center justify-between gap-3 ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-300 shadow-sm'}`}>
+                <div className="flex items-center space-x-3 min-w-0">
                   <button
                     onClick={() => setActiveNav(jobDetailOriginNav)}
-                    className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center space-x-1 font-bold text-xs cursor-pointer"
+                    className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center space-x-1 font-bold text-xs cursor-pointer shrink-0"
                   >
                     <ArrowLeft className="w-4 h-4" />
                     <span>
@@ -5640,12 +5826,12 @@ export default function App() {
                     </span>
                   </button>
 
-                  <h2 className="text-base font-black text-blue-600 dark:text-blue-400 tracking-tight">
+                  <h2 className="text-base font-black text-blue-600 dark:text-blue-400 tracking-tight truncate">
                     JOB: {selectedJob.jobName}
                   </h2>
                 </div>
 
-                <div className="flex items-center space-x-3">
+                <div className="flex flex-wrap items-center gap-2">
                   <button
                     onClick={() => setPrintJobPacketJob(selectedJob)}
                     className="px-3 py-1.5 rounded bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center space-x-1.5 shadow-sm cursor-pointer"
@@ -5709,7 +5895,7 @@ export default function App() {
                       )}
                     </div>
 
-                    <div className="grid grid-cols-2 gap-y-2 gap-x-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-2 gap-x-4">
                       <div><span className="text-slate-400 font-semibold block">Job Name:</span> <strong className="text-blue-600 dark:text-blue-400">{selectedJob.jobName}</strong></div>
                       <div><span className="text-slate-400 font-semibold block">Account:</span> <strong>{selectedJob.accountName}</strong></div>
                       <div><span className="text-slate-400 font-semibold block">Creation Date:</span> <span>6/15/2026</span></div>
@@ -5801,12 +5987,13 @@ export default function App() {
                     )}
                   </div>
 
-                  <table className="w-full text-left text-xs border-collapse">
-                    <thead>
-                      <tr className={`${isDark ? 'bg-blue-950 text-blue-200 border-b border-slate-800' : 'bg-blue-600 text-white'}`}>
-                        <th className="p-3 font-bold border-r border-white/20">Activity</th>
-                        <th className="p-3 font-bold border-r border-white/20">Phase</th>
-                        <th className="p-3 font-bold border-r border-white/20">Status</th>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs border-collapse min-w-[780px]">
+                      <thead>
+                        <tr className={`${isDark ? 'bg-blue-950 text-blue-200 border-b border-slate-800' : 'bg-blue-600 text-white'}`}>
+                          <th className="p-3 font-bold border-r border-white/20">Activity</th>
+                          <th className="p-3 font-bold border-r border-white/20">Phase</th>
+                          <th className="p-3 font-bold border-r border-white/20">Status</th>
                         <th className="p-3 font-bold border-r border-white/20 text-center">Start Date</th>
                         <th className="p-3 font-bold border-r border-white/20 text-center">Sched Time</th>
                         <th className="p-3 font-bold border-r border-white/20 text-center">Duration</th>
@@ -5973,6 +6160,7 @@ export default function App() {
                     </tbody>
                   </table>
                 </div>
+              </div>
 
                 {/* Job Issues & 1-Click Warranty Rework Generator Section */}
                 <div className={`p-4 rounded-lg border space-y-3 text-xs ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-300 shadow-sm'}`}>
@@ -6261,7 +6449,7 @@ export default function App() {
           {/* SCREEN 3: CHANGE LOG AUDIT TRAIL VIEW */}
           {activeNav === 'change_log' && selectedJob && (
             <div className="flex-1 overflow-auto flex flex-col">
-              <div className={`px-6 py-3 border-b flex items-center justify-between ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-300 shadow-sm'}`}>
+              <div className={`px-4 sm:px-6 py-3 border-b flex flex-wrap items-center justify-between gap-2.5 ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-300 shadow-sm'}`}>
                 <div className="flex items-center space-x-3">
                   <button
                     onClick={() => setActiveNav('job_detail')}
@@ -6280,7 +6468,7 @@ export default function App() {
                 </div>
               </div>
 
-              <div className="p-6 max-w-4xl mx-auto space-y-6 flex-1 overflow-auto w-full">
+              <div className="p-3 sm:p-6 max-w-4xl mx-auto space-y-4 sm:space-y-6 flex-1 overflow-auto w-full">
                 <div className={`p-4 rounded-lg border text-xs space-y-1 ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-300 shadow-sm'}`}>
                   <div><span className="text-slate-500 font-bold">Account Name:</span> <strong className="text-blue-600 dark:text-blue-400">{selectedJob.accountName}</strong></div>
                   <div><span className="text-slate-500 font-bold">Job Name:</span> <strong>{selectedJob.jobName}</strong></div>
@@ -6297,7 +6485,7 @@ export default function App() {
                           isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-300 shadow-sm'
                         }`}
                       >
-                        <div className="flex items-center justify-between">
+                        <div className="flex flex-wrap items-center justify-between gap-1">
                           <span className="font-bold text-slate-700 dark:text-slate-300">
                             ● {formatDisplayTime(log.timestamp, userDisplayTimezone)} by <strong className="text-blue-600 underline">{log.changedBy}</strong>
                           </span>
@@ -7113,8 +7301,8 @@ export default function App() {
 
           {/* SCREEN 5: SHARED REPORTS DASHBOARD */}
           {activeNav === 'reports' && (
-            <div className="flex-1 overflow-auto p-6 max-w-5xl mx-auto space-y-6">
-              <div className="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-800">
+            <div className="flex-1 overflow-auto p-3 sm:p-6 max-w-5xl mx-auto space-y-4 sm:space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-800 gap-3">
                 <div>
                   <h2 className="text-xl font-bold tracking-tight">Shared Reports</h2>
                   <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
@@ -7122,7 +7310,7 @@ export default function App() {
                   </p>
                 </div>
 
-                <button className="bg-blue-600 text-white font-bold px-4 py-2 rounded text-xs flex items-center space-x-1.5 shadow-sm cursor-pointer hover:bg-blue-500">
+                <button className="bg-blue-600 text-white font-bold px-4 py-2 rounded text-xs flex items-center space-x-1.5 shadow-sm cursor-pointer hover:bg-blue-500 self-start sm:self-auto">
                   <Plus className="w-4 h-4" />
                   <span>Create Custom Report</span>
                 </button>
@@ -7168,8 +7356,8 @@ export default function App() {
               </div>
 
               {selectedReport && (
-                <div className={`p-6 rounded-lg border space-y-4 ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-300 shadow-md'}`}>
-                  <div className="flex items-center justify-between border-b pb-3">
+                <div className={`p-4 sm:p-6 rounded-lg border space-y-4 ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-300 shadow-md'}`}>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b pb-3 gap-2">
                     <div>
                       <h3 className="font-bold text-sm text-blue-600">{selectedReport}</h3>
                       <span className="text-xs text-slate-500">Auto-calculated from Lot activities & stone dimensions</span>
@@ -7178,14 +7366,14 @@ export default function App() {
                     <button
                       type="button"
                       onClick={() => exportTableToCsv('reports')}
-                      className="bg-emerald-600 text-white px-3 py-1.5 rounded text-xs font-bold flex items-center space-x-1.5 hover:bg-emerald-500 cursor-pointer transition-all shadow-xs"
+                      className="bg-emerald-600 text-white px-3 py-1.5 rounded text-xs font-bold flex items-center space-x-1.5 hover:bg-emerald-500 cursor-pointer transition-all shadow-xs self-start sm:self-auto"
                     >
                       <Download className="w-3.5 h-3.5" />
                       <span>Export CSV</span>
                     </button>
                   </div>
 
-                  <div className="grid grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
                     <div className="p-4 border rounded bg-slate-50 dark:bg-slate-950">
                       <span className="text-slate-500 font-bold block mb-1">June 2026</span>
                       <span className="text-xl font-extrabold text-blue-600">8,420 Sq Ft</span>
@@ -7212,7 +7400,7 @@ export default function App() {
 
           {/* SCREEN 6: BUILDER FORM PACKETS & CUSTOM FORM BUILDER ENGINE */}
           {activeNav === 'forms' && (
-            <div className="flex-1 overflow-auto p-6 max-w-6xl mx-auto space-y-6">
+            <div className="flex-1 overflow-auto p-3 sm:p-6 max-w-6xl mx-auto space-y-4 sm:space-y-6">
               <div className="flex flex-wrap items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-800 gap-4">
                 <div>
                   <h2 className="text-xl font-bold tracking-tight flex items-center space-x-2">
@@ -7224,7 +7412,7 @@ export default function App() {
                   </p>
                 </div>
 
-                <div className="flex items-center space-x-2.5">
+                <div className="flex flex-wrap items-center gap-2">
                   <button
                     type="button"
                     onClick={() => { setEditingFormTemplate(null); setIsCreatingFormTemplate(true); }}
@@ -7247,11 +7435,11 @@ export default function App() {
 
               {/* Sub-Tabs: Packets vs. Templates vs. Submissions */}
               <div className="flex flex-wrap items-center justify-between border-b border-slate-200 dark:border-slate-800 gap-3">
-                <div className="flex space-x-3">
+                <div className="flex overflow-x-auto space-x-2 pb-1 scrollbar-none max-w-full">
                   <button
                     type="button"
                     onClick={() => setFormPacketsTab('packets')}
-                    className={`pb-2.5 px-4 text-xs font-bold border-b-2 flex items-center space-x-2 transition-all cursor-pointer ${
+                    className={`shrink-0 pb-2.5 px-3 sm:px-4 text-xs font-bold border-b-2 flex items-center space-x-2 transition-all cursor-pointer whitespace-nowrap ${
                       formPacketsTab === 'packets'
                         ? 'border-purple-600 text-purple-600 dark:text-purple-400'
                         : 'border-transparent text-slate-500 hover:text-slate-800'
@@ -7264,7 +7452,7 @@ export default function App() {
                   <button
                     type="button"
                     onClick={() => setFormPacketsTab('templates')}
-                    className={`pb-2.5 px-4 text-xs font-bold border-b-2 flex items-center space-x-2 transition-all cursor-pointer ${
+                    className={`shrink-0 pb-2.5 px-3 sm:px-4 text-xs font-bold border-b-2 flex items-center space-x-2 transition-all cursor-pointer whitespace-nowrap ${
                       formPacketsTab === 'templates'
                         ? 'border-blue-600 text-blue-600 dark:text-blue-400'
                         : 'border-transparent text-slate-500 hover:text-slate-800'
@@ -7277,7 +7465,7 @@ export default function App() {
                   <button
                     type="button"
                     onClick={() => setFormPacketsTab('submissions')}
-                    className={`pb-2.5 px-4 text-xs font-bold border-b-2 flex items-center space-x-2 transition-all cursor-pointer ${
+                    className={`shrink-0 pb-2.5 px-3 sm:px-4 text-xs font-bold border-b-2 flex items-center space-x-2 transition-all cursor-pointer whitespace-nowrap ${
                       formPacketsTab === 'submissions'
                         ? 'border-emerald-600 text-emerald-600 dark:text-emerald-400'
                         : 'border-transparent text-slate-500 hover:text-slate-800'
@@ -7482,7 +7670,7 @@ export default function App() {
                 </button>
               </div>
             ) : (
-            <div className="flex-1 overflow-auto flex flex-col p-6 space-y-6">
+            <div className="flex-1 overflow-auto flex flex-col p-3 sm:p-6 space-y-4 sm:space-y-6">
               <div className="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-800">
                 <div>
                   <h2 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white flex items-center space-x-2.5">
@@ -7495,45 +7683,47 @@ export default function App() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 flex-1">
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-8 flex-1">
                 
                 {/* Left Master Navigation List */}
-                <div className={`lg:col-span-3 p-4 rounded-xl border space-y-2 shadow-sm ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-300'}`}>
-                  <div className="px-3 py-2 font-black text-[11px] uppercase tracking-wider text-slate-400">Settings Modules</div>
-                  {[
-                    { id: 'regions', label: 'Regions & Locations', icon: MapPin, desc: 'Operating facilities, default location & shutdown status' },
-                    { id: 'leadtimes', label: 'Auto-Schedule & Lead Times', icon: Sliders, desc: 'Global & location lead times, dependency offsets & calculations' },
-                    { id: 'job', label: 'Job Settings & Activities', icon: Briefcase, desc: 'Activity catalog, duration estimates & phase sequencing' },
-                    { id: 'calendar', label: 'Calendar & Holidays', icon: CalendarIcon, desc: 'Working days, non-working holidays & map' },
-                    { id: 'users', label: 'Users & Roles', icon: Users, desc: 'Internal roles, external invited users & RBAC' },
-                    { id: 'branding', label: 'Branding & Logo', icon: ImageIcon, desc: 'Logo Base64 upload & brand styling' },
-                    { id: 'custom_fields', label: 'Custom Attributes & Fields', icon: Tag, desc: 'Dynamic Job, Account & Lot schema attributes' },
-                    { id: 'api_keys', label: 'API & ERP Integration', icon: KeyRound, desc: 'Generate API tokens & configure SAP two-way sync' },
-                    { id: 'system', label: 'System & Security', icon: Monitor, desc: 'Entra SSO, IP login locations & policies' },
-                    { id: 'billing', label: 'Billing & Plan', icon: DollarSign, desc: 'SaaS subscription & tier management' },
-                  ].map((cat) => (
-                    <button
-                      key={cat.id}
-                      onClick={() => setSettingsCategory(cat.id as any)}
-                      className={`w-full text-left p-3 rounded-lg font-bold transition-all flex items-start space-x-3 cursor-pointer ${
-                        settingsCategory === cat.id
-                          ? 'bg-blue-600 text-white shadow-md'
-                          : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
-                      }`}
-                    >
-                      <cat.icon className={`w-5 h-5 shrink-0 mt-0.5 ${settingsCategory === cat.id ? 'text-white' : 'text-blue-600 dark:text-blue-400'}`} />
-                      <div className="overflow-hidden">
-                        <div className="text-sm font-bold truncate">{cat.label}</div>
-                        <div className={`text-[11px] font-normal truncate mt-0.5 ${settingsCategory === cat.id ? 'text-blue-100' : 'text-slate-400'}`}>
-                          {cat.desc}
+                <div className={`lg:col-span-3 p-3 lg:p-4 rounded-xl border shadow-sm ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-300'}`}>
+                  <div className="px-3 py-1 lg:py-2 font-black text-[11px] uppercase tracking-wider text-slate-400">Settings Modules</div>
+                  <div className="flex lg:flex-col overflow-x-auto lg:overflow-visible gap-1.5 lg:gap-2 pb-1 lg:pb-0 scrollbar-none">
+                    {[
+                      { id: 'regions', label: 'Regions & Locations', icon: MapPin, desc: 'Operating facilities, default location & shutdown status' },
+                      { id: 'leadtimes', label: 'Auto-Schedule & Lead Times', icon: Sliders, desc: 'Global & location lead times, dependency offsets & calculations' },
+                      { id: 'job', label: 'Job Settings & Activities', icon: Briefcase, desc: 'Activity catalog, duration estimates & phase sequencing' },
+                      { id: 'calendar', label: 'Calendar & Holidays', icon: CalendarIcon, desc: 'Working days, non-working holidays & map' },
+                      { id: 'users', label: 'Users & Roles', icon: Users, desc: 'Internal roles, external invited users & RBAC' },
+                      { id: 'branding', label: 'Branding & Logo', icon: ImageIcon, desc: 'Logo Base64 upload & brand styling' },
+                      { id: 'custom_fields', label: 'Custom Attributes & Fields', icon: Tag, desc: 'Dynamic Job, Account & Lot schema attributes' },
+                      { id: 'api_keys', label: 'API & ERP Integration', icon: KeyRound, desc: 'Generate API tokens & configure SAP two-way sync' },
+                      { id: 'system', label: 'System & Security', icon: Monitor, desc: 'Entra SSO, IP login locations & policies' },
+                      { id: 'billing', label: 'Billing & Plan', icon: DollarSign, desc: 'SaaS subscription & tier management' },
+                    ].map((cat) => (
+                      <button
+                        key={cat.id}
+                        onClick={() => setSettingsCategory(cat.id as any)}
+                        className={`shrink-0 lg:w-full text-left p-2.5 lg:p-3 rounded-lg font-bold transition-all flex items-center lg:items-start space-x-2.5 lg:space-x-3 cursor-pointer whitespace-nowrap lg:whitespace-normal ${
+                          settingsCategory === cat.id
+                            ? 'bg-blue-600 text-white shadow-md'
+                            : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+                        }`}
+                      >
+                        <cat.icon className={`w-4 h-4 lg:w-5 lg:h-5 shrink-0 lg:mt-0.5 ${settingsCategory === cat.id ? 'text-white' : 'text-blue-600 dark:text-blue-400'}`} />
+                        <div className="overflow-hidden">
+                          <div className="text-xs lg:text-sm font-bold truncate">{cat.label}</div>
+                          <div className={`hidden lg:block text-[11px] font-normal truncate mt-0.5 ${settingsCategory === cat.id ? 'text-blue-100' : 'text-slate-400'}`}>
+                            {cat.desc}
+                          </div>
                         </div>
-                      </div>
-                    </button>
-                  ))}
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
                 {/* Right Working Area */}
-                <div className={`lg:col-span-9 p-8 rounded-xl border space-y-6 shadow-md flex-1 overflow-auto ${isDark ? 'bg-slate-900 border-slate-800 text-slate-100' : 'bg-white border-slate-300 text-slate-900'}`}>
+                <div className={`lg:col-span-9 p-4 sm:p-8 rounded-xl border space-y-6 shadow-md flex-1 overflow-auto ${isDark ? 'bg-slate-900 border-slate-800 text-slate-100' : 'bg-white border-slate-300 text-slate-900'}`}>
                   
                   {/* MODULE 0: REGIONS & LOCATIONS */}
                   {settingsCategory === 'regions' && (
@@ -7702,14 +7892,15 @@ export default function App() {
 
                       {/* Operating Facilities Table */}
                       <div className="border rounded-xl overflow-hidden shadow-sm">
-                        <table className="w-full text-left text-xs border-collapse">
-                          <thead>
-                            <tr className={`${isDark ? 'bg-blue-950 text-blue-200 border-b border-slate-800' : 'bg-blue-600 text-white'}`}>
-                              <th className="p-3 font-bold border-r border-white/20">Location Name</th>
-                              <th className="p-3 font-bold border-r border-white/20">Code</th>
-                              <th className="p-3 font-bold border-r border-white/20">Address & Timezone</th>
-                              <th className="p-3 font-bold border-r border-white/20 text-center">Status</th>
-                              <th className="p-3 font-bold text-center">Actions & Default</th>
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-left text-xs border-collapse min-w-[650px]">
+                            <thead>
+                              <tr className={`${isDark ? 'bg-blue-950 text-blue-200 border-b border-slate-800' : 'bg-blue-600 text-white'}`}>
+                                <th className="p-3 font-bold border-r border-white/20">Location Name</th>
+                                <th className="p-3 font-bold border-r border-white/20">Code</th>
+                                <th className="p-3 font-bold border-r border-white/20">Address & Timezone</th>
+                                <th className="p-3 font-bold border-r border-white/20 text-center">Status</th>
+                                <th className="p-3 font-bold text-center">Actions & Default</th>
                             </tr>
                           </thead>
 
@@ -7833,6 +8024,7 @@ export default function App() {
                             ))}
                           </tbody>
                         </table>
+                        </div>
                       </div>
 
                       {/* EDIT REGION / LOCATION MODAL */}
@@ -10671,7 +10863,7 @@ export default function App() {
                           </div>
                         ) : (
                           <div className="overflow-x-auto">
-                            <table className="w-full text-left border-collapse">
+                            <table className="w-full text-left border-collapse min-w-[650px]">
                               <thead>
                                 <tr className={`border-b text-[11px] font-bold uppercase tracking-wider ${isDark ? 'border-slate-700 text-slate-400' : 'border-slate-200 text-slate-500'}`}>
                                   <th className="pb-3 pl-2">Key Name / Client</th>
@@ -10766,7 +10958,7 @@ export default function App() {
 
                         {/* Queue Table */}
                         <div className="overflow-x-auto">
-                          <table className="w-full text-left border-collapse">
+                          <table className="w-full text-left border-collapse min-w-[700px]">
                             <thead>
                               <tr className={`border-b text-[11px] font-bold uppercase tracking-wider ${isDark ? 'border-slate-700 text-slate-400' : 'border-slate-200 text-slate-500'}`}>
                                 <th className="pb-3 pl-2">Entity & Key</th>
@@ -10989,8 +11181,8 @@ export default function App() {
 
           {/* SCREEN 11: HELP & DOCUMENTATION HUB */}
           {activeNav === 'help' && (
-            <div className="flex-1 overflow-auto p-6 space-y-6">
-              <div className="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-800">
+            <div className="flex-1 overflow-auto p-3 sm:p-6 space-y-4 sm:space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-800 gap-3">
                 <div>
                   <h2 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white flex items-center space-x-2.5">
                     <HelpCircle className="w-6 h-6 text-blue-600" />
@@ -11143,6 +11335,13 @@ export default function App() {
                     anchor: '/help.html#video-tutorials',
                     icon: Video,
                     badge: 'YouTube Channel'
+                  },
+                  {
+                    title: 'Mobile PWA Experience & Touch Cards',
+                    desc: 'Responsive mobile card interfaces for Accounts, Jobs, and touch-scrolling Settings and Reports designed for field and phone usage.',
+                    anchor: '/help.html#accounts',
+                    icon: Smartphone,
+                    badge: 'Mobile PWA'
                   },
                 ].map((item) => (
                   <a
@@ -12142,8 +12341,8 @@ export default function App() {
             )}
 
             {/* Affected Activities Cascade Table */}
-            <div className="border rounded-xl overflow-hidden text-xs">
-              <table className="w-full text-left">
+            <div className="border rounded-xl overflow-x-auto text-xs">
+              <table className="w-full text-left min-w-[450px]">
                 <thead className="bg-slate-100 dark:bg-slate-800 font-bold">
                   <tr>
                     <th className="p-2.5">Milestone / Activity</th>
