@@ -840,7 +840,7 @@ async function main() {
       tenantId: tenant.id,
       name: 'SAP S/4HANA Production Bridge',
       keyPrefix: 'sm_live_',
-      keyHash: await bcrypt.hash('sm_live_9f83a1b4c7e28910fedcba45', 10),
+      keyHash: await bcrypt.hash('sm_live_sample_sap_bridge_token_mock', 10),
       scopes: 'read,write,sync,orders,wbs',
       isActive: true,
     },

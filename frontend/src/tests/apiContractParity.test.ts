@@ -112,10 +112,30 @@ describe('REST API Contract & Postman Collection Parity Tests', () => {
     expect(apiDocsRaw).not.toContain('sm_live_9f83a1b4c7e28910fedcba45');
 
     // Verify no database passwords or Azure secrets exist in public documentation
-    const forbiddenKeywords = ['RnfFNzfQ', 'slabmasteradmin', 'AccountKey=', 'DefaultEndpointsProtocol='];
+    const forbiddenKeywords = ['RnfFNzfQ', 'slabmasteradmin', 'AccountKey=', 'DefaultEndpointsProtocol=', 'sm_live_9f83a1b4c7e28910fedcba45'];
     forbiddenKeywords.forEach((keyword) => {
       expect(apiDocsRaw).not.toContain(keyword);
       expect(helpRaw).not.toContain(keyword);
     });
+
+    // Also verify published documents folder and subscriber onboarding guides
+    const publishedApiDocsPath = path.resolve(__dirname, '../../../documents/05_API_and_Integration/api_docs.html');
+    if (fs.existsSync(publishedApiDocsPath)) {
+      const publishedApiDocs = fs.readFileSync(publishedApiDocsPath, 'utf-8');
+      expect(publishedApiDocs).not.toContain('sm_live_9f83a1b4c7e28910fedcba45');
+      expect(publishedApiDocs).toContain('sm_live_YOUR_API_TOKEN_HERE');
+    }
+
+    const onboardingGuidePath = path.resolve(__dirname, '../../../docs/subscriber_onboarding_guide.md');
+    if (fs.existsSync(onboardingGuidePath)) {
+      const guideRaw = fs.readFileSync(onboardingGuidePath, 'utf-8');
+      expect(guideRaw).not.toContain('sm_live_9f83a1b4c7e28910fedcba45');
+    }
+
+    const pubOnboardingGuidePath = path.resolve(__dirname, '../../../documents/03_Subscriber_Guides/subscriber_onboarding_guide.md');
+    if (fs.existsSync(pubOnboardingGuidePath)) {
+      const pubGuideRaw = fs.readFileSync(pubOnboardingGuidePath, 'utf-8');
+      expect(pubGuideRaw).not.toContain('sm_live_9f83a1b4c7e28910fedcba45');
+    }
   });
 });

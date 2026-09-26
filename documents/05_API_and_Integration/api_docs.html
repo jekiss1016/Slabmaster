@@ -294,10 +294,10 @@
         <p>Every REST request requires a tenant-scoped API key passed via standard HTTP headers:</p>
 
         <pre><code># Recommended Header Format:
-X-API-Key: sm_live_9f83a1b4c7e28910fedcba45
+X-API-Key: sm_live_YOUR_API_TOKEN_HERE
 
 # Or Standard Bearer Authorization:
-Authorization: Bearer sm_live_9f83a1b4c7e28910fedcba45</code></pre>
+Authorization: Bearer sm_live_YOUR_API_TOKEN_HERE</code></pre>
 
         <div class="alert">
           <strong>Token Generation:</strong> Tenant administrators generate integration keys in the SlabMaster Admin Portal under <code>Settings ? API & ERP Integration</code>. Tokens are SHA-256 hashed prior to storage and can be scoped with <code>read</code>, <code>write</code>, <code>sync</code>, and <code>delete</code> permissions.
@@ -520,7 +520,7 @@ Authorization: Bearer sm_live_9f83a1b4c7e28910fedcba45</code></pre>
           </div>
           <pre><code>POST /api/v1/accounts/upsert HTTP/1.1
 Host: dev.slabmasterapp.com
-X-API-Key: sm_live_9f83a1b4c7e28910fedcba45
+X-API-Key: sm_live_YOUR_API_TOKEN_HERE
 Content-Type: application/json
 
 {
@@ -557,7 +557,7 @@ Content-Type: application/json
           </div>
           <pre><code>GET /api/v1/accounts/by-external-id/SAP-BLD-01 HTTP/1.1
 Host: dev.slabmasterapp.com
-X-API-Key: sm_live_9f83a1b4c7e28910fedcba45</code></pre>
+X-API-Key: sm_live_YOUR_API_TOKEN_HERE</code></pre>
 
           <!-- Delete -->
           <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem; margin-bottom: 0.5rem;">
@@ -572,7 +572,7 @@ X-API-Key: sm_live_9f83a1b4c7e28910fedcba45</code></pre>
           </p>
           <pre><code>DELETE /api/v1/accounts/by-external-id/SAP-BLD-01 HTTP/1.1
 Host: dev.slabmasterapp.com
-X-API-Key: sm_live_9f83a1b4c7e28910fedcba45</code></pre>
+X-API-Key: sm_live_YOUR_API_TOKEN_HERE</code></pre>
           <pre><code>{
   "message": "Account marked inactive.",
   "operation": "DEACTIVATED",
@@ -595,7 +595,7 @@ X-API-Key: sm_live_9f83a1b4c7e28910fedcba45</code></pre>
           </div>
           <pre><code>POST /api/v1/communities/upsert HTTP/1.1
 Host: dev.slabmasterapp.com
-X-API-Key: sm_live_9f83a1b4c7e28910fedcba45
+X-API-Key: sm_live_YOUR_API_TOKEN_HERE
 Content-Type: application/json
 
 {
@@ -631,7 +631,7 @@ Content-Type: application/json
           </div>
           <pre><code>GET /api/v1/communities/by-external-id/COMM-HIGHLAND HTTP/1.1
 Host: dev.slabmasterapp.com
-X-API-Key: sm_live_9f83a1b4c7e28910fedcba45</code></pre>
+X-API-Key: sm_live_YOUR_API_TOKEN_HERE</code></pre>
         </div>
 
         <!-- 4.3 LOTS (JOB SITES) -->
@@ -649,7 +649,7 @@ X-API-Key: sm_live_9f83a1b4c7e28910fedcba45</code></pre>
           </div>
           <pre><code>POST /api/v1/lots/upsert HTTP/1.1
 Host: dev.slabmasterapp.com
-X-API-Key: sm_live_9f83a1b4c7e28910fedcba45
+X-API-Key: sm_live_YOUR_API_TOKEN_HERE
 Content-Type: application/json
 
 {
@@ -683,7 +683,7 @@ Content-Type: application/json
           </div>
           <pre><code>GET /api/v1/lots/by-external-id/LOT-HIGHLAND-14 HTTP/1.1
 Host: dev.slabmasterapp.com
-X-API-Key: sm_live_9f83a1b4c7e28910fedcba45</code></pre>
+X-API-Key: sm_live_YOUR_API_TOKEN_HERE</code></pre>
         </div>
 
         <!-- 4.4 JOBS (INSTALLATION WORK ORDERS) -->
@@ -701,7 +701,7 @@ X-API-Key: sm_live_9f83a1b4c7e28910fedcba45</code></pre>
           </div>
           <pre><code>POST /api/v1/jobs/upsert HTTP/1.1
 Host: dev.slabmasterapp.com
-X-API-Key: sm_live_9f83a1b4c7e28910fedcba45
+X-API-Key: sm_live_YOUR_API_TOKEN_HERE
 Content-Type: application/json
 
 {
@@ -737,7 +737,7 @@ Content-Type: application/json
           </div>
           <pre><code>GET /api/v1/jobs/by-external-id/SAP-ORD-90210 HTTP/1.1
 Host: dev.slabmasterapp.com
-X-API-Key: sm_live_9f83a1b4c7e28910fedcba45</code></pre>
+X-API-Key: sm_live_YOUR_API_TOKEN_HERE</code></pre>
         </div>
 
         <!-- 4.5 ACTIVITIES (MILESTONES & PHASES) -->
@@ -755,7 +755,7 @@ X-API-Key: sm_live_9f83a1b4c7e28910fedcba45</code></pre>
           </div>
           <pre><code>POST /api/v1/activities/upsert HTTP/1.1
 Host: dev.slabmasterapp.com
-X-API-Key: sm_live_9f83a1b4c7e28910fedcba45
+X-API-Key: sm_live_YOUR_API_TOKEN_HERE
 Content-Type: application/json
 
 {
@@ -792,7 +792,7 @@ Content-Type: application/json
           </div>
           <pre><code>GET /api/v1/activities/by-external-id/ACT-90210-INSTALL HTTP/1.1
 Host: dev.slabmasterapp.com
-X-API-Key: sm_live_9f83a1b4c7e28910fedcba45</code></pre>
+X-API-Key: sm_live_YOUR_API_TOKEN_HERE</code></pre>
         </div>
       </section>
 
@@ -805,7 +805,7 @@ X-API-Key: sm_live_9f83a1b4c7e28910fedcba45</code></pre>
 
 DATA: lo_http_client TYPE REF TO if_http_client,
       lv_url         TYPE string VALUE 'https://dev.slabmasterapp.com/api/v1/jobs/upsert',
-      lv_api_key     TYPE string VALUE 'sm_live_9f83a1b4c7e28910fedcba45',
+      lv_api_key     TYPE string VALUE 'sm_live_YOUR_API_TOKEN_HERE',
       lv_json        TYPE string,
       lv_response    TYPE string,
       lv_subrc       TYPE sy-subrc.
@@ -857,7 +857,7 @@ lo_http_client->close( ).</code></pre>
 
         <pre><code>GET /api/v1/sync/changes?since=2026-09-04T12:00:00Z&limit=100 HTTP/1.1
 Host: dev.slabmasterapp.com
-X-API-Key: sm_live_9f83a1b4c7e28910fedcba45</code></pre>
+X-API-Key: sm_live_YOUR_API_TOKEN_HERE</code></pre>
 
         <p><strong>Delta Event Response:</strong></p>
         <pre><code>{

@@ -280,7 +280,7 @@ Follow this chronological sequence to configure a newly provisioned SlabMaster s
 2. Click **Generate Live API Token**:
    - Name: `SAP S/4HANA Production Bridge`
    - Scopes: `read,write,sync,orders,wbs`
-   - Save the secret token (e.g. `sm_live_9f83a1b4c7e28910fedcba45`).
+   - Save the secret token (e.g. `sm_live_YOUR_API_TOKEN_HERE`).
 3. Hand the **SAP Developer Pack** (`/api-docs.html`) and **Postman Collection** (`/slabmaster_postman_collection.json`) to the ERP integration team.
 4. Test outbound connectivity:
    - Inspect the **Outbound ERP Retry Queue** table in Admin Portal.
